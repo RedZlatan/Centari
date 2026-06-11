@@ -1,0 +1,78 @@
+/* ─── Reset ──────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── Design tokens ──────────────────────────────────────────── */
+:root {
+  /* Palette */
+  --color-bg:       #17191a;
+  --color-surface:  #1e2022;
+  --color-border:   #2a2d2f;
+  --color-text:     #e9e5df;
+  --color-muted:    #8a8480;
+  --color-accent:   #a88a5a;
+  --color-pine:     #2c3430;
+
+  /* --font-sans and --font-mono are injected by next/font in layout.tsx */
+
+  /* Spacing (4px grid) */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-24:  96px;
+  --space-32:  128px;
+
+  /* Type scale */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.25rem;
+  --text-xl:   1.5rem;
+  --text-2xl:  2rem;
+  --text-4xl:  3.5rem;
+  --text-6xl:  5.5rem;
+
+  /* Layout */
+  --header-height: 72px;
+  --max-width:     1280px;
+}
+
+/* ─── Base ───────────────────────────────────────────────────── */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.7;
+}
+
+main {
+  padding-top: var(--header-height);
+}

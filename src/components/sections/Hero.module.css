@@ -1,0 +1,95 @@
+.hero {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Subtle horizontal rule above the content block */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-border) 20%,
+    var(--color-border) 80%,
+    transparent
+  );
+}
+
+.inner {
+  padding-top: var(--space-24);
+  padding-bottom: var(--space-24);
+}
+
+.content {
+  max-width: 780px;
+}
+
+.headline {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--color-text);
+  margin-bottom: var(--space-8);
+}
+
+.body {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+  line-height: 1.6;
+  max-width: 520px;
+  margin-bottom: var(--space-12);
+}
+
+.ctas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.primaryCta {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.primaryCta:hover {
+  background-color: transparent;
+  color: var(--color-accent);
+}
+
+.secondaryCta {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: var(--space-3) var(--space-6);
+  background-color: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.secondaryCta:hover {
+  color: var(--color-text);
+  border-color: var(--color-muted);
+}

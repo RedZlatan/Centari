@@ -1,0 +1,27 @@
+.card {
+  padding: var(--space-8);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--color-pine);
+  background-color: color-mix(in srgb, var(--color-pine) 30%, var(--color-surface));
+}
+
+.name {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.6;
+}

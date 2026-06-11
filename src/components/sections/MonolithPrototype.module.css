@@ -16,12 +16,14 @@
 .canvasLayer {
   position: absolute;
   inset: 0;
+  z-index: 0;
 }
 
 .vignette {
   pointer-events: none;
   position: absolute;
   inset: 0;
+  z-index: 1;
   background:
     linear-gradient(90deg, rgba(23, 25, 26, 0.92), transparent 34%, rgba(23, 25, 26, 0.68)),
     radial-gradient(circle at 50% 42%, transparent 0, transparent 32%, rgba(0, 0, 0, 0.7) 100%);
@@ -29,6 +31,7 @@
 
 .story {
   position: absolute;
+  z-index: 2;
   left: clamp(var(--space-6), 6vw, var(--space-24));
   top: 50%;
   width: min(540px, 38vw);
@@ -91,6 +94,7 @@
 
 .problemInterface {
   position: absolute;
+  z-index: 3;
   top: 50%;
   right: clamp(var(--space-6), 5vw, var(--space-16));
   width: min(520px, 39vw);
@@ -249,42 +253,68 @@
 
 @media (max-width: 980px) {
   .section {
-    height: auto;
-    min-height: 100vh;
+    height: 420vh;
+    min-height: 0;
   }
 
   .stickyStage {
-    position: relative;
-    min-height: 1180px;
-    height: auto;
+    position: sticky;
+    min-height: 0;
+    height: 100vh;
   }
 
-  .story,
-  .problemInterface {
-    position: relative;
-    top: auto;
-    right: auto;
-    left: auto;
+  .vignette {
+    background:
+      linear-gradient(180deg, rgba(23, 25, 26, 0.84), transparent 34%, rgba(23, 25, 26, 0.82)),
+      radial-gradient(circle at 50% 48%, transparent 0, transparent 36%, rgba(0, 0, 0, 0.74) 100%);
+  }
+
+  .story {
+    top: calc(var(--header-height) + var(--space-8));
+    left: var(--space-6);
+    right: var(--space-6);
     width: auto;
-    margin: 0 var(--space-6);
     transform: none;
   }
 
-  .story,
   .storyInside {
-    padding-top: var(--space-24);
-    opacity: 1;
-    transform: none;
+    opacity: 0.58;
+    transform: translateY(-16px);
   }
 
   .problemInterface {
-    margin-top: var(--space-12);
+    top: auto;
+    right: var(--space-6);
+    bottom: var(--space-6);
+    left: var(--space-6);
+    width: auto;
+    max-height: 52vh;
+    transform: translateY(28px);
+  }
+
+  .interfaceVisible {
     opacity: 1;
     pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .story h2 {
+    max-width: 460px;
+    font-size: clamp(var(--text-4xl), 12vw, var(--text-5xl));
+  }
+
+  .story p:not(.kicker) {
+    max-width: 420px;
+    font-size: var(--text-base);
   }
 }
 
 @media (max-width: 640px) {
+  .form,
+  .submittedState {
+    padding: var(--space-6);
+  }
+
   .twoColumn {
     grid-template-columns: 1fr;
   }

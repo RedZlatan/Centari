@@ -1,5 +1,7 @@
 # Centari Products
 
+For the complete system view — data flows, dependencies, customer journeys, and future expansion — see **[ecosystem-map.md](ecosystem-map.md)**.
+
 Centari builds seven products. They are not seven separate things. They are one ecosystem designed to help organisations do three things:
 
 > **Understand** complex physical and digital systems.  

@@ -12,6 +12,10 @@ Centari creates problem-solving products at the intersection of extended reality
 
 ```
 Centari/
+├── src/
+│   ├── app/            # Next.js App Router — layout, pages, global CSS
+│   ├── components/     # Layout and section components
+│   └── lib/            # Typed content constants
 ├── docs/               # Vision, architecture, and sprint documentation
 │   ├── sprints/        # Per-sprint scope, goals, and retrospectives
 │   └── architecture/   # Technical design documents
@@ -23,11 +27,18 @@ Centari/
 
 Work is organized in short, focused sprints. Each sprint has a scope document in `docs/sprints/` that defines goals, deliverables, and acceptance criteria before work begins.
 
-**Current phase:** Sprint 0 — Foundation
+**Current phase:** Sprint 1 complete — homepage live locally (`npm run dev`)
 
 ## Getting started
 
-Documentation for specific products and services will live in their respective subdirectories as the codebase grows. Start with `docs/vision.md` for company direction.
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # production build
+npm run type-check
+```
+
+For company direction and architecture decisions, start with `docs/vision.md` and `docs/architecture/`.
 
 ---
 

@@ -4,7 +4,9 @@ Technical design documents live here. Each document covers a discrete system, co
 
 ## Index
 
-*No documents yet. Architecture documents are added as products and systems are defined.*
+| Document | Sprint | Subject |
+|----------|--------|---------|
+| [web-frontend.md](web-frontend.md) | 1 | Next.js 15, CSS Modules, font strategy, deployment |
 
 ## Document format
 

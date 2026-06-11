@@ -1,7 +1,8 @@
 # Sprint 0 — Foundation
 
-**Status:** In progress  
+**Status:** Complete  
 **Started:** 2026-06-11  
+**Closed:** 2026-06-11  
 **Goal:** Establish the repository as a professional, navigable home for all Centari work.
 
 ---
@@ -19,7 +20,7 @@ Sprint 0 is not about features. It is about creating the conditions for good wor
 - [x] `.github/PULL_REQUEST_TEMPLATE.md` — consistent PR format
 - [x] `.github/ISSUE_TEMPLATE/` — bug and feature request templates
 - [x] `CLAUDE.md` — updated with project-specific AI assistant context
-- [ ] `docs/architecture/README.md` — architecture index (placeholder)
+- [x] `docs/architecture/README.md` — architecture index (placeholder)
 
 ## Acceptance criteria
 
@@ -38,4 +39,4 @@ Sprint 0 is not about features. It is about creating the conditions for good wor
 
 ## Retrospective
 
-*To be filled at sprint close.*
+All deliverables committed to `main` on the same day. Repository is navigable without verbal explanation. Sprint 1 began immediately following.

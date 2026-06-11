@@ -80,6 +80,9 @@ Cargo.lock
 # TypeScript
 tsconfig.tsbuildinfo
 
+# SQLite database (contains submission data — never commit)
+data/
+
 # Claude Code
 .claude/settings.local.json
 .claude/

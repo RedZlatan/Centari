@@ -1,0 +1,304 @@
+.section {
+  padding: var(--space-32) 0;
+  border-top: 1px solid var(--color-border);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(168, 138, 90, 0.11), transparent 28%),
+    linear-gradient(180deg, rgba(44, 52, 48, 0.42), rgba(23, 25, 26, 0.98));
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.72fr);
+  gap: var(--space-16);
+  align-items: start;
+}
+
+.narrative {
+  position: sticky;
+  top: var(--space-16);
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-12) 0;
+}
+
+.kicker,
+.principles,
+.field span,
+.visibility,
+.submit,
+.submittedState button,
+.identityBlock p:last-child {
+  font-family: var(--font-mono), monospace;
+}
+
+.kicker {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.narrative h2 {
+  max-width: 720px;
+  margin-bottom: var(--space-8);
+  font-size: clamp(var(--text-4xl), 7vw, var(--text-6xl));
+  font-weight: 300;
+  line-height: 1.02;
+  color: var(--color-text);
+}
+
+.lede {
+  max-width: 620px;
+  margin-bottom: var(--space-12);
+  font-size: var(--text-xl);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+.identityBlock {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: center;
+  max-width: 520px;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  background: rgba(30, 32, 34, 0.62);
+}
+
+.monolithMark {
+  width: 58px;
+  height: 96px;
+  overflow: visible;
+}
+
+.leftPlane,
+.rightPlane {
+  fill: rgba(233, 229, 223, 0.13);
+  stroke: var(--color-text);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.rightPlane {
+  fill: rgba(233, 229, 223, 0.2);
+}
+
+.splitLine,
+.referenceLine {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1.8;
+  stroke-linecap: square;
+}
+
+.wordmark {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xl);
+  letter-spacing: 0.28em;
+  color: var(--color-text);
+}
+
+.identityBlock p:last-child {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 620px;
+  margin-top: var(--space-8);
+  border: 1px solid var(--color-border);
+}
+
+.principles span {
+  padding: var(--space-4);
+  border-right: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.principles span:last-child {
+  border-right: 0;
+}
+
+.panel {
+  border: 1px solid var(--color-border);
+  background:
+    linear-gradient(180deg, rgba(30, 32, 34, 0.96), rgba(23, 25, 26, 0.98)),
+    var(--color-surface);
+}
+
+.form,
+.submittedState {
+  padding: var(--space-8);
+}
+
+.formHeader {
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.formHeader h3,
+.submittedState h3 {
+  font-size: var(--text-2xl);
+  font-weight: 300;
+  line-height: 1.15;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.field span,
+.visibility legend {
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: rgba(23, 25, 26, 0.78);
+  color: var(--color-text);
+  font: inherit;
+  padding: var(--space-4);
+  outline: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 148px;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  border-color: var(--color-accent);
+  background: rgba(23, 25, 26, 0.96);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: rgba(138, 132, 128, 0.72);
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.visibility {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.visibility legend {
+  padding: 0 var(--space-2);
+}
+
+.visibility label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.visibility input {
+  accent-color: var(--color-accent);
+}
+
+.submit,
+.submittedState button {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.submit:hover,
+.submittedState button:hover {
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.submittedState {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.submittedState p {
+  max-width: 480px;
+  margin: var(--space-6) 0 var(--space-8);
+  color: var(--color-muted);
+}
+
+.submittedState strong {
+  color: var(--color-text);
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .narrative {
+    position: static;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding: var(--space-24) 0;
+  }
+
+  .twoColumn,
+  .principles {
+    grid-template-columns: 1fr;
+  }
+
+  .principles span {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .principles span:last-child {
+    border-bottom: 0;
+  }
+}

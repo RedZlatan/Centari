@@ -43,7 +43,7 @@ export function Hero() {
             <a href="#products" className={styles.primaryCta}>
               Explore Solutions
             </a>
-            <a href="#" className={styles.secondaryCta}>
+            <a href="/control-room" className={styles.secondaryCta}>
               Enter Control Room
             </a>
           </div>

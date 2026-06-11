@@ -21,6 +21,7 @@ node_modules/
 vendor/
 
 # Build output
+.next/
 dist/
 build/
 out/

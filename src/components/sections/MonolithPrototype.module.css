@@ -1,35 +1,52 @@
 .section {
-  padding: var(--space-32) 0;
+  height: 420vh;
+  position: relative;
   border-top: 1px solid var(--color-border);
-  background:
-    radial-gradient(circle at 18% 20%, rgba(168, 138, 90, 0.11), transparent 28%),
-    linear-gradient(180deg, rgba(44, 52, 48, 0.42), rgba(23, 25, 26, 0.98));
+  background: var(--color-bg);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.72fr);
-  gap: var(--space-16);
-  align-items: start;
-}
-
-.narrative {
+.stickyStage {
   position: sticky;
-  top: var(--space-16);
-  min-height: 620px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: var(--space-12) 0;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.canvasLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(23, 25, 26, 0.92), transparent 34%, rgba(23, 25, 26, 0.68)),
+    radial-gradient(circle at 50% 42%, transparent 0, transparent 32%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+.story {
+  position: absolute;
+  left: clamp(var(--space-6), 6vw, var(--space-24));
+  top: 50%;
+  width: min(540px, 38vw);
+  transform: translateY(-50%);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.storyInside {
+  opacity: 0.68;
+  transform: translateY(-64%);
 }
 
 .kicker,
-.principles,
+.progressRail,
 .field span,
 .visibility,
 .submit,
-.submittedState button,
-.identityBlock p:last-child {
+.submittedState button {
   font-family: var(--font-mono), monospace;
 }
 
@@ -41,101 +58,59 @@
   color: var(--color-accent);
 }
 
-.narrative h2 {
-  max-width: 720px;
-  margin-bottom: var(--space-8);
-  font-size: clamp(var(--text-4xl), 7vw, var(--text-6xl));
+.story h2 {
+  margin-bottom: var(--space-6);
+  font-size: clamp(var(--text-4xl), 6vw, var(--text-6xl));
   font-weight: 300;
-  line-height: 1.02;
+  line-height: 1;
   color: var(--color-text);
 }
 
-.lede {
-  max-width: 620px;
-  margin-bottom: var(--space-12);
-  font-size: var(--text-xl);
+.story p:not(.kicker) {
+  max-width: 480px;
+  color: var(--color-muted);
+  font-size: var(--text-lg);
   line-height: 1.55;
-  color: var(--color-muted);
 }
 
-.identityBlock {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: var(--space-6);
-  align-items: center;
-  max-width: 520px;
-  padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  background: rgba(30, 32, 34, 0.62);
-}
-
-.monolithMark {
-  width: 58px;
-  height: 96px;
-  overflow: visible;
-}
-
-.leftPlane,
-.rightPlane {
-  fill: rgba(233, 229, 223, 0.13);
-  stroke: var(--color-text);
-  stroke-width: 1.4;
-  stroke-linejoin: round;
-}
-
-.rightPlane {
-  fill: rgba(233, 229, 223, 0.2);
-}
-
-.splitLine,
-.referenceLine {
-  fill: none;
-  stroke: var(--color-accent);
-  stroke-width: 1.8;
-  stroke-linecap: square;
-}
-
-.wordmark {
-  margin-bottom: var(--space-2);
-  font-family: var(--font-mono), monospace;
-  font-size: var(--text-xl);
-  letter-spacing: 0.28em;
-  color: var(--color-text);
-}
-
-.identityBlock p:last-child {
-  font-size: var(--text-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.principles {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-width: 620px;
+.progressRail {
+  width: min(460px, 100%);
+  height: 1px;
   margin-top: var(--space-8);
-  border: 1px solid var(--color-border);
+  background: rgba(233, 229, 223, 0.2);
+  transform-origin: left center;
 }
 
-.principles span {
-  padding: var(--space-4);
-  border-right: 1px solid var(--color-border);
-  font-size: var(--text-xs);
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--color-muted);
+.progressRail span {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--color-accent);
+  transform-origin: left center;
 }
 
-.principles span:last-child {
-  border-right: 0;
-}
-
-.panel {
-  border: 1px solid var(--color-border);
+.problemInterface {
+  position: absolute;
+  top: 50%;
+  right: clamp(var(--space-6), 5vw, var(--space-16));
+  width: min(520px, 39vw);
+  max-height: calc(100vh - var(--space-12));
+  overflow: auto;
+  border: 1px solid rgba(168, 138, 90, 0.42);
   background:
-    linear-gradient(180deg, rgba(30, 32, 34, 0.96), rgba(23, 25, 26, 0.98)),
+    linear-gradient(180deg, rgba(30, 32, 34, 0.94), rgba(23, 25, 26, 0.98)),
     var(--color-surface);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-42%) translateX(32px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.interfaceVisible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
 }
 
 .form,
@@ -144,7 +119,7 @@
 }
 
 .formHeader {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
   padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--color-border);
 }
@@ -159,7 +134,7 @@
 .field {
   display: grid;
   gap: var(--space-2);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5, 20px);
 }
 
 .field span,
@@ -186,7 +161,7 @@
 
 .field textarea {
   resize: vertical;
-  min-height: 148px;
+  min-height: 128px;
 }
 
 .field input:focus,
@@ -256,14 +231,14 @@
 }
 
 .submittedState {
-  min-height: 520px;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
 .submittedState p {
-  max-width: 480px;
+  max-width: 420px;
   margin: var(--space-6) 0 var(--space-8);
   color: var(--color-muted);
 }
@@ -272,33 +247,45 @@
   color: var(--color-text);
 }
 
-@media (max-width: 960px) {
-  .grid {
-    grid-template-columns: 1fr;
+@media (max-width: 980px) {
+  .section {
+    height: auto;
+    min-height: 100vh;
   }
 
-  .narrative {
-    position: static;
-    min-height: auto;
+  .stickyStage {
+    position: relative;
+    min-height: 1180px;
+    height: auto;
+  }
+
+  .story,
+  .problemInterface {
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    width: auto;
+    margin: 0 var(--space-6);
+    transform: none;
+  }
+
+  .story,
+  .storyInside {
+    padding-top: var(--space-24);
+    opacity: 1;
+    transform: none;
+  }
+
+  .problemInterface {
+    margin-top: var(--space-12);
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
 @media (max-width: 640px) {
-  .section {
-    padding: var(--space-24) 0;
-  }
-
-  .twoColumn,
-  .principles {
+  .twoColumn {
     grid-template-columns: 1fr;
-  }
-
-  .principles span {
-    border-right: 0;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .principles span:last-child {
-    border-bottom: 0;
   }
 }

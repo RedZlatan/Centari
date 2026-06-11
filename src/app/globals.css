@@ -72,7 +72,3 @@ body {
   font-size: var(--text-base);
   line-height: 1.7;
 }
-
-main {
-  padding-top: var(--header-height);
-}

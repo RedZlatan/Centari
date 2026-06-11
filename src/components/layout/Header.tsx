@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { label: "Products", href: "#products" },
   { label: "Research", href: "#" },
   { label: "Journal", href: "#" },
-  { label: "Control Room", href: "#", isControlRoom: true },
+  { label: "Control Room", href: "/control-room", isControlRoom: true },
 ];
 
 export function Header() {

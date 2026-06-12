@@ -89,42 +89,57 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
     <group ref={group}>
       <mesh position={[0, -2.72, -0.12]}>
         <boxGeometry args={[5.4, 0.52, 2.4]} />
-        <meshStandardMaterial color="#090a0a" roughness={0.98} metalness={0.01} />
+        <meshStandardMaterial color="#151916" roughness={0.96} metalness={0.02} />
       </mesh>
 
       <mesh position={[0, 1.08, -0.42]}>
         <boxGeometry args={[3.05, 8.25, 0.18]} />
-        <meshStandardMaterial color="#050606" roughness={0.99} metalness={0} />
+        <meshStandardMaterial color="#111411" roughness={0.98} metalness={0.01} />
       </mesh>
 
       <mesh ref={leftDoor} position={[-0.76, 1.08, 0]}>
         <boxGeometry args={[1.46, 7.6, 0.68]} />
-        <meshStandardMaterial color="#060807" roughness={1} metalness={0} />
+        <meshStandardMaterial color="#1a1f1b" roughness={0.98} metalness={0.015} />
       </mesh>
 
       <mesh ref={rightDoor} position={[0.76, 1.08, 0]}>
         <boxGeometry args={[1.46, 7.6, 0.68]} />
-        <meshStandardMaterial color="#0a0d0b" roughness={1} metalness={0} />
+        <meshStandardMaterial color="#222821" roughness={0.98} metalness={0.012} />
       </mesh>
 
       <mesh position={[-0.38, 1.08, 0.39]}>
         <boxGeometry args={[0.62, 7.18, 0.025]} />
-        <meshStandardMaterial color="#141815" roughness={1} metalness={0} />
+        <meshStandardMaterial color="#2d342e" roughness={0.99} metalness={0} />
       </mesh>
 
       <mesh position={[0.44, 1.08, 0.4]}>
         <boxGeometry args={[0.52, 7.08, 0.025]} />
-        <meshStandardMaterial color="#101310" roughness={1} metalness={0} />
+        <meshStandardMaterial color="#252c26" roughness={0.99} metalness={0} />
       </mesh>
 
       <mesh position={[0, 5.92, 0.02]} rotation={[0, 0, Math.PI / 4]}>
         <boxGeometry args={[2.08, 2.08, 0.7]} />
-        <meshStandardMaterial color="#080a09" roughness={1} metalness={0} />
+        <meshStandardMaterial color="#1b211c" roughness={0.98} metalness={0.012} />
+      </mesh>
+
+      <mesh position={[-1.52, 1.18, 0.43]}>
+        <boxGeometry args={[0.035, 7.3, 0.045]} />
+        <meshStandardMaterial color="#495149" roughness={0.92} metalness={0.02} />
+      </mesh>
+
+      <mesh position={[1.52, 1.18, 0.43]}>
+        <boxGeometry args={[0.035, 7.3, 0.045]} />
+        <meshStandardMaterial color="#3b443d" roughness={0.94} metalness={0.02} />
+      </mesh>
+
+      <mesh position={[0, 4.86, 0.44]}>
+        <boxGeometry args={[2.42, 0.032, 0.045]} />
+        <meshStandardMaterial color="#3d453d" roughness={0.94} metalness={0.015} />
       </mesh>
 
       <mesh position={[-0.02, 1.02, 0.37]}>
         <boxGeometry args={[0.035, 5.6, 0.045]} />
-        <meshStandardMaterial color="#050606" roughness={1} metalness={0} />
+        <meshStandardMaterial color="#111511" roughness={1} metalness={0} />
       </mesh>
 
       <mesh position={[0, -0.25, 0.42]}>
@@ -144,12 +159,12 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
 
       <mesh ref={threshold} position={[0, -2.43, -0.42]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[2.5, 4.2]} />
-        <meshStandardMaterial color="#070808" roughness={0.96} metalness={0.01} />
+        <meshStandardMaterial color="#111411" roughness={0.96} metalness={0.01} />
       </mesh>
 
       <mesh position={[0, -2.48, 1.2]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[18, 22]} />
-        <meshStandardMaterial color="#090a0a" roughness={0.99} metalness={0} />
+        <meshStandardMaterial color="#171b18" roughness={0.98} metalness={0} />
       </mesh>
     </group>
   );
@@ -158,13 +173,13 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
 function FieldScene({ progress }: { progress: number }) {
   return (
     <Canvas camera={{ position: [3.2, 2.35, 22], fov: 35 }} dpr={[1, 1.75]}>
-      <color attach="background" args={["#111313"]} />
-      <fog attach="fog" args={["#111313", 8, 32]} />
-      <ambientLight intensity={0.08} />
-      <hemisphereLight args={["#bcb3a5", "#050606", 0.16]} />
-      <directionalLight position={[-5, 8, 8]} intensity={0.56} color="#d6cdbc" />
-      <directionalLight position={[5, 3, -4]} intensity={0.1} color="#6f6047" />
-      <spotLight position={[0, 5.8, 5.5]} angle={0.22} penumbra={0.94} intensity={0.44} color="#c9b996" />
+      <color attach="background" args={["#181b19"]} />
+      <fog attach="fog" args={["#181b19", 10, 38]} />
+      <ambientLight intensity={0.26} />
+      <hemisphereLight args={["#d6d0c6", "#111411", 0.46]} />
+      <directionalLight position={[-5, 8, 8]} intensity={0.9} color="#d8d2c7" />
+      <directionalLight position={[5, 3, -4]} intensity={0.34} color="#8a806f" />
+      <spotLight position={[0, 6.4, 5.8]} angle={0.26} penumbra={0.9} intensity={0.66} color="#c8bfae" />
       <CalibrationSplitMonolith progress={progress} />
     </Canvas>
   );

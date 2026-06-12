@@ -13,24 +13,29 @@ import styles from "./research.module.css";
 
 // Natural Earth via world-atlas keeps the map geodata-based without a heavy map runtime.
 type SignalCategory =
-  | "Infrastructure"
-  | "Training"
-  | "Autonomy"
-  | "Climate"
-  | "Security"
-  | "Spatial (XR)"
+  | "AI"
+  | "Spatial / XR"
+  | "Robotics"
+  | "Quantum"
+  | "Space"
+  | "Energy"
+  | "Materials"
   | "Nano"
-  | "Quantum";
+  | "All";
+
+type ResearchCategory = Exclude<SignalCategory, "All">;
 
 type Signal = {
   id: string;
   title: string;
   location: string;
   region: string;
-  category: SignalCategory;
+  category: ResearchCategory;
   x: number;
   y: number;
   intensity: number;
+  signal_strength?: number;
+  trend_score?: number;
   momentum: string;
   summary: string;
 };
@@ -44,7 +49,7 @@ type SignalCluster = {
 };
 
 type ResearchMapPayload = {
-  categories: Array<SignalCategory | "All">;
+  categories: SignalCategory[];
   signals: Signal[];
   clusters: SignalCluster[];
 };
@@ -83,14 +88,14 @@ const graticuleLines = [
 const researchMapData: ResearchMapPayload = {
   categories: [
     "All",
-    "Infrastructure",
-    "Training",
-    "Autonomy",
-    "Climate",
-    "Security",
-    "Spatial (XR)",
-    "Nano",
+    "AI",
+    "Spatial / XR",
+    "Robotics",
     "Quantum",
+    "Space",
+    "Energy",
+    "Materials",
+    "Nano",
   ],
   signals: [
   {
@@ -98,7 +103,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Arctic logistics corridors",
     location: "Tromso / Kiruna",
     region: "Nordics",
-    category: "Infrastructure",
+    category: "Energy",
     x: 51,
     y: 20,
     intensity: 94,
@@ -110,7 +115,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Synthetic readiness campuses",
     location: "London / Bristol",
     region: "UK",
-    category: "Training",
+    category: "AI",
     x: 46,
     y: 35,
     intensity: 88,
@@ -122,7 +127,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Baltic sensor fusion",
     location: "Tallinn / Riga",
     region: "Baltics",
-    category: "Security",
+    category: "AI",
     x: 54,
     y: 32,
     intensity: 91,
@@ -134,7 +139,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Port automation doctrine",
     location: "Rotterdam",
     region: "Western Europe",
-    category: "Autonomy",
+    category: "Robotics",
     x: 48,
     y: 39,
     intensity: 76,
@@ -146,7 +151,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Alpine disaster rehearsal",
     location: "Zurich / Innsbruck",
     region: "Central Europe",
-    category: "Climate",
+    category: "Energy",
     x: 50,
     y: 43,
     intensity: 72,
@@ -158,7 +163,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Mediterranean maritime pressure",
     location: "Athens / Malta",
     region: "Mediterranean",
-    category: "Security",
+    category: "AI",
     x: 53,
     y: 51,
     intensity: 84,
@@ -170,7 +175,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Sahara edge energy bases",
     location: "Morocco / Algeria",
     region: "North Africa",
-    category: "Infrastructure",
+    category: "Energy",
     x: 47,
     y: 57,
     intensity: 69,
@@ -182,7 +187,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Sahel coordination cells",
     location: "Niamey / Bamako",
     region: "West Africa",
-    category: "Security",
+    category: "AI",
     x: 47,
     y: 64,
     intensity: 81,
@@ -194,7 +199,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Gulf autonomous inspection",
     location: "Doha / Abu Dhabi",
     region: "Gulf",
-    category: "Autonomy",
+    category: "Robotics",
     x: 61,
     y: 57,
     intensity: 73,
@@ -206,7 +211,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Levant urban response models",
     location: "Amman / Beirut",
     region: "Levant",
-    category: "Spatial (XR)",
+    category: "Spatial / XR",
     x: 57,
     y: 53,
     intensity: 67,
@@ -218,7 +223,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Black Sea logistics stress",
     location: "Constanta / Odesa",
     region: "Black Sea",
-    category: "Infrastructure",
+    category: "Energy",
     x: 56,
     y: 44,
     intensity: 89,
@@ -230,7 +235,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Caucasus corridor monitoring",
     location: "Tbilisi / Baku",
     region: "Caucasus",
-    category: "Security",
+    category: "AI",
     x: 60,
     y: 47,
     intensity: 78,
@@ -242,7 +247,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Indian Ocean basing",
     location: "Mumbai / Colombo",
     region: "Indian Ocean",
-    category: "Infrastructure",
+    category: "Energy",
     x: 69,
     y: 62,
     intensity: 74,
@@ -254,7 +259,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Himalayan climate security",
     location: "Kathmandu / Delhi",
     region: "South Asia",
-    category: "Climate",
+    category: "Energy",
     x: 70,
     y: 54,
     intensity: 83,
@@ -266,7 +271,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Southeast Asia maritime autonomy",
     location: "Singapore / Jakarta",
     region: "Southeast Asia",
-    category: "Autonomy",
+    category: "Robotics",
     x: 77,
     y: 68,
     intensity: 87,
@@ -278,7 +283,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Taiwan resilience rehearsal",
     location: "Taipei",
     region: "East Asia",
-    category: "Training",
+    category: "AI",
     x: 82,
     y: 53,
     intensity: 96,
@@ -290,7 +295,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Korean peninsula C2 upgrades",
     location: "Seoul",
     region: "East Asia",
-    category: "Security",
+    category: "AI",
     x: 82,
     y: 45,
     intensity: 86,
@@ -302,7 +307,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Japan disaster robotics",
     location: "Tokyo / Sendai",
     region: "Japan",
-    category: "Nano",
+    category: "Robotics",
     x: 86,
     y: 47,
     intensity: 71,
@@ -314,7 +319,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Northern Australia range expansion",
     location: "Darwin",
     region: "Australia",
-    category: "Training",
+    category: "Spatial / XR",
     x: 80,
     y: 78,
     intensity: 79,
@@ -326,19 +331,19 @@ const researchMapData: ResearchMapPayload = {
     title: "Pacific island climate logistics",
     location: "Suva / Guam",
     region: "Pacific",
-    category: "Climate",
+    category: "Space",
     x: 90,
     y: 70,
     intensity: 75,
     momentum: "+15%",
-    summary: "Climate response and strategic access needs are reshaping small-island logistics planning.",
+    summary: "Satellite visibility, climate response, and strategic access needs are reshaping island logistics planning.",
   },
   {
     id: "SIG-021",
     title: "West Coast wildfire command",
     location: "California",
     region: "North America",
-    category: "Climate",
+    category: "Energy",
     x: 16,
     y: 48,
     intensity: 82,
@@ -350,19 +355,19 @@ const researchMapData: ResearchMapPayload = {
     title: "Arctic Alaska infrastructure",
     location: "Anchorage / North Slope",
     region: "Arctic",
-    category: "Infrastructure",
+    category: "Space",
     x: 12,
     y: 24,
     intensity: 77,
     momentum: "+9%",
-    summary: "Cold-region logistics and energy resilience are returning as strategic planning priorities.",
+    summary: "Cold-region logistics, sensing coverage, and polar communications are returning as strategic planning priorities.",
   },
   {
     id: "SIG-023",
     title: "Great Lakes industrial resilience",
     location: "Detroit / Toronto",
     region: "Great Lakes",
-    category: "Nano",
+    category: "Materials",
     x: 26,
     y: 42,
     intensity: 70,
@@ -386,7 +391,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Amazon basin sensor gaps",
     location: "Manaus",
     region: "South America",
-    category: "Climate",
+    category: "Energy",
     x: 34,
     y: 68,
     intensity: 66,
@@ -398,7 +403,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Andes high-altitude logistics",
     location: "Lima / La Paz",
     region: "Andes",
-    category: "Infrastructure",
+    category: "Energy",
     x: 30,
     y: 75,
     intensity: 68,
@@ -410,7 +415,7 @@ const researchMapData: ResearchMapPayload = {
     title: "South Atlantic maritime watch",
     location: "Cape Town / Buenos Aires",
     region: "South Atlantic",
-    category: "Spatial (XR)",
+    category: "Spatial / XR",
     x: 47,
     y: 82,
     intensity: 64,
@@ -422,7 +427,7 @@ const researchMapData: ResearchMapPayload = {
     title: "Horn of Africa corridor risk",
     location: "Djibouti / Addis Ababa",
     region: "East Africa",
-    category: "Security",
+    category: "AI",
     x: 58,
     y: 65,
     intensity: 85,
@@ -446,7 +451,7 @@ const researchMapData: ResearchMapPayload = {
     title: "XR mission rehearsal platforms",
     location: "Global / Training commands",
     region: "Global",
-    category: "Spatial (XR)",
+    category: "Spatial / XR",
     x: 58,
     y: 36,
     intensity: 84,
@@ -479,15 +484,15 @@ const researchMapData: ResearchMapPayload = {
   ],
 };
 
-const categoryAccent: Record<SignalCategory, string> = {
-  Infrastructure: "#c4a36f",
-  Training: "#d7d0c3",
-  Autonomy: "#9eb2a5",
-  Climate: "#8fa3b8",
-  Security: "#b78d72",
-  "Spatial (XR)": "#b79be0",
-  Nano: "#78c4a0",
+const categoryAccent: Record<ResearchCategory, string> = {
+  AI: "#c4a36f",
+  "Spatial / XR": "#b79be0",
+  Robotics: "#8fb6a2",
   Quantum: "#88bfe0",
+  Space: "#9aa8c8",
+  Energy: "#d0ad70",
+  Materials: "#c7bca7",
+  Nano: "#78c4a0",
 };
 
 const priorityTrendIds = [
@@ -495,21 +500,43 @@ const priorityTrendIds = [
   "SIG-001",
   "SIG-003",
   "SIG-011",
-  "SIG-002",
   "SIG-015",
   "SIG-029",
   "SIG-030",
   "SIG-031",
-  "SIG-014",
+  "SIG-020",
+  "SIG-023",
 ];
 
 function getSignalSize(intensity: number) {
   return 9 + Math.round((intensity - 60) / 6);
 }
 
+function getSignalStrength(signal: Signal) {
+  return signal.signal_strength ?? signal.intensity;
+}
+
+function getTrendScore(signal: Signal) {
+  const momentum = Number.parseInt(signal.momentum.replace("+", "").replace("%", ""), 10);
+  return signal.trend_score ?? Math.min(100, Math.round(signal.intensity * 0.82 + (Number.isNaN(momentum) ? 0 : momentum)));
+}
+
+function getSignalTier(signal: Signal, count = 1) {
+  const score = getTrendScore(signal);
+  if (count >= 4 || score >= 92) {
+    return "trendCluster";
+  }
+
+  if (getSignalStrength(signal) >= 82 || score >= 86) {
+    return "strongSignal";
+  }
+
+  return "normalSignal";
+}
+
 export default function ResearchPage() {
   const { categories, signals, clusters } = researchMapData;
-  const [activeCategory, setActiveCategory] = useState<SignalCategory | "All">("All");
+  const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
 
   const filteredSignals = useMemo(
@@ -550,7 +577,7 @@ export default function ResearchPage() {
     [clusters, filteredSignalIds, signals],
   );
 
-  function selectCategory(category: SignalCategory | "All") {
+  function selectCategory(category: SignalCategory) {
     setActiveCategory(category);
     const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
     if (nextSignal) {
@@ -567,8 +594,8 @@ export default function ResearchPage() {
             <p className={styles.kicker}>Centari Research Observatory</p>
             <h1>Research Map</h1>
             <p>
-              A live working surface for strategic signals across infrastructure, readiness,
-              autonomy, climate pressure, and security posture.
+              A live working surface for public research signals across AI, spatial systems,
+              robotics, quantum, space, energy, materials, and nano.
             </p>
           </div>
           <div className={styles.heroMetrics} aria-label="Research map metrics">
@@ -643,24 +670,19 @@ export default function ResearchPage() {
               </svg>
 
               <div className={styles.gridOverlay} aria-hidden="true" />
-              <div className={styles.coordinateFrame} aria-hidden="true">
-                <span>72N</span>
-                <span>0</span>
-                <span>72S</span>
-              </div>
-
               {visibleClusters.map((cluster) => {
                 const primarySignal = cluster.signals.reduce((strongest, signal) =>
-                  signal.intensity > strongest.intensity ? signal : strongest,
+                  getTrendScore(signal) > getTrendScore(strongest) ? signal : strongest,
                 );
-                const size = getSignalSize(primarySignal.intensity) + cluster.signals.length * 3;
+                const tier = getSignalTier(primarySignal, cluster.signals.length);
+                const size = getSignalSize(getSignalStrength(primarySignal)) + cluster.signals.length * 3;
                 const selected = cluster.signals.some((signal) => signal.id === selectedSignal.id);
 
                 return (
                   <button
                     key={cluster.id}
                     type="button"
-                    className={`${styles.hotspot} ${selected ? styles.hotspotSelected : ""}`}
+                    className={`${styles.hotspot} ${styles[tier]} ${selected ? styles.hotspotSelected : ""}`}
                     style={
                       {
                         left: `${cluster.x}%`,
@@ -671,55 +693,65 @@ export default function ResearchPage() {
                     } as CSSProperties
                     }
                     onClick={() => setSelectedId(primarySignal.id)}
-                    aria-label={`${cluster.label}, ${cluster.signals.length} signals`}
+                    aria-label={`${cluster.label}, ${cluster.signals.length} signals, score ${getTrendScore(primarySignal)}`}
+                    title={`${cluster.label}: ${cluster.signals.length} signals`}
                   >
                     <span>{cluster.signals.length}</span>
                   </button>
                 );
               })}
-
-              <article className={styles.signalCard} aria-live="polite">
-                <div className={styles.cardMeta}>
-                  <span>{selectedSignal.id}</span>
-                  <span>{selectedSignal.category}</span>
-                  <span>{selectedSignal.momentum}</span>
-                </div>
-                <h3>{selectedSignal.title}</h3>
-                <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
-                <p>{selectedSignal.summary}</p>
-                <div className={styles.intensity}>
-                  <span>Signal intensity</span>
-                  <strong>{selectedSignal.intensity}</strong>
-                  <i style={{ transform: `scaleX(${selectedSignal.intensity / 100})` }} />
-                </div>
-              </article>
             </div>
           </div>
 
-          <aside className={styles.trendsPanel} aria-label="Top 10 trends">
-            <div className={styles.panelHeader}>
-              <p className={styles.kicker}>Top 10 trends</p>
-              <h2>Priority watchlist</h2>
+          <aside className={styles.sidePanel} aria-label="Research signal detail">
+            <article className={styles.signalCard} aria-live="polite">
+              <div className={styles.cardMeta}>
+                <span>{selectedSignal.id}</span>
+                <span>{selectedSignal.category}</span>
+                <span>{selectedSignal.momentum}</span>
+              </div>
+              <h2>{selectedSignal.title}</h2>
+              <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
+              <p>{selectedSignal.summary}</p>
+              <div className={styles.signalScores}>
+                <div className={styles.intensity}>
+                  <span>Signal strength</span>
+                  <strong>{getSignalStrength(selectedSignal)}</strong>
+                  <i style={{ transform: `scaleX(${getSignalStrength(selectedSignal) / 100})` }} />
+                </div>
+                <div className={styles.intensity}>
+                  <span>Trend score</span>
+                  <strong>{getTrendScore(selectedSignal)}</strong>
+                  <i style={{ transform: `scaleX(${getTrendScore(selectedSignal) / 100})` }} />
+                </div>
+              </div>
+            </article>
+
+            <div className={styles.trendsPanel}>
+              <div className={styles.panelHeader}>
+                <p className={styles.kicker}>Top 10 trends</p>
+                <h2>Priority watchlist</h2>
+              </div>
+              <ol className={styles.trendList}>
+                {topTrends.map((trend, index) => (
+                  <li key={trend.id}>
+                    <button
+                      type="button"
+                      className={trend.id === selectedSignal.id ? styles.trendActive : ""}
+                      onClick={() => setSelectedId(trend.id)}
+                      style={{ "--signal-color": categoryAccent[trend.category] } as CSSProperties}
+                    >
+                      <span className={styles.rank}>{String(index + 1).padStart(2, "0")}</span>
+                      <span>
+                        <strong>{trend.title}</strong>
+                        <em>{trend.region} / {trend.category}</em>
+                      </span>
+                      <b>{getTrendScore(trend)}</b>
+                    </button>
+                  </li>
+                ))}
+              </ol>
             </div>
-            <ol className={styles.trendList}>
-              {topTrends.map((trend, index) => (
-                <li key={trend.id}>
-                  <button
-                    type="button"
-                    className={trend.id === selectedSignal.id ? styles.trendActive : ""}
-                    onClick={() => setSelectedId(trend.id)}
-                    style={{ "--signal-color": categoryAccent[trend.category] } as CSSProperties}
-                  >
-                    <span className={styles.rank}>{String(index + 1).padStart(2, "0")}</span>
-                    <span>
-                      <strong>{trend.title}</strong>
-                      <em>{trend.region} / {trend.category}</em>
-                    </span>
-                    <b>{trend.intensity}</b>
-                  </button>
-                </li>
-              ))}
-            </ol>
           </aside>
         </section>
       </main>

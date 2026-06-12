@@ -53,6 +53,8 @@ export function Hero() {
           <span className={styles.monolithEdge} />
           <span className={styles.calibrationLine} />
           <span className={styles.referenceLine} />
+          <span className={styles.basePlane} />
+          <span className={styles.measurementRail} />
         </div>
       </Container>
     </section>

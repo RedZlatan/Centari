@@ -178,6 +178,39 @@
   background-size: 52px 52px, 52px 52px, auto, auto;
 }
 
+.mapStatus {
+  position: absolute;
+  z-index: 5;
+  top: var(--space-4);
+  left: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  color: rgba(233, 229, 223, 0.58);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.coordinateFrame {
+  position: absolute;
+  z-index: 3;
+  top: 12%;
+  right: var(--space-4);
+  bottom: 18%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid rgba(233, 229, 223, 0.16);
+  color: rgba(233, 229, 223, 0.38);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  padding-right: var(--space-2);
+}
+
 .worldMap {
   position: absolute;
   inset: 4% 2% 12%;
@@ -250,6 +283,7 @@
 .hotspot:hover,
 .hotspotSelected {
   border-color: #f4ead8;
+  background: color-mix(in srgb, var(--signal-color) 18%, rgba(5, 6, 6, 0.72));
   box-shadow:
     0 0 0 8px color-mix(in srgb, var(--signal-color) 14%, transparent),
     0 0 34px color-mix(in srgb, var(--signal-color) 36%, transparent);
@@ -350,6 +384,9 @@
 .panelHeader {
   padding: var(--space-6);
   border-bottom: 1px solid rgba(233, 229, 223, 0.1);
+  background:
+    linear-gradient(90deg, rgba(168, 138, 90, 0.12), transparent),
+    rgba(5, 6, 6, 0.18);
 }
 
 .trendList {
@@ -379,6 +416,20 @@
   background:
     linear-gradient(90deg, rgba(168, 138, 90, 0.16), transparent 78%),
     rgba(168, 138, 90, 0.05);
+}
+
+.trendList .trendActive {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--signal-color) 22%, transparent), transparent 76%),
+    rgba(168, 138, 90, 0.07);
+}
+
+.trendList .trendActive strong {
+  color: #fff6e8;
+}
+
+.trendList .trendActive .rank {
+  color: color-mix(in srgb, var(--signal-color) 78%, #f4ead8);
 }
 
 .rank {
@@ -447,6 +498,10 @@
 
   .mapSurface {
     min-height: 620px;
+  }
+
+  .mapStatus {
+    display: none;
   }
 
   .filters {

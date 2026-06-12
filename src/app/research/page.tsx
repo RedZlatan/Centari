@@ -461,6 +461,10 @@ export default function ResearchPage() {
             </div>
 
             <div className={styles.mapSurface}>
+              <div className={styles.mapStatus} aria-hidden="true">
+                <span>Mercator / strategic signal layer</span>
+                <span>{filteredSignals.length} visible signals</span>
+              </div>
               <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
                 <defs>
                   <linearGradient id="landGradient" x1="0" x2="1" y1="0" y2="1">
@@ -503,6 +507,11 @@ export default function ResearchPage() {
               </svg>
 
               <div className={styles.gridOverlay} aria-hidden="true" />
+              <div className={styles.coordinateFrame} aria-hidden="true">
+                <span>72N</span>
+                <span>0</span>
+                <span>72S</span>
+              </div>
 
               {filteredSignals.map((signal) => {
                 const size = getSignalSize(signal.intensity);
@@ -556,7 +565,12 @@ export default function ResearchPage() {
             <ol className={styles.trendList}>
               {topTrends.map((trend, index) => (
                 <li key={trend.id}>
-                  <button type="button" onClick={() => setSelectedId(trend.id)}>
+                  <button
+                    type="button"
+                    className={trend.id === selectedSignal.id ? styles.trendActive : ""}
+                    onClick={() => setSelectedId(trend.id)}
+                    style={{ "--signal-color": categoryAccent[trend.category] } as CSSProperties}
+                  >
                     <span className={styles.rank}>{String(index + 1).padStart(2, "0")}</span>
                     <span>
                       <strong>{trend.title}</strong>

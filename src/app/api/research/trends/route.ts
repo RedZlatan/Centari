@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSupabase } from "@/lib/supabase";
+import { getSupabaseAnon, isSupabaseConfigured } from "@/lib/supabase";
+import { getFallbackTrends } from "@/lib/research-api-fallback";
 
 const VALID_CATEGORIES = [
   "ai", "xr", "robotics", "quantum", "space", "energy", "materials",
@@ -27,8 +28,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   const limit  = Math.min(parseInt(limitParam  ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT, MAX_LIMIT);
   const offset = Math.max(parseInt(offsetParam ?? "0", 10) || 0, 0);
 
+  // ── JSON fallback (no Supabase configured) ───────────────────────────────────
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      getFallbackTrends({ domain: domainParam, limit, offset }),
+    );
+  }
+
+  // ── Live Supabase query ──────────────────────────────────────────────────────
   try {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAnon();
 
     let query = supabase
       .from("trends")
@@ -59,7 +68,6 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Database error." }, { status: 500 });
     }
 
-    // Reshape trend_signals into a flat signals array with relevance_score
     const trends = (data ?? []).map((trend) => {
       const rawLinks = Array.isArray(trend.trend_signals) ? trend.trend_signals : [];
 
@@ -87,21 +95,17 @@ export async function GET(request: Request): Promise<NextResponse> {
           };
         })
         .filter(Boolean)
-        .sort((a, b) =>
-          ((b as { relevance_score: number }).relevance_score ?? 0) -
-          ((a as { relevance_score: number }).relevance_score ?? 0),
+        .sort(
+          (a, b) =>
+            ((b as { relevance_score: number }).relevance_score ?? 0) -
+            ((a as { relevance_score: number }).relevance_score ?? 0),
         );
 
       const { trend_signals: _ts, ...rest } = trend as typeof trend & { trend_signals: unknown };
       return { ...rest, signals };
     });
 
-    return NextResponse.json({
-      data:   trends,
-      total:  count ?? 0,
-      limit,
-      offset,
-    });
+    return NextResponse.json({ data: trends, total: count ?? 0, limit, offset });
   } catch (err) {
     console.error("[/api/research/trends] unexpected error:", err);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });

@@ -535,15 +535,47 @@ Both migrations are idempotent:
 
 ---
 
+## Environment Variables
+
+| Variable | Used by | Required | Notes |
+|----------|---------|----------|-------|
+| `SUPABASE_URL` | app, worker | For live DB | Supabase project URL |
+| `SUPABASE_ANON_KEY` | app API routes | For live DB | Read-only. Safe to deploy. Never prefix `NEXT_PUBLIC_`. |
+| `SUPABASE_SERVICE_ROLE_KEY` | worker | For live DB | Privileged write access. **Worker only. Never expose to browser or prefix `NEXT_PUBLIC_`.** |
+
+When `SUPABASE_URL` or `SUPABASE_ANON_KEY` is absent, all `/api/research/*` routes fall back to the JSON data layer automatically. Local development works without any Supabase project.
+
+---
+
+## Connecting to Supabase (when ready)
+
+The API routes detect whether Supabase is configured via `isSupabaseConfigured()` in `src/lib/supabase.ts`. To switch from JSON fallback to live data:
+
+1. Create a Supabase project (free tier is sufficient for alpha).
+2. Run the migrations (see section above).
+3. Add to `.env.local`:
+   ```
+   SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+   SUPABASE_ANON_KEY=eyJ...
+   ```
+4. Restart the dev server — the routes will query Supabase from that point on.
+
+The JSON data layer does **not** need to be removed for this to work. It continues to serve as the fallback if the env vars are ever unset.
+
+---
+
 ## Migration from V2 JSON Layer
 
-The JSON data layer (`src/data/research-signals.json`) and its TypeScript module (`src/lib/research-signals.ts`) remain in place and serve the current Research Map frontend.
+The JSON data layer (`src/data/research-signals.json`) and its TypeScript module (`src/lib/research-signals.ts`) remain in place.
 
-The SQL schema supersedes it. When the frontend is updated to consume the API routes (Sprint R6+):
+- The API routes use the JSON layer as fallback when Supabase is not configured.
+- The Research Map frontend currently reads `research-signals.ts` directly (Sprint R6C will migrate it to the API).
+
+When the frontend migration (Sprint R6C) is complete:
 
 1. Remove the `import` of `research-signals.json` from map components.
 2. Replace `getDisplaySignals()` calls with `fetch('/api/research/signals')`.
 3. Replace `selectTopTrends()` calls with `fetch('/api/research/trends')`.
 4. Delete `src/data/research-signals.json` and `src/lib/research-signals.ts` once all callers are migrated.
 
-Do not delete the JSON layer until the frontend migration is complete and verified.
+Do not delete the JSON layer until the frontend migration is complete and verified. The fallback in `src/lib/research-api-fallback.ts` imports from it.

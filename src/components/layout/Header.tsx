@@ -5,9 +5,9 @@ import { Container } from "./Container";
 import styles from "./Header.module.css";
 
 const NAV_ITEMS = [
-  { label: "Solutions", href: "#products" },
-  { label: "Products", href: "#products" },
-  { label: "Research", href: "#" },
+  { label: "Solutions", href: "/#products" },
+  { label: "Products", href: "/#products" },
+  { label: "Research", href: "/research" },
   { label: "Journal", href: "#" },
   { label: "Control Room", href: "/control-room", isControlRoom: true },
 ];

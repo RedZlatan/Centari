@@ -200,6 +200,31 @@
   text-transform: uppercase;
 }
 
+.dataStatus {
+  position: absolute;
+  z-index: 5;
+  top: calc(var(--space-4) + 24px);
+  left: var(--space-4);
+  max-width: min(520px, calc(100% - var(--space-8)));
+  border: 1px solid rgba(233, 229, 223, 0.1);
+  background: rgba(7, 8, 8, 0.54);
+  color: rgba(233, 229, 223, 0.58);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  padding: 0.4rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.dataStatus[data-status="ready"] {
+  color: rgba(120, 196, 160, 0.72);
+}
+
+.dataStatus[data-status="fallback"] {
+  color: rgba(208, 173, 112, 0.78);
+}
+
 .worldMap {
   position: absolute;
   inset: 4% 2% 12%;
@@ -536,6 +561,12 @@
 
   .mapStatus {
     display: none;
+  }
+
+  .dataStatus {
+    top: var(--space-4);
+    right: var(--space-4);
+    font-size: 0.58rem;
   }
 
   .filters {

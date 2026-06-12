@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { geoEqualEarth, geoPath } from "d3-geo";
 import type { FeatureCollection, Geometry } from "geojson";
 import { feature, mesh } from "topojson-client";
@@ -53,6 +53,10 @@ type ResearchMapPayload = {
   signals: Signal[];
   clusters: SignalCluster[];
 };
+
+type ApiLoadStatus = "loading" | "ready" | "fallback";
+
+type ApiRecord = Record<string, unknown>;
 
 type WorldAtlasObjects = {
   countries: GeometryCollection;
@@ -508,6 +512,115 @@ const priorityTrendIds = [
   "SIG-023",
 ];
 
+function isRecord(value: unknown): value is ApiRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getPayloadArray(payload: unknown, keys: string[]) {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!isRecord(payload)) {
+    return [];
+  }
+
+  for (const key of keys) {
+    const value = payload[key];
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  return [];
+}
+
+function getString(record: ApiRecord, keys: string[], fallback: string) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function getNumber(record: ApiRecord, keys: string[], fallback: number) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const parsed = Number.parseFloat(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function normalizeCategory(value: string, fallback: ResearchCategory): ResearchCategory {
+  const normalized = value.trim().toLowerCase();
+  const aliases: Record<string, ResearchCategory> = {
+    ai: "AI",
+    autonomy: "Robotics",
+    climate: "Energy",
+    energy: "Energy",
+    infrastructure: "Energy",
+    materials: "Materials",
+    nano: "Nano",
+    quantum: "Quantum",
+    robotics: "Robotics",
+    security: "AI",
+    space: "Space",
+    spatial: "Spatial / XR",
+    "spatial / xr": "Spatial / XR",
+    "spatial (xr)": "Spatial / XR",
+    training: "AI",
+    xr: "Spatial / XR",
+  };
+
+  return aliases[normalized] ?? fallback;
+}
+
+function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Signal[]): Signal[] {
+  return getPayloadArray(payload, keys)
+    .map((item, index) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+
+      const fallback = fallbackSignals[index % fallbackSignals.length] ?? researchMapData.signals[0];
+      const category = normalizeCategory(
+        getString(item, ["category", "research_lane", "lane", "topic"], fallback.category),
+        fallback.category,
+      );
+
+      const signal: Signal = {
+        id: getString(item, ["id", "signal_id", "slug"], fallback.id),
+        title: getString(item, ["title", "name", "signal_title"], fallback.title),
+        location: getString(item, ["location", "place", "market"], fallback.location),
+        region: getString(item, ["region", "geography", "area"], fallback.region),
+        category,
+        x: getNumber(item, ["x", "map_x", "longitude_x"], fallback.x),
+        y: getNumber(item, ["y", "map_y", "latitude_y"], fallback.y),
+        intensity: getNumber(item, ["intensity", "signal_strength", "strength"], fallback.intensity),
+        signal_strength: getNumber(item, ["signal_strength", "strength", "intensity"], fallback.intensity),
+        trend_score: getNumber(item, ["trend_score", "score", "priority"], getTrendScore(fallback)),
+        momentum: getString(item, ["momentum", "change", "delta"], fallback.momentum),
+        summary: getString(item, ["summary", "description", "body"], fallback.summary),
+      };
+
+      return signal;
+    })
+    .filter((signal): signal is Signal => Boolean(signal));
+}
+
 function getSignalSize(intensity: number) {
   return 9 + Math.round((intensity - 60) / 6);
 }
@@ -535,9 +648,75 @@ function getSignalTier(signal: Signal, count = 1) {
 }
 
 export default function ResearchPage() {
-  const { categories, signals, clusters } = researchMapData;
+  const [mapData, setMapData] = useState<ResearchMapPayload>(researchMapData);
+  const [apiTrends, setApiTrends] = useState<Signal[] | null>(null);
+  const [apiStatus, setApiStatus] = useState<ApiLoadStatus>("loading");
+  const [apiError, setApiError] = useState<string | null>(null);
+  const { categories, signals, clusters } = mapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadResearchMapData() {
+      setApiStatus("loading");
+      setApiError(null);
+
+      try {
+        const [signalsResponse, trendsResponse] = await Promise.all([
+          fetch("/api/research/signals", { cache: "no-store" }),
+          fetch("/api/research/trends", { cache: "no-store" }),
+        ]);
+
+        if (!signalsResponse.ok || !trendsResponse.ok) {
+          throw new Error(`Research API returned ${signalsResponse.status}/${trendsResponse.status}`);
+        }
+
+        const [signalsPayload, trendsPayload] = await Promise.all([
+          signalsResponse.json() as Promise<unknown>,
+          trendsResponse.json() as Promise<unknown>,
+        ]);
+        const apiSignals = normalizeSignals(signalsPayload, ["signals", "data", "items"], researchMapData.signals);
+        const nextTrends = normalizeSignals(trendsPayload, ["trends", "signals", "data", "items"], apiSignals);
+
+        if (apiSignals.length === 0) {
+          throw new Error("Research API returned no signals");
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setMapData({
+          categories: researchMapData.categories,
+          signals: apiSignals,
+          clusters: researchMapData.clusters,
+        });
+        setApiTrends(nextTrends.length > 0 ? nextTrends : null);
+        setActiveCategory("All");
+        setSelectedId(apiSignals[0].id);
+        setApiStatus("ready");
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setMapData(researchMapData);
+        setApiTrends(null);
+        setActiveCategory("All");
+        setSelectedId(researchMapData.signals[0].id);
+        setApiStatus("fallback");
+        setApiError(error instanceof Error ? error.message : "Research API unavailable");
+      }
+    }
+
+    void loadResearchMapData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredSignals = useMemo(
     () =>
@@ -548,14 +727,22 @@ export default function ResearchPage() {
   );
 
   const selectedSignal =
-    filteredSignals.find((signal) => signal.id === selectedId) ?? filteredSignals[0] ?? signals[0];
+    filteredSignals.find((signal) => signal.id === selectedId) ??
+    apiTrends?.find((signal) => signal.id === selectedId) ??
+    filteredSignals[0] ??
+    signals[0];
 
   const topTrends = useMemo(
-    () =>
-      priorityTrendIds
+    () => {
+      if (apiTrends) {
+        return apiTrends.slice(0, 10);
+      }
+
+      return priorityTrendIds
         .map((id) => signals.find((signal) => signal.id === id))
-        .filter((signal): signal is Signal => Boolean(signal)),
-    [signals],
+        .filter((signal): signal is Signal => Boolean(signal));
+    },
+    [apiTrends, signals],
   );
 
   const filteredSignalIds = useMemo(
@@ -640,6 +827,11 @@ export default function ResearchPage() {
               <div className={styles.mapStatus} aria-hidden="true">
                 <span>Equal Earth / strategic signal layer</span>
                 <span>{filteredSignals.length} visible signals</span>
+              </div>
+              <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
+                {apiStatus === "loading" ? "Loading research feed" : null}
+                {apiStatus === "fallback" ? "JSON fallback active" : null}
+                {apiStatus === "ready" ? "API-backed research feed" : null}
               </div>
               <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
                 <defs>

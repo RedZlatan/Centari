@@ -144,7 +144,13 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
 
       <mesh position={[0, -0.25, 0.42]}>
         <boxGeometry args={[0.74, 0.045, 0.055]} />
-        <meshStandardMaterial color="#6f6047" roughness={0.78} metalness={0.12} />
+        <meshStandardMaterial
+          color="#8f7650"
+          emissive="#34230d"
+          emissiveIntensity={0.28}
+          roughness={0.72}
+          metalness={0.14}
+        />
       </mesh>
 
       <mesh position={[-0.54, 1.6, 0.39]}>
@@ -173,13 +179,14 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
 function FieldScene({ progress }: { progress: number }) {
   return (
     <Canvas camera={{ position: [3.2, 2.35, 22], fov: 35 }} dpr={[1, 1.75]}>
-      <color attach="background" args={["#181b19"]} />
-      <fog attach="fog" args={["#181b19", 10, 38]} />
-      <ambientLight intensity={0.26} />
-      <hemisphereLight args={["#d6d0c6", "#111411", 0.46]} />
-      <directionalLight position={[-5, 8, 8]} intensity={0.9} color="#d8d2c7" />
-      <directionalLight position={[5, 3, -4]} intensity={0.34} color="#8a806f" />
-      <spotLight position={[0, 6.4, 5.8]} angle={0.26} penumbra={0.9} intensity={0.66} color="#c8bfae" />
+      <color attach="background" args={["#1c201d"]} />
+      <fog attach="fog" args={["#1c201d", 11, 40]} />
+      <ambientLight intensity={0.32} />
+      <hemisphereLight args={["#ded8ce", "#151916", 0.54]} />
+      <directionalLight position={[-5, 8, 8]} intensity={1.02} color="#d8d2c7" />
+      <directionalLight position={[5, 3, -4]} intensity={0.42} color="#8a806f" />
+      <spotLight position={[0, 6.4, 5.8]} angle={0.26} penumbra={0.9} intensity={0.72} color="#c8bfae" />
+      <pointLight position={[0, -0.22, 1.05]} intensity={0.34} distance={3.2} color="#9d7b49" />
       <CalibrationSplitMonolith progress={progress} />
     </Canvas>
   );

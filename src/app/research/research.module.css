@@ -11,7 +11,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-8);
-  align-items: end;
+  align-items: flex-end;
   max-width: 1560px;
   margin: 0 auto var(--space-8);
 }
@@ -52,9 +52,13 @@
 .heroMetrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(106px, 1fr));
-  border: 1px solid rgba(233, 229, 223, 0.12);
-  background: rgba(18, 20, 20, 0.72);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(168, 138, 90, 0.22);
+  background:
+    linear-gradient(180deg, rgba(28, 31, 29, 0.82), rgba(12, 14, 13, 0.92)),
+    rgba(18, 20, 20, 0.72);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(233, 229, 223, 0.05);
 }
 
 .heroMetrics div {
@@ -92,7 +96,7 @@
 
 .mapColumn,
 .trendsPanel {
-  border: 1px solid rgba(233, 229, 223, 0.12);
+  border: 1px solid rgba(168, 138, 90, 0.18);
   background:
     linear-gradient(180deg, rgba(30, 34, 32, 0.82), rgba(13, 15, 14, 0.96)),
     var(--color-surface);
@@ -122,7 +126,10 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: 1px;
+  border: 1px solid rgba(233, 229, 223, 0.12);
+  background: rgba(5, 6, 6, 0.52);
+  padding: 3px;
 }
 
 .filters button {
@@ -130,8 +137,8 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 36px;
-  border: 1px solid rgba(233, 229, 223, 0.12);
-  background: rgba(10, 12, 11, 0.58);
+  border: 1px solid transparent;
+  background: rgba(19, 22, 20, 0.54);
   color: #bdb6ab;
   cursor: pointer;
   padding: 0 var(--space-3);
@@ -152,7 +159,9 @@
 .filters button:hover,
 .filters .filterActive {
   border-color: rgba(168, 138, 90, 0.72);
-  background: rgba(168, 138, 90, 0.13);
+  background:
+    linear-gradient(180deg, rgba(168, 138, 90, 0.2), rgba(168, 138, 90, 0.08)),
+    rgba(168, 138, 90, 0.13);
   color: #efe8dc;
 }
 
@@ -161,27 +170,45 @@
   min-height: 680px;
   overflow: hidden;
   background:
-    linear-gradient(rgba(233, 229, 223, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(233, 229, 223, 0.035) 1px, transparent 1px),
-    radial-gradient(circle at 54% 45%, rgba(168, 138, 90, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(10, 12, 12, 0.28), rgba(5, 6, 6, 0.76));
+    linear-gradient(rgba(233, 229, 223, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 48% 42%, rgba(168, 138, 90, 0.13), transparent 30%),
+    radial-gradient(circle at 74% 30%, rgba(143, 163, 184, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(18, 22, 21, 0.36), rgba(5, 6, 6, 0.72));
   background-size: 52px 52px, 52px 52px, auto, auto;
 }
 
 .worldMap {
   position: absolute;
-  inset: 6% 3% 14%;
-  width: 94%;
-  height: 80%;
-  opacity: 0.9;
-  filter: drop-shadow(0 28px 55px rgba(0, 0, 0, 0.38));
+  inset: 4% 2% 12%;
+  width: 96%;
+  height: 84%;
+  opacity: 0.96;
+  filter:
+    drop-shadow(0 30px 58px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 22px rgba(168, 138, 90, 0.06));
 }
 
-.worldMap path {
+.landMasses path {
   fill: url("#landGradient");
-  stroke: rgba(233, 229, 223, 0.13);
+  stroke: rgba(233, 229, 223, 0.18);
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.mapGraticule path {
+  fill: none;
+  stroke: rgba(233, 229, 223, 0.07);
+  stroke-dasharray: 4 12;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
+}
+
+.mapLabels text {
+  fill: rgba(233, 229, 223, 0.18);
+  font-family: var(--font-mono), monospace;
+  font-size: 16px;
+  letter-spacing: 0.16em;
 }
 
 .gridOverlay {
@@ -196,31 +223,37 @@
 .hotspot {
   position: absolute;
   z-index: 2;
-  border: 1px solid color-mix(in srgb, var(--signal-color) 74%, #e9e5df);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--signal-color) 24%, transparent);
+  border: 1px solid color-mix(in srgb, var(--signal-color) 64%, #e9e5df);
+  border-radius: 1px;
+  background: rgba(5, 6, 6, 0.62);
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--signal-color) 11%, transparent),
-    0 0 18px color-mix(in srgb, var(--signal-color) 24%, transparent);
+    0 0 0 4px color-mix(in srgb, var(--signal-color) 9%, transparent),
+    0 0 16px color-mix(in srgb, var(--signal-color) 22%, transparent);
   cursor: pointer;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) rotate(45deg);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .hotspot span {
   position: absolute;
-  inset: 35%;
-  border-radius: 50%;
+  inset: 31%;
   background: color-mix(in srgb, var(--signal-color) 82%, #e9e5df);
+}
+
+.hotspot::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border: 1px solid color-mix(in srgb, var(--signal-color) 18%, transparent);
 }
 
 .hotspot:hover,
 .hotspotSelected {
   border-color: #f4ead8;
   box-shadow:
-    0 0 0 8px color-mix(in srgb, var(--signal-color) 16%, transparent),
-    0 0 34px color-mix(in srgb, var(--signal-color) 42%, transparent);
-  transform: translate(-50%, -50%) scale(1.35);
+    0 0 0 8px color-mix(in srgb, var(--signal-color) 14%, transparent),
+    0 0 34px color-mix(in srgb, var(--signal-color) 36%, transparent);
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.34);
 }
 
 .signalCard {
@@ -309,6 +342,9 @@
 .trendsPanel {
   min-height: 680px;
   overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(34, 38, 35, 0.88), rgba(10, 12, 11, 0.96)),
+    var(--color-surface);
 }
 
 .panelHeader {
@@ -326,7 +362,7 @@
 
 .trendList button {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) 46px;
   gap: var(--space-3);
   align-items: center;
   width: 100%;
@@ -340,7 +376,9 @@
 }
 
 .trendList button:hover {
-  background: rgba(168, 138, 90, 0.09);
+  background:
+    linear-gradient(90deg, rgba(168, 138, 90, 0.16), transparent 78%),
+    rgba(168, 138, 90, 0.05);
 }
 
 .rank {
@@ -367,9 +405,12 @@
 }
 
 .trendList b {
-  color: var(--color-text);
+  justify-self: end;
+  border-left: 1px solid rgba(233, 229, 223, 0.1);
+  color: #f0e8dc;
   font-size: var(--text-sm);
   font-weight: 500;
+  padding-left: var(--space-3);
 }
 
 @media (max-width: 1180px) {

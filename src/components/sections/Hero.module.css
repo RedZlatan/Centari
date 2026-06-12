@@ -3,6 +3,10 @@
   display: flex;
   align-items: center;
   position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 48%, rgba(168, 138, 90, 0.09), transparent 28%),
+    linear-gradient(180deg, rgba(23, 25, 26, 0), rgba(13, 15, 14, 0.34));
 }
 
 /* Subtle horizontal rule above the content block */
@@ -23,11 +27,14 @@
 }
 
 .inner {
+  position: relative;
   padding-top: var(--space-24);
   padding-bottom: var(--space-24);
 }
 
 .content {
+  position: relative;
+  z-index: 2;
   max-width: 780px;
   transform: translateY(-8vh);
 }
@@ -113,8 +120,71 @@
   border-color: var(--color-muted);
 }
 
+.calibrationObject {
+  position: absolute;
+  right: clamp(var(--space-4), 6vw, var(--space-24));
+  top: 50%;
+  width: clamp(180px, 24vw, 360px);
+  aspect-ratio: 0.54;
+  pointer-events: none;
+  transform: translateY(-48%);
+  opacity: 0.72;
+}
+
+.monolithFace,
+.monolithEdge,
+.calibrationLine,
+.referenceLine {
+  position: absolute;
+  display: block;
+}
+
+.monolithFace {
+  inset: 6% 18% 5%;
+  background:
+    linear-gradient(110deg, rgba(233, 229, 223, 0.1), transparent 32%),
+    linear-gradient(180deg, #202721, #0d100f);
+  border: 1px solid rgba(233, 229, 223, 0.12);
+  box-shadow:
+    0 38px 110px rgba(0, 0, 0, 0.42),
+    inset 1px 0 0 rgba(233, 229, 223, 0.08);
+  clip-path: polygon(50% 0, 100% 18%, 100% 100%, 0 100%, 0 18%);
+}
+
+.monolithEdge {
+  top: 20%;
+  right: 18%;
+  bottom: 5%;
+  width: 18%;
+  background: linear-gradient(180deg, rgba(63, 74, 66, 0.86), rgba(9, 11, 10, 0.9));
+  border-right: 1px solid rgba(168, 138, 90, 0.18);
+  clip-path: polygon(0 0, 100% 8%, 100% 100%, 0 100%);
+}
+
+.calibrationLine {
+  left: 50%;
+  top: 30%;
+  bottom: 18%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(168, 138, 90, 0.62), transparent);
+}
+
+.referenceLine {
+  left: 34%;
+  right: 30%;
+  top: 63%;
+  height: 1px;
+  background: rgba(168, 138, 90, 0.58);
+}
+
 @media (max-width: 767px) {
   .content {
     transform: translateY(-4vh);
+  }
+
+  .calibrationObject {
+    right: -52px;
+    width: 190px;
+    opacity: 0.36;
   }
 }

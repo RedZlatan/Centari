@@ -48,6 +48,12 @@ export function Hero() {
             </a>
           </div>
         </div>
+        <div className={styles.calibrationObject} aria-hidden="true">
+          <span className={styles.monolithFace} />
+          <span className={styles.monolithEdge} />
+          <span className={styles.calibrationLine} />
+          <span className={styles.referenceLine} />
+        </div>
       </Container>
     </section>
   );

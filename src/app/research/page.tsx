@@ -464,20 +464,42 @@ export default function ResearchPage() {
               <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
                 <defs>
                   <linearGradient id="landGradient" x1="0" x2="1" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#28302c" />
-                    <stop offset="100%" stopColor="#161b19" />
+                    <stop offset="0%" stopColor="#334039" />
+                    <stop offset="100%" stopColor="#18201d" />
                   </linearGradient>
                 </defs>
-                <path d="M91 143 152 100 236 116 285 160 256 215 181 222 122 197Z" />
-                <path d="M222 247 287 263 326 334 300 430 246 474 207 406 181 321Z" />
-                <path d="M419 126 501 94 593 116 642 166 608 216 514 209 452 188Z" />
-                <path d="M493 233 586 235 641 293 623 390 552 444 487 387 459 300Z" />
-                <path d="M627 151 725 112 831 132 902 196 881 271 783 265 704 230Z" />
-                <path d="M742 279 831 302 866 385 808 455 732 418 704 339Z" />
-                <path d="M820 404 892 421 925 468 876 493 821 472Z" />
-                <path d="M81 91 160 60 248 76 317 119 271 139 171 108Z" />
-                <path d="M489 77 586 55 682 78 730 112 639 112 548 95Z" />
-                <path d="M360 448 438 438 508 463 461 492 379 486Z" />
+                <g className={styles.mapGraticule} aria-hidden="true">
+                  <path d="M80 95H920" />
+                  <path d="M80 175H920" />
+                  <path d="M80 255H920" />
+                  <path d="M80 335H920" />
+                  <path d="M80 415H920" />
+                  <path d="M170 54V468" />
+                  <path d="M330 54V468" />
+                  <path d="M500 54V468" />
+                  <path d="M670 54V468" />
+                  <path d="M830 54V468" />
+                </g>
+                <g className={styles.landMasses}>
+                  <path d="M98 132 132 93 192 72 254 86 304 124 337 180 314 222 261 229 221 211 179 229 133 207 92 170Z" />
+                  <path d="M252 228 294 249 330 296 338 358 311 424 268 475 232 438 208 377 184 327 202 273Z" />
+                  <path d="M397 123 458 82 540 73 628 92 675 130 660 168 598 178 556 160 497 185 434 168Z" />
+                  <path d="M476 188 538 191 586 225 632 286 618 355 573 431 518 454 477 397 454 323 428 269Z" />
+                  <path d="M640 126 716 88 813 86 900 123 944 174 925 234 858 257 786 246 725 218 664 197Z" />
+                  <path d="M711 255 777 275 839 321 861 384 833 442 767 454 720 408 696 339Z" />
+                  <path d="M810 406 877 412 928 448 909 487 845 492 799 461Z" />
+                  <path d="M72 80 145 49 243 55 322 93 296 122 197 102 118 106Z" />
+                  <path d="M488 63 590 42 704 57 756 93 709 116 617 103 527 89Z" />
+                  <path d="M351 448 421 431 505 456 536 486 459 505 378 488Z" />
+                </g>
+                <g className={styles.mapLabels} aria-hidden="true">
+                  <text x="125" y="121">NORTH AMERICA</text>
+                  <text x="244" y="342">SOUTH AMERICA</text>
+                  <text x="482" y="140">EUROPE</text>
+                  <text x="514" y="318">AFRICA</text>
+                  <text x="744" y="171">ASIA</text>
+                  <text x="780" y="420">AUSTRALIA</text>
+                </g>
               </svg>
 
               <div className={styles.gridOverlay} aria-hidden="true" />

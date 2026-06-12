@@ -11,7 +11,7 @@
   height: 100vh;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(26, 29, 27, 0.94), rgba(14, 16, 15, 1)),
+    linear-gradient(180deg, rgba(30, 34, 31, 0.94), rgba(17, 20, 18, 1)),
     var(--color-bg);
 }
 
@@ -27,9 +27,9 @@
   inset: 0;
   z-index: 1;
   background:
-    linear-gradient(90deg, rgba(13, 15, 14, 0.82), rgba(13, 15, 14, 0.18) 34%, rgba(13, 15, 14, 0.58)),
-    linear-gradient(180deg, rgba(13, 15, 14, 0.14), transparent 42%, rgba(9, 10, 10, 0.64)),
-    radial-gradient(circle at 52% 48%, transparent 0, transparent 38%, rgba(0, 0, 0, 0.48) 100%);
+    linear-gradient(90deg, rgba(13, 15, 14, 0.72), rgba(13, 15, 14, 0.1) 34%, rgba(13, 15, 14, 0.46)),
+    linear-gradient(180deg, rgba(13, 15, 14, 0.1), transparent 42%, rgba(9, 10, 10, 0.54)),
+    radial-gradient(circle at 52% 48%, transparent 0, transparent 40%, rgba(0, 0, 0, 0.38) 100%);
 }
 
 .story {

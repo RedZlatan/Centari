@@ -56,73 +56,100 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
   const group = useRef<Group>(null);
   const leftDoor = useRef<Mesh>(null);
   const rightDoor = useRef<Mesh>(null);
-  const signal = useRef<Mesh>(null);
+  const threshold = useRef<Mesh>(null);
 
-  useFrame(({ camera }) => {
-    const approach = MathUtils.smoothstep(progress, 0.08, 0.72);
-    const enter = MathUtils.smoothstep(progress, 0.68, 1);
-    const opening = MathUtils.smoothstep(progress, 0.58, 0.84);
+  useFrame(({ camera }, delta) => {
+    const approach = MathUtils.smoothstep(progress, 0.05, 0.78);
+    const enter = MathUtils.smoothstep(progress, 0.7, 1);
+    const opening = MathUtils.smoothstep(progress, 0.62, 0.9);
+    const thresholdCrossing = MathUtils.smoothstep(progress, 0.76, 0.92);
+    const ease = 1 - Math.exp(-delta * 2.15);
 
-    camera.position.x = MathUtils.lerp(1.8, 0, enter);
-    camera.position.y = MathUtils.lerp(1.45, 0.12, enter);
-    camera.position.z = MathUtils.lerp(14, 2.15, approach);
-    camera.lookAt(0, MathUtils.lerp(0.85, 0.02, enter), MathUtils.lerp(0, -1.2, enter));
+    camera.position.x = MathUtils.lerp(camera.position.x, MathUtils.lerp(3.2, 0, enter), ease);
+    camera.position.y = MathUtils.lerp(camera.position.y, MathUtils.lerp(2.35, 0.42, enter), ease);
+    camera.position.z = MathUtils.lerp(camera.position.z, MathUtils.lerp(22, 2.85, approach), ease);
+    camera.lookAt(0, MathUtils.lerp(1.7, 0.2, enter), MathUtils.lerp(0, -2.6, thresholdCrossing));
 
     if (group.current) {
-      group.current.rotation.y = MathUtils.lerp(-0.18, 0, approach);
-      group.current.position.z = MathUtils.lerp(0, 0.7, enter);
+      group.current.rotation.y = MathUtils.lerp(-0.14, 0, approach);
+      group.current.position.z = MathUtils.lerp(0, 1.1, enter);
     }
 
     if (leftDoor.current && rightDoor.current) {
-      leftDoor.current.position.x = MathUtils.lerp(-0.43, -0.82, opening);
-      rightDoor.current.position.x = MathUtils.lerp(0.43, 0.82, opening);
+      leftDoor.current.position.x = MathUtils.lerp(-0.76, -1.34, opening);
+      rightDoor.current.position.x = MathUtils.lerp(0.76, 1.34, opening);
     }
 
-    if (signal.current) {
-      signal.current.scale.y = MathUtils.lerp(0.4, 1.45, MathUtils.smoothstep(progress, 0.22, 0.78));
+    if (threshold.current) {
+      threshold.current.scale.z = MathUtils.lerp(0.18, 1.55, thresholdCrossing);
     }
   });
 
   return (
     <group ref={group}>
-      <mesh position={[0, -1.42, -0.05]}>
-        <boxGeometry args={[2.6, 0.34, 1.1]} />
-        <meshStandardMaterial color="#2c3430" roughness={0.86} metalness={0.08} />
+      <mesh position={[0, -2.72, -0.12]}>
+        <boxGeometry args={[5.4, 0.52, 2.4]} />
+        <meshStandardMaterial color="#090a0a" roughness={0.98} metalness={0.01} />
       </mesh>
 
-      <mesh ref={leftDoor} position={[-0.43, 0.42, 0]}>
-        <boxGeometry args={[0.82, 4.5, 0.34]} />
-        <meshStandardMaterial color="#d8d2c8" roughness={0.72} metalness={0.1} />
+      <mesh position={[0, 1.08, -0.42]}>
+        <boxGeometry args={[3.05, 8.25, 0.18]} />
+        <meshStandardMaterial color="#050606" roughness={0.99} metalness={0} />
       </mesh>
 
-      <mesh ref={rightDoor} position={[0.43, 0.42, 0]}>
-        <boxGeometry args={[0.82, 4.5, 0.34]} />
-        <meshStandardMaterial color="#eee9df" roughness={0.68} metalness={0.08} />
+      <mesh ref={leftDoor} position={[-0.76, 1.08, 0]}>
+        <boxGeometry args={[1.46, 7.6, 0.68]} />
+        <meshStandardMaterial color="#060807" roughness={1} metalness={0} />
       </mesh>
 
-      <mesh position={[0, 2.82, 0.01]} rotation={[0, 0, Math.PI / 4]}>
-        <boxGeometry args={[1.18, 1.18, 0.36]} />
-        <meshStandardMaterial color="#e9e5df" roughness={0.7} metalness={0.08} />
+      <mesh ref={rightDoor} position={[0.76, 1.08, 0]}>
+        <boxGeometry args={[1.46, 7.6, 0.68]} />
+        <meshStandardMaterial color="#0a0d0b" roughness={1} metalness={0} />
       </mesh>
 
-      <mesh ref={signal} position={[0, 0.4, 0.22]}>
-        <boxGeometry args={[0.035, 2.8, 0.045]} />
-        <meshStandardMaterial color="#a88a5a" emissive="#3a2810" roughness={0.4} metalness={0.45} />
+      <mesh position={[-0.38, 1.08, 0.39]}>
+        <boxGeometry args={[0.62, 7.18, 0.025]} />
+        <meshStandardMaterial color="#141815" roughness={1} metalness={0} />
       </mesh>
 
-      <mesh position={[0, -0.15, 0.25]}>
-        <boxGeometry args={[0.52, 0.035, 0.05]} />
-        <meshStandardMaterial color="#a88a5a" emissive="#2c1d0b" roughness={0.44} metalness={0.42} />
+      <mesh position={[0.44, 1.08, 0.4]}>
+        <boxGeometry args={[0.52, 7.08, 0.025]} />
+        <meshStandardMaterial color="#101310" roughness={1} metalness={0} />
       </mesh>
 
-      <mesh position={[0, 0.4, -0.22]}>
-        <boxGeometry args={[1.7, 4.75, 0.08]} />
-        <meshStandardMaterial color="#17191a" roughness={0.92} metalness={0.04} />
+      <mesh position={[0, 5.92, 0.02]} rotation={[0, 0, Math.PI / 4]}>
+        <boxGeometry args={[2.08, 2.08, 0.7]} />
+        <meshStandardMaterial color="#080a09" roughness={1} metalness={0} />
       </mesh>
 
-      <mesh position={[0, -1.18, 0.42]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[9, 9]} />
-        <meshStandardMaterial color="#17191a" roughness={0.95} metalness={0.02} />
+      <mesh position={[-0.02, 1.02, 0.37]}>
+        <boxGeometry args={[0.035, 5.6, 0.045]} />
+        <meshStandardMaterial color="#050606" roughness={1} metalness={0} />
+      </mesh>
+
+      <mesh position={[0, -0.25, 0.42]}>
+        <boxGeometry args={[0.74, 0.045, 0.055]} />
+        <meshStandardMaterial color="#6f6047" roughness={0.78} metalness={0.12} />
+      </mesh>
+
+      <mesh position={[-0.54, 1.6, 0.39]}>
+        <boxGeometry args={[0.022, 4.7, 0.035]} />
+        <meshStandardMaterial color="#222724" roughness={1} metalness={0} />
+      </mesh>
+
+      <mesh position={[0.58, 1.75, 0.39]}>
+        <boxGeometry args={[0.018, 4.35, 0.035]} />
+        <meshStandardMaterial color="#090a0a" roughness={1} metalness={0} />
+      </mesh>
+
+      <mesh ref={threshold} position={[0, -2.43, -0.42]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[2.5, 4.2]} />
+        <meshStandardMaterial color="#070808" roughness={0.96} metalness={0.01} />
+      </mesh>
+
+      <mesh position={[0, -2.48, 1.2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[18, 22]} />
+        <meshStandardMaterial color="#090a0a" roughness={0.99} metalness={0} />
       </mesh>
     </group>
   );
@@ -130,12 +157,14 @@ function CalibrationSplitMonolith({ progress }: { progress: number }) {
 
 function FieldScene({ progress }: { progress: number }) {
   return (
-    <Canvas camera={{ position: [1.8, 1.45, 14], fov: 42 }} dpr={[1, 1.6]}>
-      <color attach="background" args={["#17191a"]} />
-      <fog attach="fog" args={["#17191a", 7, 19]} />
-      <ambientLight intensity={0.72} />
-      <directionalLight position={[4, 7, 5]} intensity={1.15} color="#e9e5df" />
-      <pointLight position={[0, 1.2, 2.4]} intensity={2.2} color="#a88a5a" />
+    <Canvas camera={{ position: [3.2, 2.35, 22], fov: 35 }} dpr={[1, 1.75]}>
+      <color attach="background" args={["#111313"]} />
+      <fog attach="fog" args={["#111313", 8, 32]} />
+      <ambientLight intensity={0.08} />
+      <hemisphereLight args={["#bcb3a5", "#050606", 0.16]} />
+      <directionalLight position={[-5, 8, 8]} intensity={0.56} color="#d6cdbc" />
+      <directionalLight position={[5, 3, -4]} intensity={0.1} color="#6f6047" />
+      <spotLight position={[0, 5.8, 5.5]} angle={0.22} penumbra={0.94} intensity={0.44} color="#c9b996" />
       <CalibrationSplitMonolith progress={progress} />
     </Canvas>
   );

@@ -1,0 +1,100 @@
+{
+  "updated_at": "2026-06-12",
+  "trends": [
+    {
+      "rank": 1,
+      "headline": "Humanoid robots enter commercial deployment",
+      "explanation": "Multiple humanoid robotics companies closed large funding rounds and signed first commercial contracts in the past six months. Figure AI, Boston Dynamics, and Physical Intelligence all moved from demonstration to actual production line deployment, with manufacturing customers confirming the shift.",
+      "primary_domain": "robotics",
+      "signal_ids": [
+        "figure-ai-series-b-2025-02",
+        "boston-dynamics-atlas-electric-2025-04",
+        "physical-intelligence-pi02-2025-11"
+      ]
+    },
+    {
+      "rank": 2,
+      "headline": "Fully reusable heavy-lift launch is operational",
+      "explanation": "SpaceX Starship has now twice caught its Super Heavy booster mid-air while simultaneously demonstrating orbital velocity and controlled re-entry. The era of fully reusable launch at scale has arrived, collapsing the cost model for mass-to-orbit and enabling mission profiles previously considered prohibitively expensive.",
+      "primary_domain": "space",
+      "signal_ids": [
+        "spacex-starship-ift6-2025-11"
+      ]
+    },
+    {
+      "rank": 3,
+      "headline": "Multimodal AI generation reaches production quality",
+      "explanation": "Text-to-video, native audio synthesis, and fully synchronised multimodal generation shipped from major labs as production-grade products, not research previews. The perceptual gap between generated and captured media closed substantially in a single quarter.",
+      "primary_domain": "ai",
+      "signal_ids": [
+        "google-deepmind-veo3-launch-2026-05",
+        "anthropic-claude-opus4-2026-05"
+      ]
+    },
+    {
+      "rank": 4,
+      "headline": "Topological qubits challenge superconducting dominance",
+      "explanation": "Microsoft's Majorana 1 chip demonstrated error rates that, if sustained at scale, would significantly outpace current superconducting approaches. This is the first credible challenge to IBM's roadmap in a decade, and the verification was published in Nature — not a company press release.",
+      "primary_domain": "quantum",
+      "signal_ids": [
+        "microsoft-majorana1-qubit-2025-02",
+        "ibm-condor-1000-qubit-2024-11"
+      ]
+    },
+    {
+      "rank": 5,
+      "headline": "Commercial fusion construction begins",
+      "explanation": "Commonwealth Fusion Systems breaking ground on SPARC marks the first time a private fusion company has moved from magnet demonstration to building the actual machine. The HTS coil validation at 20T removed the last major engineering uncertainty before construction could begin.",
+      "primary_domain": "energy",
+      "signal_ids": [
+        "commonwealth-fusion-sparc-2025-09"
+      ]
+    },
+    {
+      "rank": 6,
+      "headline": "2nm semiconductors unlock next AI compute generation",
+      "explanation": "Samsung's 2nm GAA production readiness, combined with a 25% power reduction at equivalent performance, directly enables the next generation of AI accelerators. The transition from FinFET to GAA architecture is as significant as the jump from planar to FinFET.",
+      "primary_domain": "materials",
+      "signal_ids": [
+        "samsung-2nm-process-yield-2026-04"
+      ]
+    },
+    {
+      "rank": 7,
+      "headline": "European open AI models compete with US frontier labs",
+      "explanation": "Mistral's €600M raise and continued release of competitive open-weight models represents a genuine challenge to US-only frontier AI dominance. European labs are now in the same funding tier as established US incumbents, with sovereign AI capability as an explicit political goal.",
+      "primary_domain": "ai",
+      "signal_ids": [
+        "mistral-le-chat-series-b-2026-03"
+      ]
+    },
+    {
+      "rank": 8,
+      "headline": "Industrial XR hardware crosses visual fidelity threshold",
+      "explanation": "Varjo XR-5 matching human visual acuity in the central field of view removes the last ergonomic objection to replacing physical mockups with XR in precision industrial workflows. This threshold — not weight, not price — was the blocker for aerospace and automotive design teams.",
+      "primary_domain": "xr",
+      "signal_ids": [
+        "varjo-xr5-industrial-2026-01",
+        "meta-aria-gen2-research-2025-09"
+      ]
+    },
+    {
+      "rank": 9,
+      "headline": "Long-duration grid storage becomes manufacturable",
+      "explanation": "Form Energy's iron-air battery entering commercial production at scale provides the first economically viable solution for multi-day grid storage. This is a structural change for energy grids designed around weather-dependent renewables: the constraint of short-duration storage is being removed.",
+      "primary_domain": "energy",
+      "signal_ids": [
+        "form-energy-iron-air-2025-10"
+      ]
+    },
+    {
+      "rank": 10,
+      "headline": "Private interplanetary science missions become viable",
+      "explanation": "Rocket Lab's Venus mission announcement is a milestone: a private company commissioning planetary science. The cost trajectory of small launch vehicles and miniaturised instruments has made missions that previously required a NASA budget financially accessible to well-capitalised commercial entities.",
+      "primary_domain": "space",
+      "signal_ids": [
+        "rocketlab-venus-trajectory-2026-02"
+      ]
+    }
+  ]
+}

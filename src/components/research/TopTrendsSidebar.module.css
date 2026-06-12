@@ -1,0 +1,145 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: 4px;
+}
+
+.title {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.signalCount {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+}
+
+.updated {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  opacity: 0.6;
+}
+
+.list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+  padding: var(--space-2) 0;
+}
+
+/* Scrollbar styling */
+.list::-webkit-scrollbar {
+  width: 3px;
+}
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.list::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+}
+
+.item {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  cursor: default;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid transparent;
+}
+
+.item:hover {
+  background-color: var(--color-pine);
+  border-bottom-color: var(--color-border);
+}
+
+.itemRank {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xl);
+  font-weight: 300;
+  color: var(--color-border);
+  line-height: 1;
+  padding-top: 2px;
+  min-width: 28px;
+  flex-shrink: 0;
+}
+
+.item:hover .itemRank {
+  color: var(--color-muted);
+}
+
+.itemBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.domainDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.domainLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.itemHeadline {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.itemExplanation {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item:hover .itemExplanation {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.itemSignals {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  opacity: 0.7;
+}

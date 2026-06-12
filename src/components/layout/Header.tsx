@@ -8,7 +8,7 @@ import styles from "./Header.module.css";
 const NAV_ITEMS = [
   { label: "Solutions", href: "#products" },
   { label: "Products", href: "#products" },
-  { label: "Research", href: "#" },
+  { label: "Research", href: "/research" },
   { label: "Journal", href: "#" },
   { label: "Bring Your Problem", href: "/monolith" },
   { label: "Control Room", href: "#", isControlRoom: true },

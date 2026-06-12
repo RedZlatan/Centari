@@ -2,11 +2,25 @@
 
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
+import { geoEqualEarth, geoPath } from "d3-geo";
+import type { FeatureCollection, Geometry } from "geojson";
+import { feature, mesh } from "topojson-client";
+import type { GeometryCollection, Topology } from "topojson-specification";
+import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import styles from "./research.module.css";
 
-type SignalCategory = "Infrastructure" | "Training" | "Autonomy" | "Climate" | "Security";
+// Natural Earth via world-atlas keeps the map geodata-based without a heavy map runtime.
+type SignalCategory =
+  | "Infrastructure"
+  | "Training"
+  | "Autonomy"
+  | "Climate"
+  | "Security"
+  | "Spatial (XR)"
+  | "Nano"
+  | "Quantum";
 
 type Signal = {
   id: string;
@@ -21,16 +35,64 @@ type Signal = {
   summary: string;
 };
 
-const categories: Array<SignalCategory | "All"> = [
-  "All",
-  "Infrastructure",
-  "Training",
-  "Autonomy",
-  "Climate",
-  "Security",
+type SignalCluster = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  signalIds: string[];
+};
+
+type ResearchMapPayload = {
+  categories: Array<SignalCategory | "All">;
+  signals: Signal[];
+  clusters: SignalCluster[];
+};
+
+type WorldAtlasObjects = {
+  countries: GeometryCollection;
+};
+
+const worldTopology = worldAtlas as unknown as Topology<WorldAtlasObjects>;
+const worldFeature = feature(worldTopology, worldTopology.objects.countries) as unknown as FeatureCollection;
+const worldBorders = mesh(
+  worldTopology,
+  worldTopology.objects.countries,
+  (a, b) => a !== b,
+) as unknown as Geometry;
+
+const mapProjection = geoEqualEarth().fitSize([1000, 520], { type: "Sphere" });
+const mapPath = geoPath(mapProjection);
+const countryPaths = worldFeature.features
+  .map((country) => mapPath(country))
+  .filter((path): path is string => Boolean(path));
+const borderPath = mapPath(worldBorders);
+const graticuleLines = [
+  "M80 95H920",
+  "M80 175H920",
+  "M80 255H920",
+  "M80 335H920",
+  "M80 415H920",
+  "M170 54V468",
+  "M330 54V468",
+  "M500 54V468",
+  "M670 54V468",
+  "M830 54V468",
 ];
 
-const signals: Signal[] = [
+const researchMapData: ResearchMapPayload = {
+  categories: [
+    "All",
+    "Infrastructure",
+    "Training",
+    "Autonomy",
+    "Climate",
+    "Security",
+    "Spatial (XR)",
+    "Nano",
+    "Quantum",
+  ],
+  signals: [
   {
     id: "SIG-001",
     title: "Arctic logistics corridors",
@@ -144,12 +206,12 @@ const signals: Signal[] = [
     title: "Levant urban response models",
     location: "Amman / Beirut",
     region: "Levant",
-    category: "Training",
+    category: "Spatial (XR)",
     x: 57,
     y: 53,
     intensity: 67,
     momentum: "+6%",
-    summary: "Urban crisis rehearsal is shifting from static tabletop exercises into live model environments.",
+    summary: "Urban crisis rehearsal is shifting from static tabletop exercises into spatial mission environments.",
   },
   {
     id: "SIG-011",
@@ -240,12 +302,12 @@ const signals: Signal[] = [
     title: "Japan disaster robotics",
     location: "Tokyo / Sendai",
     region: "Japan",
-    category: "Autonomy",
+    category: "Nano",
     x: 86,
     y: 47,
     intensity: 71,
     momentum: "+7%",
-    summary: "Disaster response robotics are creating operational lessons for hazardous-site autonomy.",
+    summary: "Disaster robotics and miniaturised sensors are creating operational lessons for hazardous-site autonomy.",
   },
   {
     id: "SIG-019",
@@ -300,24 +362,24 @@ const signals: Signal[] = [
     title: "Great Lakes industrial resilience",
     location: "Detroit / Toronto",
     region: "Great Lakes",
-    category: "Infrastructure",
+    category: "Nano",
     x: 26,
     y: 42,
     intensity: 70,
     momentum: "+6%",
-    summary: "Manufacturing resilience programs need supply-chain simulations tied to physical capacity.",
+    summary: "Advanced materials and manufacturing resilience programs need simulations tied to physical capacity.",
   },
   {
     id: "SIG-024",
     title: "East Coast cyber-physical exercises",
     location: "Washington / Boston",
     region: "North America",
-    category: "Training",
+    category: "Quantum",
     x: 31,
     y: 45,
     intensity: 80,
     momentum: "+11%",
-    summary: "Infrastructure security exercises are merging cyber incidents with physical operations.",
+    summary: "Cyber-physical exercises are beginning to model quantum-resistant networks and infrastructure risk.",
   },
   {
     id: "SIG-025",
@@ -348,12 +410,12 @@ const signals: Signal[] = [
     title: "South Atlantic maritime watch",
     location: "Cape Town / Buenos Aires",
     region: "South Atlantic",
-    category: "Security",
+    category: "Spatial (XR)",
     x: 47,
     y: 82,
     intensity: 64,
     momentum: "+4%",
-    summary: "Maritime awareness programs are expanding into fisheries, shipping, and infrastructure protection.",
+    summary: "Maritime awareness programs are expanding into spatial operating pictures for shipping and infrastructure.",
   },
   {
     id: "SIG-028",
@@ -367,7 +429,55 @@ const signals: Signal[] = [
     momentum: "+18%",
     summary: "Port, rail, and regional security dynamics are increasing demand for shared risk models.",
   },
-];
+  {
+    id: "SIG-029",
+    title: "Quantum-resistant networks",
+    location: "Global / Allied networks",
+    region: "Global",
+    category: "Quantum",
+    x: 64,
+    y: 42,
+    intensity: 85,
+    momentum: "+21%",
+    summary: "Mission networks are beginning to price post-quantum migration into resilience planning.",
+  },
+  {
+    id: "SIG-030",
+    title: "XR mission rehearsal platforms",
+    location: "Global / Training commands",
+    region: "Global",
+    category: "Spatial (XR)",
+    x: 58,
+    y: 36,
+    intensity: 84,
+    momentum: "+18%",
+    summary: "Spatial rehearsal platforms are moving from demonstration environments into readiness workflows.",
+  },
+  {
+    id: "SIG-031",
+    title: "Nanomaterial defence applications",
+    location: "Global / Materials labs",
+    region: "Global",
+    category: "Nano",
+    x: 73,
+    y: 46,
+    intensity: 83,
+    momentum: "+14%",
+    summary: "Materials research is entering operational planning through sensors, coatings, and lightweight protection.",
+  },
+  ],
+  clusters: [
+    { id: "north-america", label: "North America", x: 18, y: 38, signalIds: ["SIG-021", "SIG-022", "SIG-023", "SIG-024"] },
+    { id: "south-america", label: "South America", x: 32, y: 70, signalIds: ["SIG-025", "SIG-026"] },
+    { id: "europe", label: "Europe", x: 51, y: 34, signalIds: ["SIG-001", "SIG-002", "SIG-003", "SIG-004", "SIG-005", "SIG-011"] },
+    { id: "africa", label: "Africa", x: 51, y: 62, signalIds: ["SIG-007", "SIG-008", "SIG-027", "SIG-028"] },
+    { id: "middle-east", label: "Middle East", x: 60, y: 54, signalIds: ["SIG-006", "SIG-009", "SIG-010", "SIG-012"] },
+    { id: "south-asia", label: "South Asia", x: 70, y: 58, signalIds: ["SIG-013", "SIG-014"] },
+    { id: "east-asia", label: "East Asia", x: 82, y: 47, signalIds: ["SIG-016", "SIG-017", "SIG-018", "SIG-029", "SIG-031"] },
+    { id: "pacific", label: "Pacific", x: 84, y: 72, signalIds: ["SIG-015", "SIG-019", "SIG-020"] },
+    { id: "global-emerging", label: "Global emerging", x: 62, y: 38, signalIds: ["SIG-030"] },
+  ],
+};
 
 const categoryAccent: Record<SignalCategory, string> = {
   Infrastructure: "#c4a36f",
@@ -375,13 +485,30 @@ const categoryAccent: Record<SignalCategory, string> = {
   Autonomy: "#9eb2a5",
   Climate: "#8fa3b8",
   Security: "#b78d72",
+  "Spatial (XR)": "#b79be0",
+  Nano: "#78c4a0",
+  Quantum: "#88bfe0",
 };
+
+const priorityTrendIds = [
+  "SIG-016",
+  "SIG-001",
+  "SIG-003",
+  "SIG-011",
+  "SIG-002",
+  "SIG-015",
+  "SIG-029",
+  "SIG-030",
+  "SIG-031",
+  "SIG-014",
+];
 
 function getSignalSize(intensity: number) {
   return 9 + Math.round((intensity - 60) / 6);
 }
 
 export default function ResearchPage() {
+  const { categories, signals, clusters } = researchMapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory | "All">("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
 
@@ -397,8 +524,30 @@ export default function ResearchPage() {
     filteredSignals.find((signal) => signal.id === selectedId) ?? filteredSignals[0] ?? signals[0];
 
   const topTrends = useMemo(
-    () => [...signals].sort((a, b) => b.intensity - a.intensity).slice(0, 10),
-    [],
+    () =>
+      priorityTrendIds
+        .map((id) => signals.find((signal) => signal.id === id))
+        .filter((signal): signal is Signal => Boolean(signal)),
+    [signals],
+  );
+
+  const filteredSignalIds = useMemo(
+    () => new Set(filteredSignals.map((signal) => signal.id)),
+    [filteredSignals],
+  );
+
+  const visibleClusters = useMemo(
+    () =>
+      clusters
+        .map((cluster) => ({
+          ...cluster,
+          signals: cluster.signalIds
+            .map((id) => signals.find((signal) => signal.id === id))
+            .filter((signal): signal is Signal => Boolean(signal))
+            .filter((signal) => filteredSignalIds.has(signal.id)),
+        }))
+        .filter((cluster) => cluster.signals.length > 0),
+    [clusters, filteredSignalIds, signals],
   );
 
   function selectCategory(category: SignalCategory | "All") {
@@ -454,7 +603,7 @@ export default function ResearchPage() {
                     onClick={() => selectCategory(category)}
                   >
                     <span />
-                    {category}
+                    <b>{category}</b>
                   </button>
                 ))}
               </div>
@@ -462,7 +611,7 @@ export default function ResearchPage() {
 
             <div className={styles.mapSurface}>
               <div className={styles.mapStatus} aria-hidden="true">
-                <span>Mercator / strategic signal layer</span>
+                <span>Equal Earth / strategic signal layer</span>
                 <span>{filteredSignals.length} visible signals</span>
               </div>
               <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
@@ -473,29 +622,16 @@ export default function ResearchPage() {
                   </linearGradient>
                 </defs>
                 <g className={styles.mapGraticule} aria-hidden="true">
-                  <path d="M80 95H920" />
-                  <path d="M80 175H920" />
-                  <path d="M80 255H920" />
-                  <path d="M80 335H920" />
-                  <path d="M80 415H920" />
-                  <path d="M170 54V468" />
-                  <path d="M330 54V468" />
-                  <path d="M500 54V468" />
-                  <path d="M670 54V468" />
-                  <path d="M830 54V468" />
+                  {graticuleLines.map((line) => (
+                    <path key={line} d={line} />
+                  ))}
                 </g>
                 <g className={styles.landMasses}>
-                  <path d="M98 132 132 93 192 72 254 86 304 124 337 180 314 222 261 229 221 211 179 229 133 207 92 170Z" />
-                  <path d="M252 228 294 249 330 296 338 358 311 424 268 475 232 438 208 377 184 327 202 273Z" />
-                  <path d="M397 123 458 82 540 73 628 92 675 130 660 168 598 178 556 160 497 185 434 168Z" />
-                  <path d="M476 188 538 191 586 225 632 286 618 355 573 431 518 454 477 397 454 323 428 269Z" />
-                  <path d="M640 126 716 88 813 86 900 123 944 174 925 234 858 257 786 246 725 218 664 197Z" />
-                  <path d="M711 255 777 275 839 321 861 384 833 442 767 454 720 408 696 339Z" />
-                  <path d="M810 406 877 412 928 448 909 487 845 492 799 461Z" />
-                  <path d="M72 80 145 49 243 55 322 93 296 122 197 102 118 106Z" />
-                  <path d="M488 63 590 42 704 57 756 93 709 116 617 103 527 89Z" />
-                  <path d="M351 448 421 431 505 456 536 486 459 505 378 488Z" />
+                  {countryPaths.map((path, index) => (
+                    <path key={index} d={path} />
+                  ))}
                 </g>
+                {borderPath ? <path className={styles.countryBorders} d={borderPath} /> : null}
                 <g className={styles.mapLabels} aria-hidden="true">
                   <text x="125" y="121">NORTH AMERICA</text>
                   <text x="244" y="342">SOUTH AMERICA</text>
@@ -513,28 +649,31 @@ export default function ResearchPage() {
                 <span>72S</span>
               </div>
 
-              {filteredSignals.map((signal) => {
-                const size = getSignalSize(signal.intensity);
-                const selected = signal.id === selectedSignal.id;
+              {visibleClusters.map((cluster) => {
+                const primarySignal = cluster.signals.reduce((strongest, signal) =>
+                  signal.intensity > strongest.intensity ? signal : strongest,
+                );
+                const size = getSignalSize(primarySignal.intensity) + cluster.signals.length * 3;
+                const selected = cluster.signals.some((signal) => signal.id === selectedSignal.id);
 
                 return (
                   <button
-                    key={signal.id}
+                    key={cluster.id}
                     type="button"
                     className={`${styles.hotspot} ${selected ? styles.hotspotSelected : ""}`}
                     style={
                       {
-                        left: `${signal.x}%`,
-                        top: `${signal.y}%`,
+                        left: `${cluster.x}%`,
+                        top: `${cluster.y}%`,
                         width: `${size}px`,
                         height: `${size}px`,
-                        "--signal-color": categoryAccent[signal.category],
+                        "--signal-color": categoryAccent[primarySignal.category],
                     } as CSSProperties
                     }
-                    onClick={() => setSelectedId(signal.id)}
-                    aria-label={`${signal.title}, ${signal.location}`}
+                    onClick={() => setSelectedId(primarySignal.id)}
+                    aria-label={`${cluster.label}, ${cluster.signals.length} signals`}
                   >
-                    <span />
+                    <span>{cluster.signals.length}</span>
                   </button>
                 );
               })}

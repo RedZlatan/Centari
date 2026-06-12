@@ -149,6 +149,11 @@
   transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
 }
 
+.filters button b {
+  font: inherit;
+  white-space: nowrap;
+}
+
 .filters button span {
   width: 6px;
   height: 6px;
@@ -229,6 +234,14 @@
   vector-effect: non-scaling-stroke;
 }
 
+.countryBorders {
+  fill: none;
+  stroke: rgba(233, 229, 223, 0.13);
+  stroke-width: 0.65;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 .mapGraticule path {
   fill: none;
   stroke: rgba(233, 229, 223, 0.07);
@@ -269,8 +282,23 @@
 
 .hotspot span {
   position: absolute;
-  inset: 31%;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #f6efe4;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  line-height: 1;
+  text-align: center;
+  transform: rotate(-45deg);
+}
+
+.hotspot span::before {
+  content: "";
+  position: absolute;
+  inset: 32%;
   background: color-mix(in srgb, var(--signal-color) 82%, #e9e5df);
+  z-index: -1;
 }
 
 .hotspot::after {

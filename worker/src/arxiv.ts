@@ -1,4 +1,4 @@
-// Sprint R8E-A — arXiv routing refinements (quality gates, no schema changes)
+// Sprint R8E-B — other domain + editorial scoring
 // Run: npx tsx worker/src/arxiv.ts [--dry-run] [--max=N] [--days=N] [--per-category=N]
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -101,21 +101,18 @@ function cleanLatex(s: string): string {
 
 // ── Domain inference ──────────────────────────────────────────────────────────
 //
-// R8E-A routing changes vs R8B:
-//   1. cs.HC demoted from trusted → gated: requires XR keyword; clinical/social
-//      keywords veto the signal entirely (reject, don't insert).
-//   2. Robotics keyword list expanded to cover WAM/VLA vocab absent in R8B.
-//   3. cond-mat.supr-con demoted from trusted-quantum → keyword-split across
-//      quantum / materials / energy; unmatched signals are rejected.
-//   4. physics.app-ph demoted from trusted-energy → keyword-split across
-//      energy / quantum / materials; unmatched signals are rejected.
-//   5. Broad-AI fallback gains an off-domain veto that rejects signals whose
-//      titles match known out-of-scope patterns (music, clinical, social media…).
+// R8E-A routing changes:
+//   1. cs.HC gated: requires XR keyword; clinical/social keywords veto.
+//   2. Robotics keyword list expanded (WAM/VLA/bionic vocab).
+//   3. cond-mat.supr-con keyword-split: quantum / materials / energy / other.
+//   4. physics.app-ph keyword-split: energy / quantum / materials / other.
+//   5. Broad-AI off-domain veto for music/clinical/social-media titles.
 //
-// Rejected signals are not inserted and are counted in signals_rejected.
-// "other" is not yet a valid schema category; rejection is the interim strategy.
+// R8E-B change: rejected signals route to category='other' instead of being dropped.
+// 'other' is never approved and invisible to public API (RLS filters status=approved).
 
 type CentariDomain = 'ai' | 'xr' | 'robotics' | 'quantum' | 'space' | 'energy' | 'materials';
+type StoredDomain  = CentariDomain | 'other';
 
 interface DomainInference {
   domain: CentariDomain;
@@ -133,20 +130,19 @@ const XR_CONFIRM_RE = /virtual\s+reality|augmented\s+reality|mixed\s+reality|\bx
 
 const XR_VETO_RE = /clinical\s+trial|randomized\s+(controlled|trial)|\bptsd\b|health\s+intervention|mental\s+health.{0,40}(study|survey|month|tiktok)|content\s+moderation|hate\s+speech|peer\s+review|academic\s+paper|bibliometric/i;
 
-// ── Gate 2: cond-mat.supr-con → quantum / materials / energy (else reject) ────
+// ── Gate 2: cond-mat.supr-con → quantum / materials / energy (else other) ─────
 
 const SUPR_QUANTUM_RE   = /\bqubit\b|josephson|\bsquid\b|majorana|decoherence|quantum\s+(circuit|error|information|computing|phase|geometry|criticality)|topological\s+(qubit|superconductor)|anomalous\s+hall|berry\s+phase|\bchern\b/i;
 const SUPR_MATERIALS_RE = /thin\s+film|epitaxial|crystal\s+structure|multiband|spin.orbit|doping|band\s+structure|magnetic\s+anisotropy|structural\s+anisotropy|\balloy\b/i;
 const SUPR_ENERGY_RE    = /\bcable\b|\bwire\b|ac\s+loss|power\s+transmission|\btransformer\b|fault\s+current|magnet\s+coil/i;
 
-// ── Gate 3: physics.app-ph → energy / quantum / materials (else reject) ───────
+// ── Gate 3: physics.app-ph → energy / quantum / materials (else other) ────────
 
 const APPPH_ENERGY_RE    = /solar\s+cell|photovoltaic|\bbattery\b|fuel\s+cell|energy\s+storage|wind\s+turbine|supercapacitor|thermoelectric|power\s+grid|electrolysis|thermal\s+harvesting/i;
 const APPPH_QUANTUM_RE   = /\bqubit\b|quantum\s+(circuit|computing|information)|\bjosephson\b/i;
 const APPPH_MATERIALS_RE = /\bcrystal\b|thin\s+film|perovskite|\balloy\b|semiconductor|nanoparticle|metamaterial|graphene/i;
 
-// ── Gate 4: AI off-domain veto (applied after title-keyword scan finds no
-//   non-AI domain; rejects clearly out-of-scope signals before ai fallback) ────
+// ── Gate 4: AI off-domain veto ────────────────────────────────────────────────
 
 const AI_OFFDOM_RE = /symbolic\s+music|music\s+generation|\btiktok\b|\bneonatal\b|\bgenomicall?y\b|social\s+and\s+behavioral|vehicle\s+color.{0,20}(recogni|classif|detect)|waste\s+recycling|waste\s+segmentation|supramolecular\s+chemistry|indic\s+language/i;
 
@@ -160,7 +156,6 @@ const DOMAIN_TITLE_RULES: Array<{ domain: CentariDomain; keywords: string[] }> =
       'gripper', 'actuator', 'sim-to-real', 'quadruped', 'teleoperat',
       'haptic feedback', 'prosthetic', 'humanoid', 'legged', 'grasping',
       'vision-language-action', 'vla model',
-      // R8E-A: world model / dexterity / lab automation vocabulary
       'world action model', 'bionic hand', 'end-effector', 'articulated tool',
       'lab automation', 'manipulation policy', 'pick-and-place', 'tactile sensing',
     ],
@@ -182,7 +177,6 @@ const DOMAIN_TITLE_RULES: Array<{ domain: CentariDomain; keywords: string[] }> =
       'holographic', 'monocular depth', 'scene reconstruction',
       'world tracing', 'generative geometry', 'spatial generation',
       'depth estimation', 'stereo reconstruction', 'gaussian splatting',
-      // R8E-A: avatar / volumetric / expression vocabulary
       'avatar', 'digital human', 'surface reconstruction', 'volumetric video',
       'novel view synthesis', 'cybersickness', 'facial animation', '4d reconstruction',
     ],
@@ -220,10 +214,6 @@ function inferDomain(
 ): DomainInference {
   const t = title.toLowerCase();
 
-  // ── Gated tags: keyword confirmation required ─────────────────────────────
-  // Without a match the signal is rejected — not inserted, not forced into a
-  // weak domain. Routing "other" is deferred until the schema is updated (R8E-B).
-
   if (arxivCat === 'cs.HC') {
     if (XR_VETO_RE.test(t))    return { domain: tagDomain, source: 'veto', reason: 'cs.HC veto keyword',    rejected: true };
     if (XR_CONFIRM_RE.test(t)) return { domain: 'xr',       source: 'tag',  reason: 'cs.HC + XR keyword' };
@@ -231,9 +221,9 @@ function inferDomain(
   }
 
   if (arxivCat === 'cond-mat.supr-con') {
-    if (SUPR_QUANTUM_RE.test(t))   return { domain: 'quantum',   source: 'tag', reason: 'cond-mat.supr-con quantum'    };
-    if (SUPR_MATERIALS_RE.test(t)) return { domain: 'materials', source: 'tag', reason: 'cond-mat.supr-con materials'  };
-    if (SUPR_ENERGY_RE.test(t))    return { domain: 'energy',    source: 'tag', reason: 'cond-mat.supr-con energy'     };
+    if (SUPR_QUANTUM_RE.test(t))   return { domain: 'quantum',   source: 'tag', reason: 'cond-mat.supr-con quantum'   };
+    if (SUPR_MATERIALS_RE.test(t)) return { domain: 'materials', source: 'tag', reason: 'cond-mat.supr-con materials' };
+    if (SUPR_ENERGY_RE.test(t))    return { domain: 'energy',    source: 'tag', reason: 'cond-mat.supr-con energy'    };
     return { domain: tagDomain, source: 'veto', reason: 'cond-mat.supr-con no keyword', rejected: true };
   }
 
@@ -243,8 +233,6 @@ function inferDomain(
     if (APPPH_MATERIALS_RE.test(t)) return { domain: 'materials', source: 'tag', reason: 'physics.app-ph materials' };
     return { domain: tagDomain, source: 'veto', reason: 'physics.app-ph no keyword', rejected: true };
   }
-
-  // ── Broad AI tags: title-keyword scan, then off-domain veto ──────────────
 
   if (BROAD_AI_TAGS.has(arxivCat)) {
     for (const { domain, keywords } of DOMAIN_TITLE_RULES) {
@@ -257,7 +245,6 @@ function inferDomain(
     return { domain: tagDomain, source: 'tag', reason: `${arxivCat} → ${tagDomain}` };
   }
 
-  // ── Specific trusted tags (cs.RO, quant-ph, cs.GR, astro-ph.*, cond-mat.mtrl-sci) ──
   return { domain: tagDomain, source: 'tag', reason: arxivCat };
 }
 
@@ -354,7 +341,7 @@ function parseAtom(xml: string): ArxivEntry[] {
 async function fetchArxiv(category: string, maxResults: number): Promise<ArxivEntry[]> {
   const url = `https://export.arxiv.org/api/query?search_query=cat:${category}&sortBy=submittedDate&sortOrder=descending&start=0&max_results=${maxResults}`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Centari-Worker/1.2 (research signal ingestion; robin89.olsson@gmail.com)' },
+    headers: { 'User-Agent': 'Centari-Worker/1.3 (research signal ingestion; robin89.olsson@gmail.com)' },
   });
   if (!res.ok) throw new Error(`arXiv HTTP ${res.status} for ${category}`);
   return parseAtom(await res.text());
@@ -378,25 +365,121 @@ function truncateSentence(s: string, max: number): string {
   return cut.slice(0, max - 1) + '…';
 }
 
-// ── Reroute record (dry-run) ──────────────────────────────────────────────────
+// ── Editorial scoring ─────────────────────────────────────────────────────────
+//
+// Four dimensions × 25 points = 100 total.
+// Maps to: curator_score (1-10), signal_strength (0-1), novelty_score (0-1).
 
-interface Reroute {
-  n: number;
-  arxivId: string;
-  cleanTitle: string;
-  tagDomain: CentariDomain;
-  inferred: DomainInference;
-  latexChanged: boolean;
+interface EditorialScore {
+  total:          number;   // 0-100
+  novelty:        number;   // 0-25
+  strategic:      number;   // 0-25
+  relevance:      number;   // 0-25
+  publicInterest: number;   // 0-25
+}
+
+const NOVELTY_STRONG_RE  = /state.of.the.art|surpass|breakthrough|outperform.*by|beat.*baseline|new\s+record|first\s+to\s+achieve/i;
+const NOVELTY_GENERAL_RE = /\bnovel\b|new\s+method|new\s+approach|new\s+framework|first\s+time|first\s+work|we\s+propose|we\s+introduce|we\s+present/i;
+const NOVELTY_REVIEW_RE  = /\bsurvey\b|\breview\b|\bbenchmark\b|comprehensive\s+(study|analysis)|literature\s+review/i;
+
+const STRATEGIC_HW_RE   = /\baccelerator\b|\bneuromorphic\b|\bfpga\b|\basic\b|\bchip\b|hardware.accelerat|inference\s+engine|edge\s+deploy/i;
+const STRATEGIC_REAL_RE = /\bdeployed\b|real.world\s+(test|application|trial|demo)|in\s+production|on.device|field\s+(test|trial)|system\s+integration/i;
+
+const INTEREST_MISSION_RE  = /\bjwst\b|\bnasa\b|\besa\b|\bspacex\b|\bmars\b|james\s+webb|lunar\s+gateway|hubble|\bartemis\b/i;
+const INTEREST_CONSUMER_RE = /\bhumanoid\b|\bavatar\b|facial\s+(animation|expression|reconstruction)|robot\s+arm|prostheti|\bexoskeleton\b/i;
+const INTEREST_AI_RE       = /\bllm\b|large\s+language\s+model|foundation\s+model|autonomous\s+agent|\bgpt\b|\bgemini\b|multimodal\s+model/i;
+const INTEREST_THEORY_RE   = /\btheorem\b|\blemma\b|\bproof\b|monte\s+carlo\s+method|stochastic\s+process|markov\s+chain|convergence\s+analysis/i;
+
+const DOMAIN_STRATEGIC_BASE: Record<StoredDomain, number> = {
+  robotics:  22,
+  xr:        20,
+  ai:        18,
+  quantum:   16,
+  space:     14,
+  energy:    14,
+  materials: 14,
+  other:      3,
+};
+
+function computeEditorialScore(
+  title: string,
+  summary: string,
+  domain: StoredDomain,
+  inferSource: 'tag' | 'title' | 'veto',
+  arxivCat: string,
+): EditorialScore {
+  const text = (title + ' ' + summary).toLowerCase();
+
+  // Novelty (0-25)
+  let novelty = 12;
+  if (NOVELTY_STRONG_RE.test(text))        novelty += 8;
+  else if (NOVELTY_GENERAL_RE.test(text))  novelty += 5;
+  if (NOVELTY_REVIEW_RE.test(text))        novelty -= 8;
+  novelty = Math.max(0, Math.min(25, novelty));
+
+  // Strategic importance (0-25) — domain base + hardware/real-world bonuses
+  let strategic = DOMAIN_STRATEGIC_BASE[domain];
+  if (STRATEGIC_HW_RE.test(text))   strategic += 4;
+  if (STRATEGIC_REAL_RE.test(text)) strategic += 3;
+  strategic = Math.max(0, Math.min(25, strategic));
+
+  // Centari relevance (0-25) — based on how the domain assignment was made
+  let relevance: number;
+  if (domain === 'other') {
+    relevance = 5;
+  } else if (
+    arxivCat === 'cs.RO' || arxivCat === 'quant-ph' || arxivCat === 'cs.GR' ||
+    arxivCat === 'astro-ph.IM' || arxivCat === 'astro-ph.EP' || arxivCat === 'cond-mat.mtrl-sci'
+  ) {
+    relevance = 22;   // specific trusted tag
+  } else if (inferSource === 'title') {
+    relevance = 18;   // broad AI redirected via title keyword scan
+  } else if (arxivCat === 'cs.HC' || arxivCat === 'cond-mat.supr-con' || arxivCat === 'physics.app-ph') {
+    relevance = 18;   // gated tag that passed keyword confirmation
+  } else {
+    relevance = 14;   // broad AI default (no title redirect)
+  }
+  relevance = Math.max(0, Math.min(25, relevance));
+
+  // Public interest (0-25)
+  let publicInterest = 10;
+  if (INTEREST_MISSION_RE.test(text))       publicInterest += 8;
+  else if (INTEREST_CONSUMER_RE.test(text)) publicInterest += 6;
+  else if (INTEREST_AI_RE.test(text))       publicInterest += 4;
+  if (INTEREST_THEORY_RE.test(text))        publicInterest -= 3;
+  publicInterest = Math.max(0, Math.min(25, publicInterest));
+
+  return {
+    total: novelty + strategic + relevance + publicInterest,
+    novelty,
+    strategic,
+    relevance,
+    publicInterest,
+  };
+}
+
+// ── Dry-run record ────────────────────────────────────────────────────────────
+
+interface DryRunRecord {
+  title:          string;
+  domain:         StoredDomain;
+  arxivCat:       string;
+  inferSource:    'tag' | 'title' | 'veto';
+  inferReason:    string;
+  curatorScore:   number;
+  signalStrength: number;
+  noveltyScore:   number;
+  isOther:        boolean;
 }
 
 // ── Main worker ───────────────────────────────────────────────────────────────
 
 interface WorkerResult {
-  signals_found:    number;
-  signals_written:  number;
-  signals_skipped:  number;
-  signals_rejected: number;   // routing quality gate rejections
-  errors:           string[];
+  signals_found:   number;
+  signals_written: number;
+  signals_skipped: number;
+  signals_other:   number;   // routed to 'other' (routing gate rejections)
+  errors:          string[];
 }
 
 async function run(): Promise<void> {
@@ -416,7 +499,7 @@ async function run(): Promise<void> {
     per_category:  PER_CATEGORY || 'none (global max)',
     lookback_days: DAYS,
     categories:    CATEGORY_MAP.length,
-    version:       '1.2',
+    version:       '1.3',
   });
 
   const supabase: SupabaseClient = createClient(supabaseUrl, serviceKey, {
@@ -426,17 +509,13 @@ async function run(): Promise<void> {
   const startedAt = new Date().toISOString();
   const result: WorkerResult = {
     signals_found: 0, signals_written: 0,
-    signals_skipped: 0, signals_rejected: 0,
+    signals_skipped: 0, signals_other: 0,
     errors: [],
   };
 
-  // Domain histograms for dry-run before/after comparison
   const beforeCount: Partial<Record<CentariDomain, number>> = {};
-  const afterCount:  Partial<Record<CentariDomain, number>> = {};
-  let vetoedTotal = 0;
-
-  // Up to 15 reroutes (domain changed or vetoed) for dry-run report
-  const reroutes: Reroute[] = [];
+  const afterCount:  Partial<Record<StoredDomain, number>>  = {};
+  const dryRunRecords: DryRunRecord[] = [];
 
   // ── 1. Ensure arXiv source row exists ────────────────────────────────────
   let sourceId: string | null = null;
@@ -473,7 +552,7 @@ async function run(): Promise<void> {
   if (!DRY_RUN) {
     const { data: runRow, error: runErr } = await supabase
       .from('worker_runs')
-      .insert({ status: 'running', runner_version: 'arxiv-worker-1.2' })
+      .insert({ status: 'running', runner_version: 'arxiv-worker-1.3' })
       .select('id')
       .single();
 
@@ -545,35 +624,40 @@ async function run(): Promise<void> {
       // ── Infer domain ───────────────────────────────────────────────────────
       const inferred = inferDomain(arxivCat, tagDomain, cleanTitle);
 
-      // Track "before" (tag-only) distribution for dry-run report
       beforeCount[tagDomain] = (beforeCount[tagDomain] ?? 0) + 1;
 
-      // Collect up to 15 reroutes (domain changed or vetoed)
-      const isReroute = inferred.rejected === true || inferred.domain !== tagDomain;
-      if (DRY_RUN && reroutes.length < 15 && isReroute) {
-        reroutes.push({
-          n:            reroutes.length + 1,
-          arxivId:      entry.id,
-          cleanTitle,
-          tagDomain,
-          inferred,
-          latexChanged: cleanTitle !== rawTitle,
-        });
-      }
+      // R8E-B: rejected signals route to 'other' — not dropped
+      const storedDomain: StoredDomain = inferred.rejected ? 'other' : inferred.domain;
 
-      // Routing gate rejection — skip insertion
       if (inferred.rejected) {
-        vetoedTotal++;
-        result.signals_rejected++;
-        log('info', `Rejected signal (${inferred.reason})`, {
-          title: cleanTitle.slice(0, 60),
+        result.signals_other++;
+        log('info', `Routed to other (${inferred.reason})`, {
+          title:     cleanTitle.slice(0, 60),
           arxiv_cat: arxivCat,
         });
-        continue;
       }
 
-      // Track "after" distribution
-      afterCount[inferred.domain] = (afterCount[inferred.domain] ?? 0) + 1;
+      afterCount[storedDomain] = (afterCount[storedDomain] ?? 0) + 1;
+
+      // ── Editorial scoring ──────────────────────────────────────────────────
+      const editorial      = computeEditorialScore(cleanTitle, cleanSummary, storedDomain, inferred.source, arxivCat);
+      const curatorScore   = Math.max(1, Math.min(10, Math.round(editorial.total / 10)));
+      const signalStrength = editorial.total / 100;
+      const noveltyScore   = editorial.novelty / 25;
+
+      if (DRY_RUN) {
+        dryRunRecords.push({
+          title:          cleanTitle,
+          domain:         storedDomain,
+          arxivCat,
+          inferSource:    inferred.source,
+          inferReason:    inferred.reason,
+          curatorScore,
+          signalStrength,
+          noveltyScore,
+          isOther:        storedDomain === 'other',
+        });
+      }
 
       const slug = makeSlug(cleanTitle, publishedAt);
 
@@ -585,13 +669,13 @@ async function run(): Promise<void> {
         published_at:         publishedAt.toISOString(),
         title:                cleanTitle,
         summary:              cleanSummary,
-        category:             inferred.domain as string,
+        category:             storedDomain,
         secondary_categories: inferred.source === 'title' ? [tagDomain as string] : [],
         signal_type:          'paper',
         confidence:           'probable',
-        curator_score:        5,
-        signal_strength:      0.500,
-        novelty_score:        0.600,
+        curator_score:        curatorScore,
+        signal_strength:      signalStrength,
+        novelty_score:        noveltyScore,
         momentum_score:       0.500,
         status:               'pending',
         reviewed_by:          'worker-arxiv',
@@ -618,8 +702,9 @@ async function run(): Promise<void> {
         log('info', 'Inserted signal', {
           slug,
           title:         cleanTitle.slice(0, 60),
-          domain:        inferred.domain,
+          domain:        storedDomain,
           domain_source: inferred.source,
+          curator_score: curatorScore,
         });
         categoryWritten++;
         result.signals_written++;
@@ -636,7 +721,7 @@ async function run(): Promise<void> {
         finished_at:      new Date().toISOString(),
         signals_fetched:  result.signals_found,
         signals_inserted: result.signals_written,
-        signals_rejected: result.signals_rejected + result.signals_skipped,
+        signals_rejected: result.signals_other + result.signals_skipped,
         error_message:    result.errors.length > 0 ? result.errors.join('; ') : null,
       })
       .eq('id', workerRunId);
@@ -644,7 +729,7 @@ async function run(): Promise<void> {
     if (updateErr) log('warn', 'Could not update worker_runs row', { error: updateErr.message });
   }
 
-  // ── 5. Dry-run routing report ─────────────────────────────────────────────
+  // ── 5. Dry-run report ─────────────────────────────────────────────────────
   if (DRY_RUN) {
     const allDomains: CentariDomain[] = ['ai', 'robotics', 'xr', 'quantum', 'space', 'energy', 'materials'];
     const beforeTotal = Object.values(beforeCount).reduce((a, b) => a + b, 0);
@@ -654,7 +739,7 @@ async function run(): Promise<void> {
       total > 0 ? '█'.repeat(Math.round((n / total) * 28)) : '';
 
     process.stdout.write('\n' + '═'.repeat(72) + '\n');
-    process.stdout.write('DRY-RUN R8E-A ROUTING REPORT\n');
+    process.stdout.write('DRY-RUN R8E-B REPORT — OTHER DOMAIN + EDITORIAL SCORING\n');
     process.stdout.write('═'.repeat(72) + '\n\n');
 
     process.stdout.write('── BEFORE (tag-only, R8B rules) ──────────────────────────────────────\n');
@@ -664,34 +749,34 @@ async function run(): Promise<void> {
     }
     process.stdout.write(`  ${'TOTAL'.padEnd(10)} ${String(beforeTotal).padStart(3)}\n\n`);
 
-    process.stdout.write('── AFTER  (R8E-A routing gates) ──────────────────────────────────────\n');
-    for (const d of allDomains) {
+    process.stdout.write('── AFTER  (R8E-B routing — \'other\' instead of drop) ──────────────────\n');
+    for (const d of [...allDomains, 'other' as StoredDomain]) {
       const n = afterCount[d] ?? 0;
-      if (n) process.stdout.write(`  ${d.padEnd(10)} ${String(n).padStart(3)}  ${bar(n, afterTotal + vetoedTotal)}\n`);
+      if (n) process.stdout.write(`  ${d.padEnd(10)} ${String(n).padStart(3)}  ${bar(n, afterTotal)}\n`);
     }
-    if (vetoedTotal > 0) {
-      process.stdout.write(`  ${'REJECTED'.padEnd(10)} ${String(vetoedTotal).padStart(3)}  ${bar(vetoedTotal, afterTotal + vetoedTotal)} (routing gates)\n`);
+    process.stdout.write(`  ${'TOTAL'.padEnd(10)} ${String(afterTotal).padStart(3)}\n\n`);
+
+    // Top 20 by curator_score
+    const sorted = [...dryRunRecords].sort((a, b) => b.curatorScore - a.curatorScore);
+    const top20  = sorted.slice(0, 20);
+    const bot20  = sorted.slice(-20).reverse();
+
+    process.stdout.write('── TOP 20 BY CURATOR SCORE ───────────────────────────────────────────\n\n');
+    for (let i = 0; i < top20.length; i++) {
+      const r = top20[i];
+      process.stdout.write(`[${String(i + 1).padStart(2, '0')}] score=${r.curatorScore}  domain=${r.domain.padEnd(10)} cat=${r.arxivCat}\n`);
+      process.stdout.write(`     ${r.title.slice(0, 80)}\n`);
+      if (r.isOther) process.stdout.write(`     [other: ${r.inferReason}]\n`);
+      process.stdout.write('\n');
     }
-    process.stdout.write(`  ${'TOTAL'.padEnd(10)} ${String(afterTotal + vetoedTotal).padStart(3)}\n\n`);
 
-    if (reroutes.length > 0) {
-      process.stdout.write(`── ${reroutes.length} REROUTES ────────────────────────────────────────────────────\n\n`);
-
-      for (const r of reroutes) {
-        const oldDomain = r.tagDomain;
-        const newLabel  = r.inferred.rejected
-          ? `REJECTED  (${r.inferred.reason})`
-          : `${r.inferred.domain}  [${r.inferred.source}: ${r.inferred.reason}]`;
-
-        process.stdout.write(`[${String(r.n).padStart(2, '0')}] ${r.arxivId}\n`);
-        process.stdout.write(`  BEFORE: ${oldDomain}\n`);
-        process.stdout.write(`  AFTER : ${newLabel}\n`);
-        process.stdout.write(`  TITLE : ${r.cleanTitle.slice(0, 90)}\n`);
-        if (r.latexChanged) process.stdout.write(`  NOTE  : LaTeX cleaned\n`);
-        process.stdout.write('\n');
-      }
-    } else {
-      process.stdout.write('── No reroutes found in this batch (try --per-category=8 for broader coverage)\n\n');
+    process.stdout.write('── BOTTOM 20 BY CURATOR SCORE ────────────────────────────────────────\n\n');
+    for (let i = 0; i < bot20.length; i++) {
+      const r = bot20[i];
+      process.stdout.write(`[${String(i + 1).padStart(2, '0')}] score=${r.curatorScore}  domain=${r.domain.padEnd(10)} cat=${r.arxivCat}\n`);
+      process.stdout.write(`     ${r.title.slice(0, 80)}\n`);
+      if (r.isOther) process.stdout.write(`     [other: ${r.inferReason}]\n`);
+      process.stdout.write('\n');
     }
 
     process.stdout.write('═'.repeat(72) + '\n\n');
@@ -699,12 +784,12 @@ async function run(): Promise<void> {
 
   // ── 6. Run summary ────────────────────────────────────────────────────────
   log('info', DRY_RUN ? '[dry-run] Run complete' : 'Run complete', {
-    signals_found:    result.signals_found,
-    signals_written:  result.signals_written,
-    signals_skipped:  result.signals_skipped,
-    signals_rejected: result.signals_rejected,
-    errors:           result.errors.length,
-    duration_s:       ((Date.now() - new Date(startedAt).getTime()) / 1000).toFixed(1),
+    signals_found:   result.signals_found,
+    signals_written: result.signals_written,
+    signals_skipped: result.signals_skipped,
+    signals_other:   result.signals_other,
+    errors:          result.errors.length,
+    duration_s:      ((Date.now() - new Date(startedAt).getTime()) / 1000).toFixed(1),
   });
 
   if (result.errors.length > 0) {

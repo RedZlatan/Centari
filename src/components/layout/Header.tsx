@@ -5,7 +5,7 @@ import { Container } from "./Container";
 import styles from "./Header.module.css";
 
 const NAV_ITEMS = [
-  { label: "Solutions", href: "/#products" },
+  { label: "Solutions", href: "/#solutions" },
   { label: "Products", href: "/#products" },
   { label: "Research", href: "/research" },
   { label: "Journal", href: "#" },

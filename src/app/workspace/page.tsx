@@ -114,7 +114,12 @@ function WorkspaceScene({
       <VisionLaunches visions={launchedVisions} onVisionSettled={onVisionSettled} />
       <CenterPath />
       <ResearchObservatory />
-      <Typewriter paperText={paperText} activeKey={activeKey} isWriting={isWriting} />
+      <Typewriter
+        paperText={paperText}
+        activeKey={activeKey}
+        isWriting={isWriting}
+        isLaunching={launchedVisions.length > 0}
+      />
     </Canvas>
   );
 }
@@ -457,10 +462,12 @@ function Typewriter({
   paperText,
   activeKey,
   isWriting,
+  isLaunching,
 }: {
   paperText: string;
   activeKey: KeyPress | null;
   isWriting: boolean;
+  isLaunching: boolean;
 }) {
   const carriage = useRef<Group>(null);
   const carriageAdvance = Math.min(paperText.length * 0.01, 0.88);
@@ -489,22 +496,26 @@ function Typewriter({
           <boxGeometry args={[2.55, 0.16, 0.22]} />
           <meshStandardMaterial color="#090a0a" roughness={0.42} metalness={0.82} />
         </mesh>
-        <mesh position={[0, 0.55, -0.06]} rotation={[-0.18, 0, 0]} castShadow>
-          <boxGeometry args={[2.02, 1.66, 0.045]} />
-          <meshStandardMaterial color="#eee6d6" roughness={0.78} metalness={0.02} />
-        </mesh>
-        <Text
-          position={[-0.78, 1.17, -0.142]}
-          rotation={[-0.18, 0, 0]}
-          fontSize={0.07}
-          lineHeight={1.24}
-          maxWidth={1.42}
-          color="#26221b"
-          anchorX="left"
-          anchorY="top"
-        >
-          {paperText || " "}
-        </Text>
+        {!isLaunching ? (
+          <>
+            <mesh position={[0, 0.55, -0.06]} rotation={[-0.18, 0, 0]} castShadow>
+              <boxGeometry args={[2.02, 1.66, 0.045]} />
+              <meshStandardMaterial color="#eee6d6" roughness={0.78} metalness={0.02} />
+            </mesh>
+            <Text
+              position={[-0.78, 1.17, -0.142]}
+              rotation={[-0.18, 0, 0]}
+              fontSize={0.07}
+              lineHeight={1.24}
+              maxWidth={1.42}
+              color="#26221b"
+              anchorX="left"
+              anchorY="top"
+            >
+              {paperText || " "}
+            </Text>
+          </>
+        ) : null}
       </group>
       <Keyboard activeKey={activeKey} />
       <TypeBars activeKey={activeKey} />
@@ -544,6 +555,14 @@ function Keyboard({ activeKey }: { activeKey: KeyPress | null }) {
 
   return (
     <group position={[0, 0.22, 0.42]} rotation={[-0.58, 0, 0]}>
+      <mesh position={[0.08, -0.03, -0.055]} castShadow receiveShadow>
+        <boxGeometry args={[2.95, 1.22, 0.075]} />
+        <meshStandardMaterial color="#181715" roughness={0.58} metalness={0.48} />
+      </mesh>
+      <mesh position={[0.08, -0.03, -0.01]}>
+        <boxGeometry args={[2.72, 1.0, 0.022]} />
+        <meshStandardMaterial color="#242018" roughness={0.72} metalness={0.24} />
+      </mesh>
       {keys.map((key) => (
         <TypeKey key={key.key} item={key} activeKey={activeKey} />
       ))}
@@ -569,12 +588,16 @@ function TypeKey({
 
   return (
     <group position={[item.x, item.y, 0]}>
+      <mesh position={[0, 0, -0.055]} castShadow>
+        <cylinderGeometry args={[item.key === "SPACE" ? 0.24 : 0.055, item.key === "SPACE" ? 0.22 : 0.048, 0.09, 18]} />
+        <meshStandardMaterial color="#080807" roughness={0.46} metalness={0.84} />
+      </mesh>
       <mesh ref={ref} castShadow>
-        <cylinderGeometry args={[item.key === "SPACE" ? 0.31 : 0.095, item.key === "SPACE" ? 0.29 : 0.083, 0.07, 28]} />
+        <cylinderGeometry args={[item.key === "SPACE" ? 0.31 : 0.098, item.key === "SPACE" ? 0.285 : 0.084, 0.075, 30]} />
         <meshStandardMaterial
-          color={isActive ? "#d0b077" : "#151615"}
-          roughness={0.44}
-          metalness={0.68}
+          color={isActive ? "#d0b077" : "#2a2721"}
+          roughness={0.5}
+          metalness={0.42}
         />
       </mesh>
       <Text position={[0, 0, 0.055]} fontSize={item.key === "SPACE" ? 0.045 : 0.06} color="#d8d1c3">
@@ -686,7 +709,7 @@ export default function WorkspacePage() {
       ...current,
       { id, text, target, createdAt: performance.now() },
     ]);
-    setPaperText("");
+    window.setTimeout(() => setPaperText(""), 260);
   };
 
   const settleVision = (vision: VisionParticle) => {

@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, Text } from "@react-three/drei";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BackSide, Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import styles from "./workspace.module.css";
@@ -22,10 +22,28 @@ const TYPEWRITER_POSITION = new Vector3(0, -0.36, 0);
 const TYPEWRITER_LOOK_AT = new Vector3(0, 0.68, -0.18);
 const WRITING_CAMERA_POSITION = new Vector3(0.78, 1.36, 1.72);
 const WRITING_LOOK_AT = new Vector3(0.18, 0.95, -0.14);
+const PAPER_WORLD_POSITION = new Vector3(0.02, 1.05, -0.48);
 
 type KeyPress = {
   key: string;
   stamp: number;
+};
+
+type DragRotation = {
+  x: number;
+  y: number;
+};
+
+type VisionParticle = {
+  id: number;
+  text: string;
+  createdAt: number;
+  target: [number, number, number];
+};
+
+type VisionStar = {
+  id: number;
+  position: [number, number, number];
 };
 
 function normalizeKey(key: string) {
@@ -39,14 +57,20 @@ function WorkspaceScene({
   paperText,
   activeKey,
   isWriting,
-  isExploring,
-  onWritingChange,
+  scrollProgress,
+  dragRotation,
+  launchedVisions,
+  visionStars,
+  onVisionSettled,
 }: {
   paperText: string;
   activeKey: KeyPress | null;
   isWriting: boolean;
-  isExploring: boolean;
-  onWritingChange: (isWriting: boolean) => void;
+  scrollProgress: number;
+  dragRotation: DragRotation;
+  launchedVisions: VisionParticle[];
+  visionStars: VisionStar[];
+  onVisionSettled: (vision: VisionParticle) => void;
 }) {
   return (
     <Canvas
@@ -56,11 +80,7 @@ function WorkspaceScene({
       shadows
       gl={{ antialias: true }}
     >
-      <CameraRig
-        isWriting={isWriting}
-        isExploring={isExploring}
-        onWritingChange={onWritingChange}
-      />
+      <CameraRig scrollProgress={scrollProgress} dragRotation={dragRotation} />
       <color attach="background" args={[isWriting ? "#070909" : "#0b0f0f"]} />
       <fog attach="fog" args={[isWriting ? "#070909" : "#0b0f0f", 7, 42]} />
       <ambientLight intensity={isWriting ? 0.34 : 0.48} />
@@ -81,7 +101,12 @@ function WorkspaceScene({
       <pointLight position={[0.8, 1.35, 1.1]} intensity={isWriting ? 3.6 : 2.6} color="#b89562" />
       <pointLight position={[-6.8, 1.8, -5.2]} intensity={isWriting ? 0.38 : 0.8} color="#7f9d94" />
       <ObservatoryVoid />
-      <SparseStarfield isWriting={isWriting} />
+      <SparseStarfield
+        isWriting={isWriting}
+        dragRotation={dragRotation}
+        visionStars={visionStars}
+      />
+      <VisionLaunches visions={launchedVisions} onVisionSettled={onVisionSettled} />
       <CenterPath />
       <ResearchObservatory />
       <Typewriter paperText={paperText} activeKey={activeKey} isWriting={isWriting} />
@@ -90,91 +115,29 @@ function WorkspaceScene({
 }
 
 function CameraRig({
-  isWriting,
-  isExploring,
-  onWritingChange,
+  scrollProgress,
+  dragRotation,
 }: {
-  isWriting: boolean;
-  isExploring: boolean;
-  onWritingChange: (isWriting: boolean) => void;
+  scrollProgress: number;
+  dragRotation: DragRotation;
 }) {
   const { camera } = useThree();
-  const yaw = useRef(0);
-  const pitch = useRef(-0.08);
-  const keys = useRef<Set<string>>(new Set());
   const lookAtTarget = useRef(TYPEWRITER_LOOK_AT.clone());
-  const writingState = useRef(isWriting);
+  const easedProgress = Math.min(1, Math.max(0, scrollProgress));
 
-  useEffect(() => {
-    writingState.current = isWriting;
-  }, [isWriting]);
+  useFrame(() => {
+    const approach = easedProgress * easedProgress * (3 - 2 * easedProgress);
+    const targetPosition = SPAWN_POSITION.clone().lerp(WRITING_CAMERA_POSITION, approach);
+    targetPosition.x += dragRotation.x * 0.42 * (1 - approach * 0.35);
+    targetPosition.y += dragRotation.y * 0.2;
 
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!isExploring || writingState.current || document.pointerLockElement === null) return;
-      yaw.current -= event.movementX * 0.0022;
-      pitch.current = Math.max(-1.15, Math.min(1.05, pitch.current - event.movementY * 0.0019));
-    };
+    const targetLookAt = TYPEWRITER_LOOK_AT.clone().lerp(WRITING_LOOK_AT, approach);
+    targetLookAt.x += dragRotation.x * 0.32;
+    targetLookAt.y += dragRotation.y * 0.24;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onWritingChange(false);
-        return;
-      }
-      if (!isExploring || writingState.current) return;
-      keys.current.add(event.key.toLowerCase());
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      keys.current.delete(event.key.toLowerCase());
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-    };
-  }, [isExploring, onWritingChange]);
-
-  useFrame((_, delta) => {
-    if (isWriting) {
-      camera.position.lerp(WRITING_CAMERA_POSITION, 0.055);
-      lookAtTarget.current.lerp(WRITING_LOOK_AT, 0.08);
-      camera.lookAt(lookAtTarget.current);
-      return;
-    }
-
-    const direction = new Vector3(
-      Math.sin(yaw.current) * Math.cos(pitch.current),
-      Math.sin(pitch.current),
-      -Math.cos(yaw.current) * Math.cos(pitch.current),
-    );
-    const flatForward = new Vector3(direction.x, 0, direction.z).normalize();
-    const flatRight = new Vector3(flatForward.z, 0, -flatForward.x).normalize();
-    const move = new Vector3();
-
-    if (keys.current.has("w") || keys.current.has("arrowup")) move.add(flatForward);
-    if (keys.current.has("s") || keys.current.has("arrowdown")) move.sub(flatForward);
-    if (keys.current.has("d") || keys.current.has("arrowright")) move.add(flatRight);
-    if (keys.current.has("a") || keys.current.has("arrowleft")) move.sub(flatRight);
-
-    if (move.lengthSq() > 0) {
-      move.normalize().multiplyScalar(delta * 1.85);
-      camera.position.add(move);
-      camera.position.x = Math.max(-7.5, Math.min(7.5, camera.position.x));
-      camera.position.z = Math.max(-8, Math.min(8.8, camera.position.z));
-      camera.position.y = 1.42;
-    }
-
-    camera.lookAt(camera.position.clone().add(direction));
-
-    const distanceToMachine = camera.position.distanceTo(new Vector3(0, 1.1, 1.1));
-    if (distanceToMachine < 1.55) {
-      onWritingChange(true);
-    }
+    camera.position.lerp(targetPosition, 0.075);
+    lookAtTarget.current.lerp(targetLookAt, 0.09);
+    camera.lookAt(lookAtTarget.current);
   });
 
   return null;
@@ -213,7 +176,15 @@ function ObservatoryVoid() {
   );
 }
 
-function SparseStarfield({ isWriting }: { isWriting: boolean }) {
+function SparseStarfield({
+  isWriting,
+  dragRotation,
+  visionStars,
+}: {
+  isWriting: boolean;
+  dragRotation: DragRotation;
+  visionStars: VisionStar[];
+}) {
   const stars = useMemo(
     () =>
       Array.from({ length: 190 }, (_, index) => {
@@ -232,7 +203,7 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
   );
 
   return (
-    <group>
+    <group rotation={[dragRotation.y * 0.08, dragRotation.x * 0.16, 0]}>
       {stars.map((star) => (
         <mesh key={star.id} position={[star.x, star.y, star.z]}>
           <sphereGeometry args={[star.size, 8, 8]} />
@@ -255,6 +226,18 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
           </mesh>
         </group>
       ))}
+      {visionStars.map((star) => (
+        <group key={star.id} position={star.position}>
+          <mesh>
+            <sphereGeometry args={[0.075, 18, 18]} />
+            <meshBasicMaterial color="#fff4c9" transparent opacity={0.94} />
+          </mesh>
+          <mesh>
+            <ringGeometry args={[0.28, 0.285, 64]} />
+            <meshBasicMaterial color="#d7a95f" transparent opacity={0.22} />
+          </mesh>
+        </group>
+      ))}
       <Text
         position={[-6.1, 2.2, -9.5]}
         rotation={[0, 0.25, 0]}
@@ -264,6 +247,65 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
         anchorX="left"
       >
         EMPTY FIELD / AWAITING VISIONS
+      </Text>
+    </group>
+  );
+}
+
+function VisionLaunches({
+  visions,
+  onVisionSettled,
+}: {
+  visions: VisionParticle[];
+  onVisionSettled: (vision: VisionParticle) => void;
+}) {
+  return (
+    <group>
+      {visions.map((vision) => (
+        <VisionParticle key={vision.id} vision={vision} onSettled={onVisionSettled} />
+      ))}
+    </group>
+  );
+}
+
+function VisionParticle({
+  vision,
+  onSettled,
+}: {
+  vision: VisionParticle;
+  onSettled: (vision: VisionParticle) => void;
+}) {
+  const group = useRef<Group>(null);
+  const hasSettled = useRef(false);
+  const start = PAPER_WORLD_POSITION;
+  const target = useMemo(() => new Vector3(...vision.target), [vision.target]);
+
+  useFrame(() => {
+    const age = performance.now() - vision.createdAt;
+    const progress = Math.min(1, age / 1900);
+    const eased = progress * progress * (3 - 2 * progress);
+    const arc = Math.sin(progress * Math.PI) * 1.2;
+
+    if (group.current) {
+      group.current.position.lerpVectors(start, target, eased);
+      group.current.position.y += arc;
+      group.current.scale.setScalar(0.7 + progress * 1.35);
+    }
+
+    if (progress >= 1 && !hasSettled.current) {
+      hasSettled.current = true;
+      onSettled(vision);
+    }
+  });
+
+  return (
+    <group ref={group} position={start.toArray()}>
+      <mesh>
+        <sphereGeometry args={[0.05, 18, 18]} />
+        <meshBasicMaterial color="#fff0bd" transparent opacity={0.96} />
+      </mesh>
+      <Text position={[0.12, 0.03, 0]} fontSize={0.085} color="#d8c9a4" anchorX="left">
+        {vision.text.slice(0, 42)}
       </Text>
     </group>
   );
@@ -526,15 +568,70 @@ function TypeBar({ active, angle }: { active: boolean; angle: number }) {
 
 export default function WorkspacePage() {
   const workspaceRef = useRef<HTMLElement>(null);
-  const [isExploring, setIsExploring] = useState(false);
+  const isDragging = useRef(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [dragRotation, setDragRotation] = useState<DragRotation>({ x: 0, y: 0 });
   const [isWriting, setIsWriting] = useState(false);
   const [paperText, setPaperText] = useState("");
   const [activeKey, setActiveKey] = useState<KeyPress | null>(null);
+  const [launchedVisions, setLaunchedVisions] = useState<VisionParticle[]>([]);
+  const [visionStars, setVisionStars] = useState<VisionStar[]>([]);
 
-  const enterSpace = useCallback(() => {
-    setIsExploring(true);
-    workspaceRef.current?.requestPointerLock?.();
+  useEffect(() => {
+    const updateProgress = () => {
+      if (!workspaceRef.current) return;
+      const rect = workspaceRef.current.getBoundingClientRect();
+      const travel = workspaceRef.current.offsetHeight - window.innerHeight;
+      const nextProgress = travel > 0 ? Math.min(1, Math.max(0, -rect.top / travel)) : 0;
+      setScrollProgress(nextProgress);
+      setIsWriting(nextProgress > 0.82);
+
+      const header = document.querySelector<HTMLElement>("header");
+      if (header) {
+        const headerFade = Math.min(1, Math.max(0, (nextProgress - 0.08) / 0.22));
+        header.style.opacity = `${1 - headerFade}`;
+        header.style.transform = `translateY(${-headerFade * 20}px)`;
+        header.style.pointerEvents = headerFade > 0.9 ? "none" : "";
+      }
+    };
+
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+    return () => {
+      window.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+      const header = document.querySelector<HTMLElement>("header");
+      if (header) {
+        header.style.opacity = "";
+        header.style.transform = "";
+        header.style.pointerEvents = "";
+      }
+    };
   }, []);
+
+  const launchIdea = () => {
+    const text = paperText.trim();
+    if (!text) return;
+
+    const id = Date.now();
+    const target: [number, number, number] = [
+      -2.4 + (id % 7) * 0.82,
+      3.2 + (id % 5) * 0.48,
+      -12 - (id % 9) * 1.15,
+    ];
+
+    setLaunchedVisions((current) => [
+      ...current,
+      { id, text, target, createdAt: performance.now() },
+    ]);
+    setPaperText("");
+  };
+
+  const settleVision = (vision: VisionParticle) => {
+    setLaunchedVisions((current) => current.filter((item) => item.id !== vision.id));
+    setVisionStars((current) => [...current, { id: vision.id, position: vision.target }]);
+  };
 
   useEffect(() => {
     if (!isWriting) return;
@@ -573,14 +670,36 @@ export default function WorkspacePage() {
   }, [activeKey]);
 
   return (
-    <section ref={workspaceRef} className={styles.workspace}>
+    <section
+      ref={workspaceRef}
+      className={styles.workspace}
+      onPointerDown={() => {
+        isDragging.current = true;
+      }}
+      onPointerMove={(event) => {
+        if (!isDragging.current) return;
+        setDragRotation((current) => ({
+          x: Math.max(-1, Math.min(1, current.x + event.movementX * 0.004)),
+          y: Math.max(-0.8, Math.min(0.8, current.y - event.movementY * 0.003)),
+        }));
+      }}
+      onPointerUp={() => {
+        isDragging.current = false;
+      }}
+      onPointerLeave={() => {
+        isDragging.current = false;
+      }}
+    >
       <div className={`${styles.sceneFrame} ${isWriting ? styles.sceneFrameWriting : ""}`}>
         <WorkspaceScene
           paperText={paperText}
           activeKey={activeKey}
           isWriting={isWriting}
-          isExploring={isExploring}
-          onWritingChange={setIsWriting}
+          scrollProgress={scrollProgress}
+          dragRotation={dragRotation}
+          launchedVisions={launchedVisions}
+          visionStars={visionStars}
+          onVisionSettled={settleVision}
         />
         <div className={`${styles.interfaceLayer} ${isWriting ? styles.interfaceLayerWriting : ""}`}>
           <div className={styles.statusBlock}>
@@ -594,15 +713,16 @@ export default function WorkspacePage() {
           </div>
           <button
             type="button"
-            className={`${styles.writeButton} ${isExploring ? styles.writeButtonActive : ""}`}
-            onClick={enterSpace}
+            className={`${styles.writeButton} ${isWriting ? styles.writeButtonActive : ""}`}
+            onClick={launchIdea}
+            disabled={!isWriting || !paperText.trim()}
           >
-            {isWriting ? "Writing mode active" : isExploring ? "Approach the machine" : "Enter space"}
+            Launch idea
           </button>
           <div className={styles.zoneReadout}>
-            <span>WASD: move slowly</span>
-            <span>Mouse: look around</span>
-            <span>Approach: write</span>
+            <span>{Math.round(scrollProgress * 100).toString().padStart(2, "0")} / approach</span>
+            <span>{isWriting ? "Writing mode" : "Scroll forward"}</span>
+            <span>{visionStars.length} temporary stars</span>
           </div>
         </div>
       </div>

@@ -1,0 +1,583 @@
+.shell {
+  min-height: 100vh;
+  padding: calc(var(--header-height) + var(--space-12)) clamp(var(--space-6), 4vw, var(--space-16)) var(--space-16);
+  background:
+    radial-gradient(circle at 42% 24%, rgba(168, 138, 90, 0.11), transparent 30%),
+    radial-gradient(circle at 76% 18%, rgba(143, 163, 184, 0.08), transparent 28%),
+    linear-gradient(180deg, #17191a 0%, #101212 100%);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-8);
+  align-items: flex-end;
+  max-width: 1560px;
+  margin: 0 auto var(--space-8);
+}
+
+.kicker,
+.heroMetrics,
+.filters,
+.cardMeta,
+.intensity,
+.rank,
+.trendList b {
+  font-family: var(--font-mono), monospace;
+}
+
+.kicker {
+  margin-bottom: var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+  font-size: clamp(3.4rem, 7vw, 7.4rem);
+  font-weight: 300;
+  line-height: 0.9;
+}
+
+.hero p:not(.kicker) {
+  max-width: 760px;
+  color: #bdb6ab;
+  font-size: var(--text-lg);
+  line-height: 1.55;
+}
+
+.heroMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(106px, 1fr));
+  border: 1px solid rgba(168, 138, 90, 0.22);
+  background:
+    linear-gradient(180deg, rgba(28, 31, 29, 0.82), rgba(12, 14, 13, 0.92)),
+    rgba(18, 20, 20, 0.72);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(233, 229, 223, 0.05);
+}
+
+.heroMetrics div {
+  padding: var(--space-4);
+  border-right: 1px solid rgba(233, 229, 223, 0.1);
+}
+
+.heroMetrics div:last-child {
+  border-right: 0;
+}
+
+.heroMetrics span {
+  display: block;
+  color: var(--color-text);
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+
+.heroMetrics p {
+  margin-top: var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.11em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  gap: var(--space-6);
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.mapColumn,
+.signalCard,
+.trendsPanel {
+  border: 1px solid rgba(168, 138, 90, 0.18);
+  background:
+    linear-gradient(180deg, rgba(30, 34, 32, 0.82), rgba(13, 15, 14, 0.96)),
+    var(--color-surface);
+  box-shadow:
+    0 32px 120px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(233, 229, 223, 0.05);
+}
+
+.toolbar {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 1px solid rgba(233, 229, 223, 0.1);
+}
+
+.toolbar h2,
+.panelHeader h2 {
+  color: var(--color-text);
+  font-size: var(--text-2xl);
+  font-weight: 300;
+  line-height: 1.1;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 1px;
+  border: 1px solid rgba(233, 229, 223, 0.12);
+  background: rgba(5, 6, 6, 0.52);
+  padding: 3px;
+}
+
+.filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  border: 1px solid transparent;
+  background: rgba(19, 22, 20, 0.54);
+  color: #bdb6ab;
+  cursor: pointer;
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.filters button b {
+  font: inherit;
+  white-space: nowrap;
+}
+
+.filters button span {
+  width: 6px;
+  height: 6px;
+  border: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.filters button:hover,
+.filters .filterActive {
+  border-color: rgba(168, 138, 90, 0.72);
+  background:
+    linear-gradient(180deg, rgba(168, 138, 90, 0.2), rgba(168, 138, 90, 0.08)),
+    rgba(168, 138, 90, 0.13);
+  color: #efe8dc;
+}
+
+.mapSurface {
+  position: relative;
+  min-height: 660px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(233, 229, 223, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 48% 42%, rgba(168, 138, 90, 0.09), transparent 34%),
+    radial-gradient(circle at 74% 30%, rgba(143, 163, 184, 0.055), transparent 30%),
+    linear-gradient(180deg, rgba(18, 22, 21, 0.36), rgba(5, 6, 6, 0.72));
+  background-size: 72px 72px, 72px 72px, auto, auto;
+}
+
+.mapStatus {
+  position: absolute;
+  z-index: 5;
+  top: var(--space-4);
+  left: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  color: rgba(233, 229, 223, 0.58);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dataStatus {
+  position: absolute;
+  z-index: 5;
+  top: calc(var(--space-4) + 24px);
+  left: var(--space-4);
+  max-width: min(520px, calc(100% - var(--space-8)));
+  border: 1px solid rgba(233, 229, 223, 0.1);
+  background: rgba(7, 8, 8, 0.54);
+  color: rgba(233, 229, 223, 0.58);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  padding: 0.4rem 0.55rem;
+  text-transform: uppercase;
+}
+
+.dataStatus[data-status="ready"] {
+  color: rgba(120, 196, 160, 0.72);
+}
+
+.dataStatus[data-status="fallback"] {
+  color: rgba(208, 173, 112, 0.78);
+}
+
+.worldMap {
+  position: absolute;
+  inset: 4% 2% 12%;
+  width: 96%;
+  height: 84%;
+  opacity: 0.96;
+  filter:
+    drop-shadow(0 30px 58px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 22px rgba(168, 138, 90, 0.06));
+}
+
+.landMasses path {
+  fill: url("#landGradient");
+  stroke: rgba(233, 229, 223, 0.18);
+  stroke-width: 1.15;
+  vector-effect: non-scaling-stroke;
+}
+
+.countryBorders {
+  fill: none;
+  stroke: rgba(233, 229, 223, 0.13);
+  stroke-width: 0.65;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.mapGraticule path {
+  fill: none;
+  stroke: rgba(233, 229, 223, 0.07);
+  stroke-dasharray: 4 12;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.mapLabels text {
+  fill: rgba(233, 229, 223, 0.18);
+  font-family: var(--font-mono), monospace;
+  font-size: 16px;
+  letter-spacing: 0.16em;
+}
+
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(10, 12, 12, 0.64), transparent 22%, transparent 78%, rgba(10, 12, 12, 0.58)),
+    linear-gradient(180deg, rgba(10, 12, 12, 0.38), transparent 38%, rgba(10, 12, 12, 0.58));
+}
+
+.hotspot {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid color-mix(in srgb, var(--signal-color) 64%, #e9e5df);
+  border-radius: 1px;
+  background: rgba(5, 6, 6, 0.62);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--signal-color) 9%, transparent),
+    0 0 16px color-mix(in srgb, var(--signal-color) 22%, transparent);
+  cursor: pointer;
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.normalSignal {
+  opacity: 0.76;
+}
+
+.strongSignal {
+  border-width: 1.5px;
+  opacity: 0.94;
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--signal-color) 13%, transparent),
+    0 0 22px color-mix(in srgb, var(--signal-color) 28%, transparent);
+}
+
+.trendCluster {
+  border-width: 2px;
+  opacity: 1;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--signal-color) 16%, transparent),
+    0 0 0 15px color-mix(in srgb, var(--signal-color) 7%, transparent),
+    0 0 30px color-mix(in srgb, var(--signal-color) 34%, transparent);
+}
+
+.hotspot span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #f6efe4;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  line-height: 1;
+  text-align: center;
+  transform: rotate(-45deg);
+}
+
+.hotspot span::before {
+  content: "";
+  position: absolute;
+  inset: 32%;
+  background: color-mix(in srgb, var(--signal-color) 82%, #e9e5df);
+  z-index: -1;
+}
+
+.hotspot::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border: 1px solid color-mix(in srgb, var(--signal-color) 18%, transparent);
+}
+
+.hotspot:hover,
+.hotspotSelected {
+  border-color: #f4ead8;
+  background: color-mix(in srgb, var(--signal-color) 18%, rgba(5, 6, 6, 0.72));
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--signal-color) 14%, transparent),
+    0 0 34px color-mix(in srgb, var(--signal-color) 36%, transparent);
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.34);
+}
+
+.sidePanel {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.signalCard {
+  background:
+    linear-gradient(180deg, rgba(28, 31, 29, 0.92), rgba(10, 12, 11, 0.96)),
+    #111312;
+  padding: var(--space-6);
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.cardMeta span {
+  border: 1px solid rgba(233, 229, 223, 0.13);
+  color: #cdbb9d;
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.signalCard h2 {
+  color: var(--color-text);
+  font-size: clamp(var(--text-xl), 2.6vw, var(--text-2xl));
+  font-weight: 300;
+  line-height: 1.08;
+}
+
+.signalCard p {
+  color: #bdb6ab;
+  line-height: 1.55;
+}
+
+.signalScores {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-5, 20px);
+}
+
+.location {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--color-accent) !important;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.intensity {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(233, 229, 223, 0.1);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.intensity strong {
+  color: var(--color-text);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.intensity i {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-accent);
+  transform-origin: left center;
+}
+
+.trendsPanel {
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(34, 38, 35, 0.88), rgba(10, 12, 11, 0.96)),
+    var(--color-surface);
+}
+
+.panelHeader {
+  padding: var(--space-6);
+  border-bottom: 1px solid rgba(233, 229, 223, 0.1);
+  background:
+    linear-gradient(90deg, rgba(168, 138, 90, 0.12), transparent),
+    rgba(5, 6, 6, 0.18);
+}
+
+.trendList {
+  list-style: none;
+}
+
+.trendList li {
+  border-bottom: 1px solid rgba(233, 229, 223, 0.08);
+}
+
+.trendList button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 46px;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: var(--space-4) var(--space-6);
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.trendList button:hover {
+  background:
+    linear-gradient(90deg, rgba(168, 138, 90, 0.16), transparent 78%),
+    rgba(168, 138, 90, 0.05);
+}
+
+.trendList .trendActive {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--signal-color) 22%, transparent), transparent 76%),
+    rgba(168, 138, 90, 0.07);
+}
+
+.trendList .trendActive strong {
+  color: #fff6e8;
+}
+
+.trendList .trendActive .rank {
+  color: color-mix(in srgb, var(--signal-color) 78%, #f4ead8);
+}
+
+.rank {
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+}
+
+.trendList strong {
+  display: block;
+  color: #e8e1d7;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.trendList em {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.trendList b {
+  justify-self: end;
+  border-left: 1px solid rgba(233, 229, 223, 0.1);
+  color: #f0e8dc;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding-left: var(--space-3);
+}
+
+@media (max-width: 1180px) {
+  .hero,
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .heroMetrics {
+    width: 100%;
+  }
+
+  .trendsPanel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+  }
+
+  .heroMetrics,
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .heroMetrics div {
+    border-right: 0;
+    border-bottom: 1px solid rgba(233, 229, 223, 0.1);
+  }
+
+  .mapSurface {
+    min-height: 620px;
+  }
+
+  .mapStatus {
+    display: none;
+  }
+
+  .dataStatus {
+    top: var(--space-4);
+    right: var(--space-4);
+    font-size: 0.58rem;
+  }
+
+  .filters {
+    justify-content: flex-start;
+  }
+
+  .signalCard {
+    padding: var(--space-4);
+  }
+
+  .trendList button {
+    padding: var(--space-4);
+  }
+}

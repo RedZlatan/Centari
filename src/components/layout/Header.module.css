@@ -24,8 +24,8 @@
 
 .wordmark {
   font-family: var(--font-mono), monospace;
-  font-size: var(--text-sm);
-  letter-spacing: 0.2em;
+  font-size: clamp(var(--text-lg), 1.5vw, var(--text-xl));
+  letter-spacing: 0.18em;
   color: var(--color-text);
   user-select: none;
 }
@@ -45,7 +45,8 @@
 .navLink {
   font-family: var(--font-mono), monospace;
   font-size: var(--text-xs);
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   color: var(--color-muted);
   text-transform: uppercase;
   transition: color 0.2s ease;

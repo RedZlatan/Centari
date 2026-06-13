@@ -3,6 +3,12 @@
   display: flex;
   align-items: center;
   position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 48%, rgba(168, 138, 90, 0.12), transparent 28%),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(23, 25, 26, 0), rgba(13, 15, 14, 0.34));
+  background-size: auto, 96px 100%, auto;
 }
 
 /* Subtle horizontal rule above the content block */
@@ -23,12 +29,16 @@
 }
 
 .inner {
+  position: relative;
   padding-top: var(--space-24);
   padding-bottom: var(--space-24);
 }
 
 .content {
+  position: relative;
+  z-index: 2;
   max-width: 780px;
+  transform: translateY(-8vh);
 }
 
 .headline {
@@ -39,6 +49,24 @@
   line-height: 1.05;
   color: var(--color-text);
   margin-bottom: var(--space-8);
+}
+
+.supportingLine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(var(--text-sm), 1.4vw, var(--text-lg));
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.supportingLine span:last-child {
+  color: var(--color-muted);
 }
 
 .body {
@@ -92,4 +120,96 @@
 .secondaryCta:hover {
   color: var(--color-text);
   border-color: var(--color-muted);
+}
+
+.calibrationObject {
+  position: absolute;
+  right: clamp(var(--space-4), 6vw, var(--space-24));
+  top: 50%;
+  width: clamp(180px, 24vw, 360px);
+  aspect-ratio: 0.54;
+  pointer-events: none;
+  transform: translateY(-48%);
+  opacity: 0.72;
+}
+
+.monolithFace,
+.monolithEdge,
+.calibrationLine,
+.referenceLine,
+.basePlane,
+.measurementRail {
+  position: absolute;
+  display: block;
+}
+
+.monolithFace {
+  inset: 6% 18% 5%;
+  background:
+    linear-gradient(110deg, rgba(233, 229, 223, 0.14), transparent 34%),
+    linear-gradient(180deg, #2a332d, #101412);
+  border: 1px solid rgba(233, 229, 223, 0.16);
+  box-shadow:
+    0 38px 110px rgba(0, 0, 0, 0.42),
+    inset 1px 0 0 rgba(233, 229, 223, 0.08);
+  clip-path: polygon(50% 0, 100% 18%, 100% 100%, 0 100%, 0 18%);
+}
+
+.monolithEdge {
+  top: 20%;
+  right: 18%;
+  bottom: 5%;
+  width: 18%;
+  background: linear-gradient(180deg, rgba(75, 89, 78, 0.9), rgba(11, 14, 12, 0.92));
+  border-right: 1px solid rgba(168, 138, 90, 0.24);
+  clip-path: polygon(0 0, 100% 8%, 100% 100%, 0 100%);
+}
+
+.calibrationLine {
+  left: 50%;
+  top: 30%;
+  bottom: 18%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(168, 138, 90, 0.62), transparent);
+}
+
+.referenceLine {
+  left: 34%;
+  right: 30%;
+  top: 63%;
+  height: 1px;
+  background: rgba(168, 138, 90, 0.58);
+}
+
+.basePlane {
+  left: 2%;
+  right: 2%;
+  bottom: 0;
+  height: 22%;
+  background:
+    linear-gradient(90deg, transparent, rgba(168, 138, 90, 0.2), transparent),
+    linear-gradient(180deg, rgba(233, 229, 223, 0.08), transparent);
+  clip-path: polygon(18% 40%, 82% 40%, 100% 100%, 0 100%);
+  opacity: 0.72;
+}
+
+.measurementRail {
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(233, 229, 223, 0.3), transparent);
+  transform: translateY(-50%);
+}
+
+@media (max-width: 767px) {
+  .content {
+    transform: translateY(-4vh);
+  }
+
+  .calibrationObject {
+    right: -52px;
+    width: 190px;
+    opacity: 0.36;
+  }
 }

@@ -1,12 +1,15 @@
-import type { Metadata } from "next";
-import { MonolithForm } from "@/components/monolith/MonolithForm";
-
-export const metadata: Metadata = {
-  title: "Bring Your Problem · Centari",
-  description:
-    "Describe a real operational problem. We review every submission. If the problem fits what Centari is building, we will respond.",
-};
+import { Footer } from "@/components/layout/Footer";
+import { Header } from "@/components/layout/Header";
+import { MonolithPrototype } from "@/components/sections/MonolithPrototype";
 
 export default function MonolithPage() {
-  return <MonolithForm />;
+  return (
+    <>
+      <Header />
+      <main>
+        <MonolithPrototype />
+      </main>
+      <Footer />
+    </>
+  );
 }

@@ -26,10 +26,10 @@
   inset: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(180px, 280px) 1fr minmax(180px, 280px);
+  grid-template-columns: minmax(180px, 270px) 1fr minmax(150px, 230px);
   align-items: end;
   gap: var(--space-6);
-  padding: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   pointer-events: none;
   background:
     linear-gradient(180deg, rgba(16, 19, 19, 0.48), transparent 28%),
@@ -70,6 +70,7 @@
 
 .writeButton {
   justify-self: center;
+  align-self: end;
   min-width: 220px;
   border: 1px solid rgba(168, 138, 90, 0.46);
   background: rgba(17, 18, 18, 0.76);
@@ -95,6 +96,8 @@
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
+  align-self: start;
+  margin-top: var(--space-6);
 }
 
 .zoneReadout span {
@@ -102,15 +105,15 @@
 }
 
 .paperText {
-  width: 260px;
-  min-height: 180px;
-  max-height: 180px;
+  width: 286px;
+  min-height: 204px;
+  max-height: 204px;
   overflow: hidden;
-  padding: 16px 18px;
+  padding: 20px 22px;
   color: #211f1a;
   font-family: var(--font-mono), "Courier New", monospace;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   letter-spacing: 0;

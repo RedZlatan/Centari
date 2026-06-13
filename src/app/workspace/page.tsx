@@ -41,22 +41,30 @@ function WorkspaceScene({
   return (
     <Canvas
       className={styles.canvas}
-      camera={{ position: [0, 2.2, 7.6], fov: 43 }}
+      camera={{ position: [0.65, 2.05, 5.55], fov: 48 }}
       dpr={[1, 1.75]}
       shadows
       gl={{ antialias: true }}
     >
       <color attach="background" args={["#101313"]} />
-      <fog attach="fog" args={["#101313", 7, 18]} />
-      <ambientLight intensity={0.42} />
+      <fog attach="fog" args={["#101313", 5.2, 14]} />
+      <ambientLight intensity={0.5} />
       <directionalLight
-        position={[-4, 6, 4]}
-        intensity={1.2}
+        position={[-3.5, 5.4, 3.2]}
+        intensity={1.35}
         color="#d8cab3"
         castShadow
       />
-      <pointLight position={[3.4, 2.1, 2.8]} intensity={2.2} color="#ad8d5b" />
-      <pointLight position={[-3.6, 1.4, 0.4]} intensity={0.85} color="#7f9d94" />
+      <spotLight
+        position={[3.2, 3.1, 2.2]}
+        angle={0.52}
+        penumbra={0.75}
+        intensity={5.4}
+        color="#caa772"
+        castShadow
+      />
+      <pointLight position={[3.25, 1.45, 1.35]} intensity={2.8} color="#b89562" />
+      <pointLight position={[-3.4, 1.35, -0.15]} intensity={1.05} color="#7f9d94" />
       <Room />
       <CenterPath />
       <ResearchObservatory />
@@ -68,26 +76,26 @@ function WorkspaceScene({
 function Room() {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.65, -2.2]} receiveShadow>
-        <planeGeometry args={[15, 18]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.72, -2.0]} receiveShadow>
+        <planeGeometry args={[16, 16]} />
         <meshStandardMaterial color="#151918" roughness={0.88} metalness={0.08} />
       </mesh>
-      <mesh position={[0, 3.2, -8.2]} receiveShadow>
-        <boxGeometry args={[15, 7.8, 0.18]} />
+      <mesh position={[0, 3.0, -7.0]} receiveShadow>
+        <boxGeometry args={[15, 7.2, 0.18]} />
         <meshStandardMaterial color="#111514" roughness={0.96} />
       </mesh>
-      <mesh position={[-7.2, 2.1, -2.8]} rotation={[0, 0.22, 0]} receiveShadow>
-        <boxGeometry args={[0.18, 5.8, 11]} />
+      <mesh position={[-6.3, 1.9, -2.35]} rotation={[0, 0.25, 0]} receiveShadow>
+        <boxGeometry args={[0.18, 5.4, 10]} />
         <meshStandardMaterial color="#141817" roughness={0.92} />
       </mesh>
-      <mesh position={[7.2, 2.1, -2.8]} rotation={[0, -0.22, 0]} receiveShadow>
-        <boxGeometry args={[0.18, 5.8, 11]} />
+      <mesh position={[6.3, 1.9, -2.35]} rotation={[0, -0.25, 0]} receiveShadow>
+        <boxGeometry args={[0.18, 5.4, 10]} />
         <meshStandardMaterial color="#141817" roughness={0.92} />
       </mesh>
-      {[-5.2, -2.6, 0, 2.6, 5.2].map((x) => (
-        <mesh key={x} position={[x, -0.62, -3.9]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.018, 10]} />
-          <meshBasicMaterial color="#35302a" transparent opacity={0.34} />
+      {[-4.8, -2.4, 0, 2.4, 4.8].map((x) => (
+        <mesh key={x} position={[x, -0.69, -3.25]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.018, 8.8]} />
+          <meshBasicMaterial color="#4b4337" transparent opacity={0.38} />
         </mesh>
       ))}
     </group>
@@ -96,26 +104,26 @@ function Room() {
 
 function CenterPath() {
   return (
-    <group position={[0, -0.58, -0.2]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -3.2]} receiveShadow>
-        <planeGeometry args={[2.1, 9.4]} />
+    <group position={[-0.18, -0.64, 0.55]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -2.95]} receiveShadow>
+        <planeGeometry args={[2.75, 8.2]} />
         <meshStandardMaterial color="#1e211f" roughness={0.9} metalness={0.08} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.12, 0.02, -3.2]}>
-        <planeGeometry args={[0.025, 9.4]} />
-        <meshBasicMaterial color="#9d8158" transparent opacity={0.48} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.42, 0.02, -2.95]}>
+        <planeGeometry args={[0.035, 8.2]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.58} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.12, 0.02, -3.2]}>
-        <planeGeometry args={[0.025, 9.4]} />
-        <meshBasicMaterial color="#9d8158" transparent opacity={0.48} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.42, 0.02, -2.95]}>
+        <planeGeometry args={[0.035, 8.2]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.58} />
       </mesh>
       {MILESTONES.map((label, index) => (
         <Milestone key={label} label={label} index={index} />
       ))}
       <Text
-        position={[0, 0.08, -7.5]}
+        position={[0, 0.08, -6.55]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.16}
+        fontSize={0.19}
         letterSpacing={0.12}
         color="#8f805f"
         anchorX="center"
@@ -127,19 +135,20 @@ function CenterPath() {
 }
 
 function Milestone({ label, index }: { label: string; index: number }) {
-  const z = -1.55 - index * 1.25;
-  const width = index % 2 === 0 ? 1.28 : 1.05;
+  const z = -0.75 - index * 1.25;
+  const depthScale = 1 - index * 0.055;
+  const width = (index % 2 === 0 ? 1.5 : 1.22) * depthScale;
 
   return (
-    <group position={[index % 2 === 0 ? -0.34 : 0.34, 0.06, z]}>
+    <group position={[index % 2 === 0 ? -0.42 : 0.42, 0.075, z]} scale={depthScale}>
       <mesh rotation={[-Math.PI / 2, 0, index % 2 === 0 ? -0.05 : 0.05]} castShadow>
-        <boxGeometry args={[width, 0.78, 0.045]} />
+        <boxGeometry args={[width, 0.86, 0.06]} />
         <meshStandardMaterial color="#232522" roughness={0.86} metalness={0.15} />
       </mesh>
       <Text
         position={[0, 0.055, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.105}
+        fontSize={0.125}
         color="#d3c7b4"
         anchorX="center"
       >
@@ -160,7 +169,7 @@ function Milestone({ label, index }: { label: string; index: number }) {
 
 function ResearchObservatory() {
   return (
-    <group position={[-3.95, 0.45, -2.75]} rotation={[0, 0.18, 0]}>
+    <group position={[-3.35, 0.32, -2.2]} rotation={[0, 0.22, 0]}>
       <mesh castShadow receiveShadow>
         <boxGeometry args={[2.35, 1.65, 0.16]} />
         <meshStandardMaterial color="#1b201d" roughness={0.9} metalness={0.12} />
@@ -195,7 +204,7 @@ function Typewriter({
   isWriting: boolean;
 }) {
   const carriage = useRef<Group>(null);
-  const carriageAdvance = Math.min(paperText.length * 0.008, 0.72);
+  const carriageAdvance = Math.min(paperText.length * 0.01, 0.88);
 
   useFrame(() => {
     if (!carriage.current) return;
@@ -203,9 +212,9 @@ function Typewriter({
   });
 
   return (
-    <group position={[3.0, -0.12, -1.18]} rotation={[0, -0.48, 0]}>
+    <group position={[2.18, -0.07, 0.42]} rotation={[0, -0.62, 0]} scale={1.28}>
       <mesh position={[0, -0.22, 0]} castShadow receiveShadow>
-        <boxGeometry args={[3.0, 0.34, 1.75]} />
+        <boxGeometry args={[3.12, 0.38, 1.86]} />
         <meshStandardMaterial color="#111313" roughness={0.68} metalness={0.55} />
       </mesh>
       <mesh position={[0, -0.01, 0.08]} rotation={[-0.15, 0, 0]} castShadow>
@@ -222,14 +231,14 @@ function Typewriter({
           <meshStandardMaterial color="#090a0a" roughness={0.42} metalness={0.82} />
         </mesh>
         <mesh position={[0, 0.55, -0.06]} rotation={[-0.18, 0, 0]} castShadow>
-          <boxGeometry args={[1.72, 1.42, 0.045]} />
-          <meshStandardMaterial color="#e3ddcf" roughness={0.82} metalness={0.02} />
-        </mesh>
+        <boxGeometry args={[1.92, 1.56, 0.045]} />
+        <meshStandardMaterial color="#e3ddcf" roughness={0.82} metalness={0.02} />
+      </mesh>
         <Html
           transform
-          position={[-0.74, 0.79, -0.087]}
+          position={[-0.83, 0.86, -0.087]}
           rotation={[-0.18, 0, 0]}
-          distanceFactor={4.4}
+          distanceFactor={3.9}
           occlude
         >
           <div className={styles.paperText}>

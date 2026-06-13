@@ -1,4 +1,4 @@
-// Sprint R8B — arXiv ingestion worker (quality improvements)
+// Sprint R8E-A — arXiv routing refinements (quality gates, no schema changes)
 // Run: npx tsx worker/src/arxiv.ts [--dry-run] [--max=N] [--days=N] [--per-category=N]
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -41,8 +41,6 @@ function log(level: 'info' | 'warn' | 'error', msg: string, data?: Record<string
 }
 
 // ── LaTeX cleaning ────────────────────────────────────────────────────────────
-// arXiv Atom abstracts contain raw LaTeX from author submissions.
-// These map the most common patterns to readable Unicode or strip them.
 
 const LATEX_SYMBOLS: Record<string, string> = {
   // Greek lowercase
@@ -77,60 +75,82 @@ const WRAP_CMDS = [
   'mathbf','mathcal','mathbb','mathrm','mathit','mathsf','mathfrak','mathop',
   'operatorname','widehat','widetilde','overline','underline','overbrace','underbrace',
   'vec','hat','tilde','bar','dot','ddot','acute','grave','breve','check',
-].sort((a, b) => b.length - a.length); // longest first to prevent prefix shadowing
+].sort((a, b) => b.length - a.length);
 
 const WRAP_RE = new RegExp(`\\\\(?:${WRAP_CMDS.join('|')})\\{([^{}]*)\\}`, 'g');
 
 function cleanLatex(s: string): string {
   let t = s;
-
-  // 1. Strip display math $$...$$
   t = t.replace(/\$\$[\s\S]*?\$\$/g, '');
-
-  // 2. Strip block environments \begin{...}...\end{...}
   t = t.replace(/\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g, '');
-
-  // 3. Unwrap formatting commands iteratively (handles nesting)
   let prev = '';
   while (t !== prev) { prev = t; t = t.replace(WRAP_RE, '$1'); }
-
-  // 4. Inline math $...$: resolve known symbols, drop complex expressions
   t = t.replace(/\$([^$]{1,80})\$/g, (_match, inner) => {
     const m = inner.trim();
-    // Single named command: $\alpha$ → α
     const single = /^\\([a-zA-Z]+)$/.exec(m);
     if (single) return LATEX_SYMBOLS[single[1]] ?? single[1];
-    // Resolve all symbols, strip remaining commands and syntax chars
     let r = m.replace(/\\([a-zA-Z]+)/g, (_: string, cmd: string) => LATEX_SYMBOLS[cmd] ?? cmd);
     r = r.replace(/[{}_^\\]/g, '').replace(/\s+/g, ' ').trim();
-    // Keep if short and readable; drop if it looks like formula noise
     return r.length <= 15 && /^[\w\s+\-=×÷≤≥≠≈→←αβγδεζηθλμνξπρστφχψω∞∂∇Σ]+$/.test(r) ? r : '';
   });
-
-  // 5. Strip remaining LaTeX commands and lone braces
   t = t.replace(/\\[a-zA-Z]+\*?\s*/g, '');
   t = t.replace(/[{}]/g, '');
-
-  // 6. Normalise whitespace
   t = t.replace(/\s{2,}/g, ' ').trim();
-
   return t;
 }
 
 // ── Domain inference ──────────────────────────────────────────────────────────
-// For broad AI-tagged categories (cs.AI, cs.LG, cs.CL, cs.CV, cs.NE), scan the
-// title for domain-specific markers and override the default 'ai' assignment.
-// Specific-category tags (cs.RO, quant-ph, cs.HC etc.) are trusted directly.
+//
+// R8E-A routing changes vs R8B:
+//   1. cs.HC demoted from trusted → gated: requires XR keyword; clinical/social
+//      keywords veto the signal entirely (reject, don't insert).
+//   2. Robotics keyword list expanded to cover WAM/VLA vocab absent in R8B.
+//   3. cond-mat.supr-con demoted from trusted-quantum → keyword-split across
+//      quantum / materials / energy; unmatched signals are rejected.
+//   4. physics.app-ph demoted from trusted-energy → keyword-split across
+//      energy / quantum / materials; unmatched signals are rejected.
+//   5. Broad-AI fallback gains an off-domain veto that rejects signals whose
+//      titles match known out-of-scope patterns (music, clinical, social media…).
+//
+// Rejected signals are not inserted and are counted in signals_rejected.
+// "other" is not yet a valid schema category; rejection is the interim strategy.
 
 type CentariDomain = 'ai' | 'xr' | 'robotics' | 'quantum' | 'space' | 'energy' | 'materials';
 
 interface DomainInference {
   domain: CentariDomain;
-  source: 'tag' | 'title';
+  source: 'tag' | 'title' | 'veto';
   reason: string;
+  rejected?: boolean;
 }
 
+// Tags that are trusted to map directly to their CATEGORY_MAP domain.
 const BROAD_AI_TAGS = new Set(['cs.AI', 'cs.LG', 'cs.CL', 'cs.CV', 'cs.NE', 'cs.IR', 'cs.CR']);
+
+// ── Gate 1: cs.HC → xr (requires XR keyword; vetoed by clinical/social terms) ─
+
+const XR_CONFIRM_RE = /virtual\s+reality|augmented\s+reality|mixed\s+reality|\bxr\b|\bvr\b|\bar\b|extended\s+reality|spatial\s+computing|head.?mounted|\bnerf\b|neural\s+radiance|gaussian\s+splatting|novel\s+view\s+synthesis|volumetric|3d\s+reconstruction|4d\s+(reconstruction|human)|3d\s+scene|scene\s+reconstruction|depth\s+estimation|point\s+cloud|\bavatar\b|digital\s+human|holograph|immersive|\bhaptic\b|hand\s+tracking|eye\s+tracking|cybersickness|motion\s+capture|facial\s+(animation|reconstruction|expression)|surface\s+reconstruction/i;
+
+const XR_VETO_RE = /clinical\s+trial|randomized\s+(controlled|trial)|\bptsd\b|health\s+intervention|mental\s+health.{0,40}(study|survey|month|tiktok)|content\s+moderation|hate\s+speech|peer\s+review|academic\s+paper|bibliometric/i;
+
+// ── Gate 2: cond-mat.supr-con → quantum / materials / energy (else reject) ────
+
+const SUPR_QUANTUM_RE   = /\bqubit\b|josephson|\bsquid\b|majorana|decoherence|quantum\s+(circuit|error|information|computing|phase|geometry|criticality)|topological\s+(qubit|superconductor)|anomalous\s+hall|berry\s+phase|\bchern\b/i;
+const SUPR_MATERIALS_RE = /thin\s+film|epitaxial|crystal\s+structure|multiband|spin.orbit|doping|band\s+structure|magnetic\s+anisotropy|structural\s+anisotropy|\balloy\b/i;
+const SUPR_ENERGY_RE    = /\bcable\b|\bwire\b|ac\s+loss|power\s+transmission|\btransformer\b|fault\s+current|magnet\s+coil/i;
+
+// ── Gate 3: physics.app-ph → energy / quantum / materials (else reject) ───────
+
+const APPPH_ENERGY_RE    = /solar\s+cell|photovoltaic|\bbattery\b|fuel\s+cell|energy\s+storage|wind\s+turbine|supercapacitor|thermoelectric|power\s+grid|electrolysis|thermal\s+harvesting/i;
+const APPPH_QUANTUM_RE   = /\bqubit\b|quantum\s+(circuit|computing|information)|\bjosephson\b/i;
+const APPPH_MATERIALS_RE = /\bcrystal\b|thin\s+film|perovskite|\balloy\b|semiconductor|nanoparticle|metamaterial|graphene/i;
+
+// ── Gate 4: AI off-domain veto (applied after title-keyword scan finds no
+//   non-AI domain; rejects clearly out-of-scope signals before ai fallback) ────
+
+const AI_OFFDOM_RE = /symbolic\s+music|music\s+generation|\btiktok\b|\bneonatal\b|\bgenomicall?y\b|social\s+and\s+behavioral|vehicle\s+color.{0,20}(recogni|classif|detect)|waste\s+recycling|waste\s+segmentation|supramolecular\s+chemistry|indic\s+language/i;
+
+// ── Title-keyword rules (used for BROAD_AI_TAGS) ─────────────────────────────
 
 const DOMAIN_TITLE_RULES: Array<{ domain: CentariDomain; keywords: string[] }> = [
   {
@@ -140,6 +160,9 @@ const DOMAIN_TITLE_RULES: Array<{ domain: CentariDomain; keywords: string[] }> =
       'gripper', 'actuator', 'sim-to-real', 'quadruped', 'teleoperat',
       'haptic feedback', 'prosthetic', 'humanoid', 'legged', 'grasping',
       'vision-language-action', 'vla model',
+      // R8E-A: world model / dexterity / lab automation vocabulary
+      'world action model', 'bionic hand', 'end-effector', 'articulated tool',
+      'lab automation', 'manipulation policy', 'pick-and-place', 'tactile sensing',
     ],
   },
   {
@@ -159,6 +182,9 @@ const DOMAIN_TITLE_RULES: Array<{ domain: CentariDomain; keywords: string[] }> =
       'holographic', 'monocular depth', 'scene reconstruction',
       'world tracing', 'generative geometry', 'spatial generation',
       'depth estimation', 'stereo reconstruction', 'gaussian splatting',
+      // R8E-A: avatar / volumetric / expression vocabulary
+      'avatar', 'digital human', 'surface reconstruction', 'volumetric video',
+      'novel view synthesis', 'cybersickness', 'facial animation', '4d reconstruction',
     ],
   },
   {
@@ -192,21 +218,47 @@ function inferDomain(
   tagDomain: CentariDomain,
   title: string,
 ): DomainInference {
-  // Specific tags are already reliable — trust them directly
-  if (!BROAD_AI_TAGS.has(arxivCat)) {
-    return { domain: tagDomain, source: 'tag', reason: arxivCat };
+  const t = title.toLowerCase();
+
+  // ── Gated tags: keyword confirmation required ─────────────────────────────
+  // Without a match the signal is rejected — not inserted, not forced into a
+  // weak domain. Routing "other" is deferred until the schema is updated (R8E-B).
+
+  if (arxivCat === 'cs.HC') {
+    if (XR_VETO_RE.test(t))    return { domain: tagDomain, source: 'veto', reason: 'cs.HC veto keyword',    rejected: true };
+    if (XR_CONFIRM_RE.test(t)) return { domain: 'xr',       source: 'tag',  reason: 'cs.HC + XR keyword' };
+    return { domain: tagDomain, source: 'veto', reason: 'cs.HC no XR keyword', rejected: true };
   }
 
-  const titleLower = title.toLowerCase();
+  if (arxivCat === 'cond-mat.supr-con') {
+    if (SUPR_QUANTUM_RE.test(t))   return { domain: 'quantum',   source: 'tag', reason: 'cond-mat.supr-con quantum'    };
+    if (SUPR_MATERIALS_RE.test(t)) return { domain: 'materials', source: 'tag', reason: 'cond-mat.supr-con materials'  };
+    if (SUPR_ENERGY_RE.test(t))    return { domain: 'energy',    source: 'tag', reason: 'cond-mat.supr-con energy'     };
+    return { domain: tagDomain, source: 'veto', reason: 'cond-mat.supr-con no keyword', rejected: true };
+  }
 
-  for (const { domain, keywords } of DOMAIN_TITLE_RULES) {
-    const hit = keywords.find(kw => titleLower.includes(kw));
-    if (hit) {
-      return { domain, source: 'title', reason: `"${hit}"` };
+  if (arxivCat === 'physics.app-ph') {
+    if (APPPH_ENERGY_RE.test(t))    return { domain: 'energy',    source: 'tag', reason: 'physics.app-ph energy'    };
+    if (APPPH_QUANTUM_RE.test(t))   return { domain: 'quantum',   source: 'tag', reason: 'physics.app-ph quantum'   };
+    if (APPPH_MATERIALS_RE.test(t)) return { domain: 'materials', source: 'tag', reason: 'physics.app-ph materials' };
+    return { domain: tagDomain, source: 'veto', reason: 'physics.app-ph no keyword', rejected: true };
+  }
+
+  // ── Broad AI tags: title-keyword scan, then off-domain veto ──────────────
+
+  if (BROAD_AI_TAGS.has(arxivCat)) {
+    for (const { domain, keywords } of DOMAIN_TITLE_RULES) {
+      const hit = keywords.find(kw => t.includes(kw));
+      if (hit) return { domain, source: 'title', reason: `"${hit}"` };
     }
+    if (AI_OFFDOM_RE.test(t)) {
+      return { domain: tagDomain, source: 'veto', reason: 'AI off-domain veto', rejected: true };
+    }
+    return { domain: tagDomain, source: 'tag', reason: `${arxivCat} → ${tagDomain}` };
   }
 
-  return { domain: tagDomain, source: 'tag', reason: `${arxivCat} → ${tagDomain}` };
+  // ── Specific trusted tags (cs.RO, quant-ph, cs.GR, astro-ph.*, cond-mat.mtrl-sci) ──
+  return { domain: tagDomain, source: 'tag', reason: arxivCat };
 }
 
 // ── Category map ──────────────────────────────────────────────────────────────
@@ -255,8 +307,8 @@ function makeSlug(title: string, publishedAt: Date): string {
 
 interface ArxivEntry {
   id: string;
-  title: string;       // raw from feed
-  summary: string;     // raw from feed
+  title: string;
+  summary: string;
   published: string;
   link: string;
 }
@@ -302,7 +354,7 @@ function parseAtom(xml: string): ArxivEntry[] {
 async function fetchArxiv(category: string, maxResults: number): Promise<ArxivEntry[]> {
   const url = `https://export.arxiv.org/api/query?search_query=cat:${category}&sortBy=submittedDate&sortOrder=descending&start=0&max_results=${maxResults}`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'Centari-Worker/1.1 (research signal ingestion; robin89.olsson@gmail.com)' },
+    headers: { 'User-Agent': 'Centari-Worker/1.2 (research signal ingestion; robin89.olsson@gmail.com)' },
   });
   if (!res.ok) throw new Error(`arXiv HTTP ${res.status} for ${category}`);
   return parseAtom(await res.text());
@@ -317,39 +369,34 @@ function sleep(ms: number): Promise<void> {
 function truncateSentence(s: string, max: number): string {
   if (s.length <= max) return s;
   const cut = s.slice(0, max);
-  // Find the last sentence-ending punctuation followed by a space or end-of-cut
   const lastEnd = Math.max(
     cut.lastIndexOf('. '),
     cut.lastIndexOf('? '),
     cut.lastIndexOf('! '),
   );
-  // Only use the sentence boundary if it preserves at least 60% of the allowed length
   if (lastEnd > max * 0.6) return s.slice(0, lastEnd + 1);
   return cut.slice(0, max - 1) + '…';
 }
 
-// ── Comparison record (dry-run) ───────────────────────────────────────────────
+// ── Reroute record (dry-run) ──────────────────────────────────────────────────
 
-interface Comparison {
+interface Reroute {
   n: number;
   arxivId: string;
-  rawTitle: string;
   cleanTitle: string;
-  rawSummarySnip: string;
-  cleanSummarySnip: string;
   tagDomain: CentariDomain;
   inferred: DomainInference;
   latexChanged: boolean;
-  domainChanged: boolean;
 }
 
 // ── Main worker ───────────────────────────────────────────────────────────────
 
 interface WorkerResult {
-  signals_found: number;
-  signals_written: number;
-  signals_skipped: number;
-  errors: string[];
+  signals_found:    number;
+  signals_written:  number;
+  signals_skipped:  number;
+  signals_rejected: number;   // routing quality gate rejections
+  errors:           string[];
 }
 
 async function run(): Promise<void> {
@@ -364,12 +411,12 @@ async function run(): Promise<void> {
   }
 
   log('info', 'arXiv worker starting', {
-    dry_run:      DRY_RUN,
-    max_total:    MAX_TOTAL,
-    per_category: PER_CATEGORY || 'none (global max)',
+    dry_run:       DRY_RUN,
+    max_total:     MAX_TOTAL,
+    per_category:  PER_CATEGORY || 'none (global max)',
     lookback_days: DAYS,
-    categories:   CATEGORY_MAP.length,
-    version:      '1.1',
+    categories:    CATEGORY_MAP.length,
+    version:       '1.2',
   });
 
   const supabase: SupabaseClient = createClient(supabaseUrl, serviceKey, {
@@ -377,10 +424,21 @@ async function run(): Promise<void> {
   });
 
   const startedAt = new Date().toISOString();
-  const result: WorkerResult = { signals_found: 0, signals_written: 0, signals_skipped: 0, errors: [] };
-  const comparisons: Comparison[] = [];
+  const result: WorkerResult = {
+    signals_found: 0, signals_written: 0,
+    signals_skipped: 0, signals_rejected: 0,
+    errors: [],
+  };
 
-  // ── 1. Ensure arXiv source row exists ─────────────────────────────────────
+  // Domain histograms for dry-run before/after comparison
+  const beforeCount: Partial<Record<CentariDomain, number>> = {};
+  const afterCount:  Partial<Record<CentariDomain, number>> = {};
+  let vetoedTotal = 0;
+
+  // Up to 15 reroutes (domain changed or vetoed) for dry-run report
+  const reroutes: Reroute[] = [];
+
+  // ── 1. Ensure arXiv source row exists ────────────────────────────────────
   let sourceId: string | null = null;
 
   if (!DRY_RUN) {
@@ -409,13 +467,13 @@ async function run(): Promise<void> {
     log('info', '[dry-run] Skipping source upsert');
   }
 
-  // ── 2. Log worker run start ────────────────────────────────────────────────
+  // ── 2. Log worker run start ───────────────────────────────────────────────
   let workerRunId: string | null = null;
 
   if (!DRY_RUN) {
     const { data: runRow, error: runErr } = await supabase
       .from('worker_runs')
-      .insert({ status: 'running', runner_version: 'arxiv-worker-1.1' })
+      .insert({ status: 'running', runner_version: 'arxiv-worker-1.2' })
       .select('id')
       .single();
 
@@ -427,10 +485,9 @@ async function run(): Promise<void> {
     }
   }
 
-  // ── 3. Fetch and ingest per category ──────────────────────────────────────
-  const cutoff   = new Date(Date.now() - DAYS * 24 * 60 * 60 * 1000);
-  const seenIds  = new Set<string>();
-  const domainCount: Partial<Record<CentariDomain, number>> = {};
+  // ── 3. Fetch and ingest per category ─────────────────────────────────────
+  const cutoff  = new Date(Date.now() - DAYS * 24 * 60 * 60 * 1000);
+  const seenIds = new Set<string>();
 
   for (let i = 0; i < CATEGORY_MAP.length; i++) {
     if (!PER_CATEGORY && result.signals_written >= MAX_TOTAL) {
@@ -440,11 +497,9 @@ async function run(): Promise<void> {
 
     const { arxivCat, domain: tagDomain } = CATEGORY_MAP[i];
 
-    // Per-category cap: each category contributes at most PER_CATEGORY signals
     let categoryWritten = 0;
-    const categoryMax = PER_CATEGORY > 0 ? PER_CATEGORY : MAX_TOTAL;
-
-    const fetchN = Math.min(30, categoryMax + 8);
+    const categoryMax   = PER_CATEGORY > 0 ? PER_CATEGORY : MAX_TOTAL;
+    const fetchN        = Math.min(30, categoryMax + 8);
 
     if (i > 0) await sleep(1100);
 
@@ -477,7 +532,7 @@ async function run(): Promise<void> {
 
       result.signals_found++;
 
-      // ── Clean both fields ──────────────────────────────────────────────────
+      // ── Clean fields ───────────────────────────────────────────────────────
       const rawTitle   = entry.title;
       const rawSummary = entry.summary.replace(/\s+/g, ' ').trim();
 
@@ -490,48 +545,57 @@ async function run(): Promise<void> {
       // ── Infer domain ───────────────────────────────────────────────────────
       const inferred = inferDomain(arxivCat, tagDomain, cleanTitle);
 
-      // ── Track comparison (dry-run: first 10 per full run) ─────────────────
-      if (DRY_RUN && comparisons.length < 10) {
-        const latexChanged  = cleanTitle !== rawTitle || cleanSummary !== rawSummary.slice(0, cleanSummary.length);
-        const domainChanged = inferred.domain !== tagDomain;
-        comparisons.push({
-          n: comparisons.length + 1,
-          arxivId:         entry.id,
-          rawTitle,
+      // Track "before" (tag-only) distribution for dry-run report
+      beforeCount[tagDomain] = (beforeCount[tagDomain] ?? 0) + 1;
+
+      // Collect up to 15 reroutes (domain changed or vetoed)
+      const isReroute = inferred.rejected === true || inferred.domain !== tagDomain;
+      if (DRY_RUN && reroutes.length < 15 && isReroute) {
+        reroutes.push({
+          n:            reroutes.length + 1,
+          arxivId:      entry.id,
           cleanTitle,
-          rawSummarySnip:   rawSummary.slice(0, 110),
-          cleanSummarySnip: cleanSummary.slice(0, 110),
           tagDomain,
           inferred,
-          latexChanged,
-          domainChanged,
+          latexChanged: cleanTitle !== rawTitle,
         });
       }
 
-      // ── Count predicted domains ────────────────────────────────────────────
-      domainCount[inferred.domain] = (domainCount[inferred.domain] ?? 0) + 1;
+      // Routing gate rejection — skip insertion
+      if (inferred.rejected) {
+        vetoedTotal++;
+        result.signals_rejected++;
+        log('info', `Rejected signal (${inferred.reason})`, {
+          title: cleanTitle.slice(0, 60),
+          arxiv_cat: arxivCat,
+        });
+        continue;
+      }
+
+      // Track "after" distribution
+      afterCount[inferred.domain] = (afterCount[inferred.domain] ?? 0) + 1;
 
       const slug = makeSlug(cleanTitle, publishedAt);
 
       const signal = {
         slug,
-        source_id:       sourceId,
-        source_url:      entry.link,
-        source_name:     'arXiv',
-        published_at:    publishedAt.toISOString(),
-        title:           cleanTitle,
-        summary:         cleanSummary,
-        category:        inferred.domain as string,
+        source_id:            sourceId,
+        source_url:           entry.link,
+        source_name:          'arXiv',
+        published_at:         publishedAt.toISOString(),
+        title:                cleanTitle,
+        summary:              cleanSummary,
+        category:             inferred.domain as string,
         secondary_categories: inferred.source === 'title' ? [tagDomain as string] : [],
-        signal_type:     'paper',
-        confidence:      'probable',
-        curator_score:   5,
-        signal_strength: 0.500,
-        novelty_score:   0.600,
-        momentum_score:  0.500,
-        status:          'pending',
-        reviewed_by:     'worker-arxiv',
-        tags:            [arxivCat],
+        signal_type:          'paper',
+        confidence:           'probable',
+        curator_score:        5,
+        signal_strength:      0.500,
+        novelty_score:        0.600,
+        momentum_score:       0.500,
+        status:               'pending',
+        reviewed_by:          'worker-arxiv',
+        tags:                 [arxivCat],
       };
 
       if (DRY_RUN) {
@@ -551,10 +615,10 @@ async function run(): Promise<void> {
           result.errors.push(`${slug}: ${insErr.message}`);
         }
       } else {
-        log('info', `Inserted signal`, {
+        log('info', 'Inserted signal', {
           slug,
-          title: cleanTitle.slice(0, 60),
-          domain: inferred.domain,
+          title:         cleanTitle.slice(0, 60),
+          domain:        inferred.domain,
           domain_source: inferred.source,
         });
         categoryWritten++;
@@ -563,7 +627,7 @@ async function run(): Promise<void> {
     }
   }
 
-  // ── 4. Update worker_run row ───────────────────────────────────────────────
+  // ── 4. Update worker_run row ──────────────────────────────────────────────
   if (!DRY_RUN && workerRunId) {
     const { error: updateErr } = await supabase
       .from('worker_runs')
@@ -572,7 +636,7 @@ async function run(): Promise<void> {
         finished_at:      new Date().toISOString(),
         signals_fetched:  result.signals_found,
         signals_inserted: result.signals_written,
-        signals_rejected: result.signals_skipped,
+        signals_rejected: result.signals_rejected + result.signals_skipped,
         error_message:    result.errors.length > 0 ? result.errors.join('; ') : null,
       })
       .eq('id', workerRunId);
@@ -580,50 +644,56 @@ async function run(): Promise<void> {
     if (updateErr) log('warn', 'Could not update worker_runs row', { error: updateErr.message });
   }
 
-  // ── 5. Dry-run comparison report ──────────────────────────────────────────
-  if (DRY_RUN && comparisons.length > 0) {
+  // ── 5. Dry-run routing report ─────────────────────────────────────────────
+  if (DRY_RUN) {
+    const allDomains: CentariDomain[] = ['ai', 'robotics', 'xr', 'quantum', 'space', 'energy', 'materials'];
+    const beforeTotal = Object.values(beforeCount).reduce((a, b) => a + b, 0);
+    const afterTotal  = Object.values(afterCount).reduce((a, b) => a + b, 0);
+
+    const bar = (n: number, total: number) =>
+      total > 0 ? '█'.repeat(Math.round((n / total) * 28)) : '';
+
     process.stdout.write('\n' + '═'.repeat(72) + '\n');
-    process.stdout.write('DRY-RUN COMPARISON REPORT\n');
+    process.stdout.write('DRY-RUN R8E-A ROUTING REPORT\n');
     process.stdout.write('═'.repeat(72) + '\n\n');
 
-    for (const c of comparisons) {
-      const domainLabel = c.domainChanged
-        ? `${c.tagDomain} → ${c.inferred.domain} [title: ${c.inferred.reason}]`
-        : `${c.inferred.domain} (tag: ${c.inferred.reason})`;
+    process.stdout.write('── BEFORE (tag-only, R8B rules) ──────────────────────────────────────\n');
+    for (const d of allDomains) {
+      const n = beforeCount[d] ?? 0;
+      if (n) process.stdout.write(`  ${d.padEnd(10)} ${String(n).padStart(3)}  ${bar(n, beforeTotal)}\n`);
+    }
+    process.stdout.write(`  ${'TOTAL'.padEnd(10)} ${String(beforeTotal).padStart(3)}\n\n`);
 
-      process.stdout.write(`[${String(c.n).padStart(2, '0')}] arXiv: ${c.arxivId}\n`);
-      process.stdout.write(`  DOMAIN   : ${domainLabel}\n`);
+    process.stdout.write('── AFTER  (R8E-A routing gates) ──────────────────────────────────────\n');
+    for (const d of allDomains) {
+      const n = afterCount[d] ?? 0;
+      if (n) process.stdout.write(`  ${d.padEnd(10)} ${String(n).padStart(3)}  ${bar(n, afterTotal + vetoedTotal)}\n`);
+    }
+    if (vetoedTotal > 0) {
+      process.stdout.write(`  ${'REJECTED'.padEnd(10)} ${String(vetoedTotal).padStart(3)}  ${bar(vetoedTotal, afterTotal + vetoedTotal)} (routing gates)\n`);
+    }
+    process.stdout.write(`  ${'TOTAL'.padEnd(10)} ${String(afterTotal + vetoedTotal).padStart(3)}\n\n`);
 
-      if (c.cleanTitle !== c.rawTitle) {
-        process.stdout.write(`  RAW TITLE: ${c.rawTitle.slice(0, 100)}\n`);
-        process.stdout.write(`  CLN TITLE: ${c.cleanTitle.slice(0, 100)}\n`);
-      } else {
-        process.stdout.write(`  TITLE    : ${c.cleanTitle.slice(0, 100)} [no change]\n`);
+    if (reroutes.length > 0) {
+      process.stdout.write(`── ${reroutes.length} REROUTES ────────────────────────────────────────────────────\n\n`);
+
+      for (const r of reroutes) {
+        const oldDomain = r.tagDomain;
+        const newLabel  = r.inferred.rejected
+          ? `REJECTED  (${r.inferred.reason})`
+          : `${r.inferred.domain}  [${r.inferred.source}: ${r.inferred.reason}]`;
+
+        process.stdout.write(`[${String(r.n).padStart(2, '0')}] ${r.arxivId}\n`);
+        process.stdout.write(`  BEFORE: ${oldDomain}\n`);
+        process.stdout.write(`  AFTER : ${newLabel}\n`);
+        process.stdout.write(`  TITLE : ${r.cleanTitle.slice(0, 90)}\n`);
+        if (r.latexChanged) process.stdout.write(`  NOTE  : LaTeX cleaned\n`);
+        process.stdout.write('\n');
       }
-
-      if (c.cleanSummarySnip !== c.rawSummarySnip) {
-        process.stdout.write(`  RAW SUMM : ${c.rawSummarySnip}\n`);
-        process.stdout.write(`  CLN SUMM : ${c.cleanSummarySnip}\n`);
-      } else {
-        process.stdout.write(`  SUMMARY  : [no change in first 110 chars]\n`);
-      }
-
-      process.stdout.write('\n');
+    } else {
+      process.stdout.write('── No reroutes found in this batch (try --per-category=8 for broader coverage)\n\n');
     }
 
-    process.stdout.write('── Predicted domain distribution ──\n');
-    const total = Object.values(domainCount).reduce((a, b) => a + b, 0);
-    for (const [domain, count] of Object.entries(domainCount).sort((a, b) => b[1] - a[1])) {
-      const bar = '█'.repeat(Math.round((count / total) * 30));
-      process.stdout.write(`  ${domain.padEnd(10)} ${String(count).padStart(3)}  ${bar}\n`);
-    }
-    process.stdout.write(`  ${'TOTAL'.padEnd(10)} ${String(total).padStart(3)}\n\n`);
-
-    const latexFixed  = comparisons.filter(c => c.latexChanged).length;
-    const domainFixed = comparisons.filter(c => c.domainChanged).length;
-    process.stdout.write(`── Quality summary (sample of ${comparisons.length}) ──\n`);
-    process.stdout.write(`  LaTeX artifacts cleaned : ${latexFixed}/${comparisons.length}\n`);
-    process.stdout.write(`  Domain overrides applied: ${domainFixed}/${comparisons.length}\n`);
     process.stdout.write('═'.repeat(72) + '\n\n');
   }
 
@@ -632,6 +702,7 @@ async function run(): Promise<void> {
     signals_found:    result.signals_found,
     signals_written:  result.signals_written,
     signals_skipped:  result.signals_skipped,
+    signals_rejected: result.signals_rejected,
     errors:           result.errors.length,
     duration_s:       ((Date.now() - new Date(startedAt).getTime()) / 1000).toFixed(1),
   });

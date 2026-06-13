@@ -8,8 +8,9 @@
     "start": "next start",
     "type-check": "tsc --noEmit",
     "worker:arxiv": "tsx worker/src/arxiv.ts",
-    "worker:arxiv:dry": "tsx worker/src/arxiv.ts --dry-run --max=5",
-    "worker:arxiv:once": "tsx worker/src/arxiv.ts --max=50 --days=7"
+    "worker:arxiv:dry": "tsx worker/src/arxiv.ts --dry-run --per-category=3",
+    "worker:arxiv:compare": "tsx worker/src/arxiv.ts --dry-run --per-category=8",
+    "worker:arxiv:once": "tsx worker/src/arxiv.ts --per-category=5 --days=7"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

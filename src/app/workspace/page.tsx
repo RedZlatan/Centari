@@ -156,17 +156,17 @@ function ObservatoryVoid() {
         <sphereGeometry args={[18, 48, 24, 0, Math.PI * 2, 0, Math.PI]} />
         <meshBasicMaterial color="#070b0b" transparent opacity={0.64} side={BackSide} />
       </mesh>
-      <mesh position={[0, -0.82, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[1.46, 1.68, 0.24, 96]} />
-        <meshStandardMaterial color="#111414" roughness={0.82} metalness={0.32} />
+      <mesh position={[0, -0.82, -0.08]} rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[1.08, 1.22, 0.18, 96]} />
+        <meshStandardMaterial color="#101313" roughness={0.86} metalness={0.26} />
       </mesh>
-      <mesh position={[0, -0.67, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.48, 2.12, 96]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.08} />
+      <mesh position={[0, -0.7, -0.08]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.18, 1.56, 96]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.06} />
       </mesh>
-      <mesh position={[0, -0.92, -0.34]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[2.8, 128]} />
-        <meshBasicMaterial color="#050606" transparent opacity={0.2} />
+      <mesh position={[0, -0.94, -0.18]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.72, 128]} />
+        <meshBasicMaterial color="#050606" transparent opacity={0.12} />
       </mesh>
       <Text
         position={[-5.7, 3.4, -12.4]}
@@ -294,10 +294,9 @@ function VisionParticle({
   const hasSettled = useRef(false);
   const start = PAPER_WORLD_POSITION;
   const target = useMemo(() => new Vector3(...vision.target), [vision.target]);
-  const rocketTip = useRef<Mesh>(null);
-  const leftFin = useRef<Mesh>(null);
-  const rightFin = useRef<Mesh>(null);
   const paperBody = useRef<Mesh>(null);
+  const lightCore = useRef<Mesh>(null);
+  const lightHalo = useRef<Mesh>(null);
 
   useFrame(() => {
     const age = performance.now() - vision.createdAt;
@@ -310,26 +309,20 @@ function VisionParticle({
     if (group.current) {
       group.current.position.lerpVectors(start, target, launch * launch * (3 - 2 * launch));
       group.current.position.y += arc;
-      group.current.scale.setScalar(1 - launch * 0.65);
-      group.current.rotation.x = -0.18 - launch * 0.55;
-      group.current.rotation.z = launch * 0.2;
+      group.current.scale.setScalar(1 - launch * 0.18);
+      group.current.rotation.x = -0.18 - launch * 0.28;
+      group.current.rotation.z = launch * 0.16;
     }
 
     if (paperBody.current) {
-      paperBody.current.scale.x = 1 - fold * 0.52;
-      paperBody.current.scale.y = 1 - fold * 0.28;
+      paperBody.current.scale.x = 1 - fold * 0.86;
+      paperBody.current.scale.y = 1 - fold * 0.86;
     }
 
-    if (rocketTip.current) {
-      rocketTip.current.visible = fold > 0.18;
-      rocketTip.current.scale.y = fold;
-    }
-
-    if (leftFin.current && rightFin.current) {
-      leftFin.current.visible = fold > 0.32;
-      rightFin.current.visible = fold > 0.32;
-      leftFin.current.rotation.z = -fold * 0.55;
-      rightFin.current.rotation.z = fold * 0.55;
+    if (lightCore.current && lightHalo.current) {
+      const pulse = 1 + Math.sin(progress * Math.PI * 8) * 0.08;
+      lightCore.current.scale.setScalar((0.18 + fold * 0.72 + launch * 0.5) * pulse);
+      lightHalo.current.scale.setScalar(0.55 + fold * 1.1 + launch * 1.3);
     }
 
     if (progress >= 1 && !hasSettled.current) {
@@ -344,21 +337,13 @@ function VisionParticle({
         <planeGeometry args={[1.16, 1.42]} />
         <meshBasicMaterial color="#efe3ca" transparent opacity={0.94} />
       </mesh>
-      <mesh ref={rocketTip} position={[0, 0.82, 0.01]}>
-        <coneGeometry args={[0.24, 0.54, 3]} />
-        <meshBasicMaterial color="#f2e5c9" transparent opacity={0.94} />
+      <mesh ref={lightCore} position={[0, 0, 0.035]}>
+        <sphereGeometry args={[0.16, 24, 24]} />
+        <meshBasicMaterial color="#fff0bd" transparent opacity={0.94} />
       </mesh>
-      <mesh ref={leftFin} position={[-0.32, -0.52, 0.012]}>
-        <planeGeometry args={[0.34, 0.42]} />
-        <meshBasicMaterial color="#d7c39e" transparent opacity={0.88} />
-      </mesh>
-      <mesh ref={rightFin} position={[0.32, -0.52, 0.012]}>
-        <planeGeometry args={[0.34, 0.42]} />
-        <meshBasicMaterial color="#d7c39e" transparent opacity={0.88} />
-      </mesh>
-      <mesh position={[0, -0.92, 0.02]}>
-        <sphereGeometry args={[0.055, 16, 16]} />
-        <meshBasicMaterial color="#ffc56f" transparent opacity={0.78} />
+      <mesh ref={lightHalo} position={[0, 0, 0.03]}>
+        <ringGeometry args={[0.22, 0.24, 64]} />
+        <meshBasicMaterial color="#d7a95f" transparent opacity={0.26} />
       </mesh>
       <Text
         position={[-0.46, 0.42, 0.02]}
@@ -557,11 +542,11 @@ function Keyboard({ activeKey }: { activeKey: KeyPress | null }) {
     <group position={[0, 0.22, 0.42]} rotation={[-0.58, 0, 0]}>
       <mesh position={[0.08, -0.03, -0.055]} castShadow receiveShadow>
         <boxGeometry args={[2.95, 1.22, 0.075]} />
-        <meshStandardMaterial color="#181715" roughness={0.58} metalness={0.48} />
+        <meshStandardMaterial color="#211f1a" roughness={0.58} metalness={0.42} />
       </mesh>
       <mesh position={[0.08, -0.03, -0.01]}>
         <boxGeometry args={[2.72, 1.0, 0.022]} />
-        <meshStandardMaterial color="#242018" roughness={0.72} metalness={0.24} />
+        <meshStandardMaterial color="#30291f" roughness={0.68} metalness={0.2} />
       </mesh>
       {keys.map((key) => (
         <TypeKey key={key.key} item={key} activeKey={activeKey} />
@@ -590,17 +575,17 @@ function TypeKey({
     <group position={[item.x, item.y, 0]}>
       <mesh position={[0, 0, -0.055]} castShadow>
         <cylinderGeometry args={[item.key === "SPACE" ? 0.24 : 0.055, item.key === "SPACE" ? 0.22 : 0.048, 0.09, 18]} />
-        <meshStandardMaterial color="#080807" roughness={0.46} metalness={0.84} />
+        <meshStandardMaterial color="#15120e" roughness={0.5} metalness={0.62} />
       </mesh>
       <mesh ref={ref} castShadow>
         <cylinderGeometry args={[item.key === "SPACE" ? 0.31 : 0.098, item.key === "SPACE" ? 0.285 : 0.084, 0.075, 30]} />
         <meshStandardMaterial
-          color={isActive ? "#d0b077" : "#2a2721"}
-          roughness={0.5}
-          metalness={0.42}
+          color={isActive ? "#d8ba81" : "#4a4030"}
+          roughness={0.54}
+          metalness={0.28}
         />
       </mesh>
-      <Text position={[0, 0, 0.055]} fontSize={item.key === "SPACE" ? 0.045 : 0.06} color="#d8d1c3">
+      <Text position={[0, 0, 0.058]} fontSize={item.key === "SPACE" ? 0.045 : 0.06} color="#f0e4ca">
         {item.key === "SPACE" ? "SPACE" : item.key}
       </Text>
     </group>

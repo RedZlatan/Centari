@@ -1,6 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BackSide, Vector3 } from "three";
@@ -20,8 +21,8 @@ const PAPER_LIMIT = 420;
 const SPAWN_POSITION = new Vector3(0, 1.42, 7.8);
 const TYPEWRITER_POSITION = new Vector3(0, -0.36, 0);
 const TYPEWRITER_LOOK_AT = new Vector3(0, 0.68, -0.18);
-const WRITING_CAMERA_POSITION = new Vector3(0.04, 1.18, 1.62);
-const WRITING_LOOK_AT = new Vector3(0, 0.92, -0.24);
+const WRITING_CAMERA_POSITION = new Vector3(0.08, 1.28, 2.42);
+const WRITING_LOOK_AT = new Vector3(0, 0.68, -0.05);
 const PAPER_WORLD_POSITION = new Vector3(0.02, 1.05, -0.48);
 
 type KeyPress = {
@@ -43,6 +44,7 @@ type VisionParticle = {
 
 type VisionStar = {
   id: number;
+  text: string;
   position: [number, number, number];
 };
 
@@ -62,6 +64,7 @@ function WorkspaceScene({
   launchedVisions,
   visionStars,
   onVisionSettled,
+  onVisionSelect,
 }: {
   paperText: string;
   activeKey: KeyPress | null;
@@ -71,6 +74,7 @@ function WorkspaceScene({
   launchedVisions: VisionParticle[];
   visionStars: VisionStar[];
   onVisionSettled: (vision: VisionParticle) => void;
+  onVisionSelect: (vision: VisionStar) => void;
 }) {
   return (
     <Canvas
@@ -105,6 +109,7 @@ function WorkspaceScene({
         isWriting={isWriting}
         dragRotation={dragRotation}
         visionStars={visionStars}
+        onVisionSelect={onVisionSelect}
       />
       <VisionLaunches visions={launchedVisions} onVisionSettled={onVisionSettled} />
       <CenterPath />
@@ -128,12 +133,8 @@ function CameraRig({
   useFrame(() => {
     const approach = easedProgress * easedProgress * (3 - 2 * easedProgress);
     const targetPosition = SPAWN_POSITION.clone().lerp(WRITING_CAMERA_POSITION, approach);
-    targetPosition.x += dragRotation.x * 0.7 * (1 - approach * 0.25);
-    targetPosition.y += dragRotation.y * 0.72;
 
     const targetLookAt = TYPEWRITER_LOOK_AT.clone().lerp(WRITING_LOOK_AT, approach);
-    targetLookAt.x += dragRotation.x * 0.46;
-    targetLookAt.y += dragRotation.y * 1.65;
 
     camera.position.lerp(targetPosition, 0.075);
     lookAtTarget.current.lerp(targetLookAt, 0.09);
@@ -158,9 +159,9 @@ function ObservatoryVoid() {
         <ringGeometry args={[1.48, 2.12, 96]} />
         <meshBasicMaterial color="#b59661" transparent opacity={0.08} />
       </mesh>
-      <mesh position={[0, -0.86, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[4.8, 128]} />
-        <meshBasicMaterial color="#050606" transparent opacity={0.32} />
+      <mesh position={[0, -0.92, -0.34]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[2.8, 128]} />
+        <meshBasicMaterial color="#050606" transparent opacity={0.2} />
       </mesh>
       <Text
         position={[-5.7, 3.4, -12.4]}
@@ -180,10 +181,12 @@ function SparseStarfield({
   isWriting,
   dragRotation,
   visionStars,
+  onVisionSelect,
 }: {
   isWriting: boolean;
   dragRotation: DragRotation;
   visionStars: VisionStar[];
+  onVisionSelect: (vision: VisionStar) => void;
 }) {
   const stars = useMemo(
     () =>
@@ -203,7 +206,7 @@ function SparseStarfield({
   );
 
   return (
-    <group rotation={[dragRotation.y * 0.22, dragRotation.x * 0.2, 0]}>
+    <group rotation={[dragRotation.y * 0.72, dragRotation.x * 0.42, 0]}>
       {stars.map((star) => (
         <mesh key={star.id} position={[star.x, star.y, star.z]}>
           <sphereGeometry args={[star.size, 8, 8]} />
@@ -227,14 +230,21 @@ function SparseStarfield({
         </group>
       ))}
       {visionStars.map((star) => (
-        <group key={star.id} position={star.position}>
+        <group
+          key={star.id}
+          position={star.position}
+          onClick={(event: ThreeEvent<MouseEvent>) => {
+            event.stopPropagation();
+            onVisionSelect(star);
+          }}
+        >
           <mesh>
-            <sphereGeometry args={[0.075, 18, 18]} />
+            <sphereGeometry args={[0.09, 18, 18]} />
             <meshBasicMaterial color="#fff4c9" transparent opacity={0.94} />
           </mesh>
           <mesh>
-            <ringGeometry args={[0.28, 0.285, 64]} />
-            <meshBasicMaterial color="#d7a95f" transparent opacity={0.22} />
+            <ringGeometry args={[0.31, 0.318, 64]} />
+            <meshBasicMaterial color="#d7a95f" transparent opacity={0.32} />
           </mesh>
         </group>
       ))}
@@ -279,17 +289,42 @@ function VisionParticle({
   const hasSettled = useRef(false);
   const start = PAPER_WORLD_POSITION;
   const target = useMemo(() => new Vector3(...vision.target), [vision.target]);
+  const rocketTip = useRef<Mesh>(null);
+  const leftFin = useRef<Mesh>(null);
+  const rightFin = useRef<Mesh>(null);
+  const paperBody = useRef<Mesh>(null);
 
   useFrame(() => {
     const age = performance.now() - vision.createdAt;
-    const progress = Math.min(1, age / 1900);
+    const progress = Math.min(1, age / 2400);
     const eased = progress * progress * (3 - 2 * progress);
-    const arc = Math.sin(progress * Math.PI) * 1.2;
+    const fold = Math.min(1, progress / 0.28);
+    const launch = Math.max(0, (progress - 0.22) / 0.78);
+    const arc = Math.sin(launch * Math.PI) * 1.6;
 
     if (group.current) {
-      group.current.position.lerpVectors(start, target, eased);
+      group.current.position.lerpVectors(start, target, launch * launch * (3 - 2 * launch));
       group.current.position.y += arc;
-      group.current.scale.setScalar(0.7 + progress * 1.35);
+      group.current.scale.setScalar(1 - launch * 0.65);
+      group.current.rotation.x = -0.18 - launch * 0.55;
+      group.current.rotation.z = launch * 0.2;
+    }
+
+    if (paperBody.current) {
+      paperBody.current.scale.x = 1 - fold * 0.52;
+      paperBody.current.scale.y = 1 - fold * 0.28;
+    }
+
+    if (rocketTip.current) {
+      rocketTip.current.visible = fold > 0.18;
+      rocketTip.current.scale.y = fold;
+    }
+
+    if (leftFin.current && rightFin.current) {
+      leftFin.current.visible = fold > 0.32;
+      rightFin.current.visible = fold > 0.32;
+      leftFin.current.rotation.z = -fold * 0.55;
+      rightFin.current.rotation.z = fold * 0.55;
     }
 
     if (progress >= 1 && !hasSettled.current) {
@@ -299,13 +334,37 @@ function VisionParticle({
   });
 
   return (
-    <group ref={group} position={start.toArray()}>
-      <mesh>
-        <sphereGeometry args={[0.05, 18, 18]} />
-        <meshBasicMaterial color="#fff0bd" transparent opacity={0.96} />
+    <group ref={group} position={start.toArray()} rotation={[-0.18, 0, 0]}>
+      <mesh ref={paperBody}>
+        <planeGeometry args={[1.16, 1.42]} />
+        <meshBasicMaterial color="#efe3ca" transparent opacity={0.94} />
       </mesh>
-      <Text position={[0.12, 0.03, 0]} fontSize={0.085} color="#d8c9a4" anchorX="left">
-        {vision.text.slice(0, 42)}
+      <mesh ref={rocketTip} position={[0, 0.82, 0.01]}>
+        <coneGeometry args={[0.24, 0.54, 3]} />
+        <meshBasicMaterial color="#f2e5c9" transparent opacity={0.94} />
+      </mesh>
+      <mesh ref={leftFin} position={[-0.32, -0.52, 0.012]}>
+        <planeGeometry args={[0.34, 0.42]} />
+        <meshBasicMaterial color="#d7c39e" transparent opacity={0.88} />
+      </mesh>
+      <mesh ref={rightFin} position={[0.32, -0.52, 0.012]}>
+        <planeGeometry args={[0.34, 0.42]} />
+        <meshBasicMaterial color="#d7c39e" transparent opacity={0.88} />
+      </mesh>
+      <mesh position={[0, -0.92, 0.02]}>
+        <sphereGeometry args={[0.055, 16, 16]} />
+        <meshBasicMaterial color="#ffc56f" transparent opacity={0.78} />
+      </mesh>
+      <Text
+        position={[-0.46, 0.42, 0.02]}
+        fontSize={0.07}
+        maxWidth={0.9}
+        lineHeight={1.2}
+        color="#2b251d"
+        anchorX="left"
+        anchorY="top"
+      >
+        {vision.text.slice(0, 90)}
       </Text>
     </group>
   );
@@ -577,6 +636,7 @@ export default function WorkspacePage() {
   const [activeKey, setActiveKey] = useState<KeyPress | null>(null);
   const [launchedVisions, setLaunchedVisions] = useState<VisionParticle[]>([]);
   const [visionStars, setVisionStars] = useState<VisionStar[]>([]);
+  const [selectedVision, setSelectedVision] = useState<VisionStar | null>(null);
 
   useEffect(() => {
     const updateProgress = () => {
@@ -631,7 +691,10 @@ export default function WorkspacePage() {
 
   const settleVision = (vision: VisionParticle) => {
     setLaunchedVisions((current) => current.filter((item) => item.id !== vision.id));
-    setVisionStars((current) => [...current, { id: vision.id, position: vision.target }]);
+    setVisionStars((current) => [
+      ...current,
+      { id: vision.id, text: vision.text, position: vision.target },
+    ]);
   };
 
   useEffect(() => {
@@ -701,6 +764,7 @@ export default function WorkspacePage() {
           launchedVisions={launchedVisions}
           visionStars={visionStars}
           onVisionSettled={settleVision}
+          onVisionSelect={setSelectedVision}
         />
         <div className={`${styles.interfaceLayer} ${isWriting ? styles.interfaceLayerWriting : ""}`}>
           <div className={styles.statusBlock}>
@@ -725,6 +789,15 @@ export default function WorkspacePage() {
             <span>{isWriting ? "Writing mode" : "Scroll forward"}</span>
             <span>{visionStars.length} temporary stars</span>
           </div>
+          {selectedVision ? (
+            <div className={styles.visionCard}>
+              <span>Temporary Vision</span>
+              <p>{selectedVision.text}</p>
+              <button type="button" onClick={() => setSelectedVision(null)}>
+                Close
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

@@ -149,6 +149,47 @@
   color: rgba(223, 216, 202, 0.72);
 }
 
+.visionCard {
+  position: absolute;
+  right: var(--space-8);
+  bottom: calc(var(--space-8) + 72px);
+  width: min(320px, calc(100vw - 32px));
+  border: 1px solid rgba(168, 138, 90, 0.34);
+  background: rgba(8, 11, 11, 0.72);
+  padding: var(--space-4);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.visionCard span {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.92);
+}
+
+.visionCard p {
+  margin-top: var(--space-3);
+  color: rgba(240, 235, 225, 0.86);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.visionCard button {
+  margin-top: var(--space-4);
+  border: 1px solid rgba(168, 138, 90, 0.34);
+  background: transparent;
+  color: rgba(240, 235, 225, 0.8);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .sceneFrame {
     min-height: 100vh;
@@ -173,5 +214,10 @@
 
   .zoneReadout {
     display: none;
+  }
+
+  .visionCard {
+    right: var(--space-4);
+    bottom: 84px;
   }
 }

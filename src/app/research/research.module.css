@@ -171,6 +171,28 @@
   color: #efe8dc;
 }
 
+.filterCount {
+  margin-left: var(--space-1);
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: rgba(168, 138, 90, 0.18);
+  color: #a8906a;
+  font-size: 0.6rem;
+  font-style: normal;
+  letter-spacing: 0.05em;
+}
+
+.sourceLink {
+  color: #a8906a;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+.sourceLink:hover {
+  color: #d4b07a;
+  text-decoration: underline;
+}
+
 .mapSurface {
   position: relative;
   min-height: 660px;

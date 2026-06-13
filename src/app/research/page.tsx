@@ -25,6 +25,7 @@ type SignalCategory =
 
 type ResearchCategory = Exclude<SignalCategory, "All">;
 
+// Fields present on static geographic signals; API signals extend with optional live fields.
 type Signal = {
   id: string;
   title: string;
@@ -38,6 +39,11 @@ type Signal = {
   trend_score?: number;
   momentum: string;
   summary: string;
+  // Live API fields (absent on static signals)
+  source_name?: string;
+  source_url?: string;
+  published_at?: string;
+  curator_score?: number;
 };
 
 type SignalCluster = {
@@ -512,6 +518,17 @@ const priorityTrendIds = [
   "SIG-023",
 ];
 
+// Maps public filter label → API domain key
+const CATEGORY_TO_DOMAIN: Partial<Record<SignalCategory, string>> = {
+  "AI": "ai",
+  "Spatial / XR": "xr",
+  "Robotics": "robotics",
+  "Quantum": "quantum",
+  "Space": "space",
+  "Energy": "energy",
+  "Materials": "materials",
+};
+
 function isRecord(value: unknown): value is ApiRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -602,18 +619,23 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
       );
 
       const signal: Signal = {
-        id: getString(item, ["id", "signal_id", "slug"], fallback.id),
-        title: getString(item, ["title", "name", "signal_title"], fallback.title),
-        location: getString(item, ["location", "place", "market"], fallback.location),
-        region: getString(item, ["region", "geography", "area"], fallback.region),
+        id:             getString(item, ["id", "signal_id", "slug"], fallback.id),
+        title:          getString(item, ["title", "name", "signal_title"], fallback.title),
+        location:       getString(item, ["location", "place", "market"], fallback.location),
+        region:         getString(item, ["region", "geography", "area"], fallback.region),
         category,
-        x: getNumber(item, ["x", "map_x", "longitude_x"], fallback.x),
-        y: getNumber(item, ["y", "map_y", "latitude_y"], fallback.y),
-        intensity: getNumber(item, ["intensity", "signal_strength", "strength"], fallback.intensity),
+        x:              getNumber(item, ["x", "map_x", "longitude_x"], fallback.x),
+        y:              getNumber(item, ["y", "map_y", "latitude_y"], fallback.y),
+        intensity:      getNumber(item, ["intensity", "signal_strength", "strength"], fallback.intensity),
         signal_strength: getNumber(item, ["signal_strength", "strength", "intensity"], fallback.intensity),
-        trend_score: getNumber(item, ["trend_score", "score", "priority"], getTrendScore(fallback)),
-        momentum: getString(item, ["momentum", "change", "delta"], fallback.momentum),
-        summary: getString(item, ["summary", "description", "body"], fallback.summary),
+        trend_score:    getNumber(item, ["trend_score", "score", "priority"], getTrendScore(fallback)),
+        momentum:       getString(item, ["momentum", "change", "delta"], fallback.momentum),
+        summary:        getString(item, ["summary", "description", "body"], fallback.summary),
+        // Live API fields — only present on Supabase-sourced signals
+        source_name:    getString(item, ["source_name"], ""),
+        source_url:     getString(item, ["source_url"], ""),
+        published_at:   getString(item, ["published_at"], ""),
+        curator_score:  getNumber(item, ["curator_score"], 0),
       };
 
       return signal;
@@ -629,7 +651,22 @@ function getSignalStrength(signal: Signal) {
   return signal.signal_strength ?? signal.intensity;
 }
 
-function getTrendScore(signal: Signal) {
+// trend_score = editorial_score + recency_weight
+// editorial_score: curator_score × 10  (0-100)
+// recency_weight:  up to 20 pts for signals published today, 0 at 7+ days old
+function getTrendScore(signal: Signal): number {
+  if (signal.curator_score && signal.curator_score > 0) {
+    const editorial = signal.curator_score * 10;
+    const recency = signal.published_at
+      ? Math.max(
+          0,
+          Math.round(
+            ((7 - Math.min((Date.now() - new Date(signal.published_at).getTime()) / 86_400_000, 7)) / 7) * 20,
+          ),
+        )
+      : 0;
+    return Math.min(100, editorial + recency);
+  }
   const momentum = Number.parseInt(signal.momentum.replace("+", "").replace("%", ""), 10);
   return signal.trend_score ?? Math.min(100, Math.round(signal.intensity * 0.82 + (Number.isNaN(momentum) ? 0 : momentum)));
 }
@@ -648,7 +685,10 @@ function getSignalTier(signal: Signal, count = 1) {
 }
 
 export default function ResearchPage() {
+  // mapData always holds the static geographic signals — the map hotspots never disappear.
+  // API signals live in apiSignals, separate from the map geometry.
   const [mapData, setMapData] = useState<ResearchMapPayload>(researchMapData);
+  const [apiSignals, setApiSignals] = useState<Signal[] | null>(null);
   const [apiTrends, setApiTrends] = useState<Signal[] | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiLoadStatus>("loading");
   const [apiError, setApiError] = useState<string | null>(null);
@@ -677,32 +717,31 @@ export default function ResearchPage() {
           signalsResponse.json() as Promise<unknown>,
           trendsResponse.json() as Promise<unknown>,
         ]);
-        const apiSignals = normalizeSignals(signalsPayload, ["signals", "data", "items"], researchMapData.signals);
-        const nextTrends = normalizeSignals(trendsPayload, ["trends", "signals", "data", "items"], apiSignals);
 
-        if (apiSignals.length === 0) {
+        const liveSignals = normalizeSignals(signalsPayload, ["signals", "data", "items"], researchMapData.signals);
+        const liveTrends  = normalizeSignals(trendsPayload,  ["trends",  "signals", "data", "items"], liveSignals);
+
+        if (liveSignals.length === 0) {
           throw new Error("Research API returned no signals");
         }
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
-        setMapData({
-          categories: researchMapData.categories,
-          signals: apiSignals,
-          clusters: researchMapData.clusters,
-        });
-        setApiTrends(nextTrends.length > 0 ? nextTrends : null);
+        // Keep static signals on the map — do NOT replace mapData.signals.
+        // Static signals are geographically placed; API signals are arXiv papers with no location.
+        setMapData(researchMapData);
+        setApiSignals(liveSignals);
+        setApiTrends(liveTrends.length > 0 ? liveTrends : null);
         setActiveCategory("All");
-        setSelectedId(apiSignals[0].id);
+        // Pre-select the highest-scoring live signal so the panel opens on something meaningful.
+        const bestSignal = [...liveSignals].sort((a, b) => getTrendScore(b) - getTrendScore(a))[0];
+        setSelectedId(bestSignal?.id ?? researchMapData.signals[0].id);
         setApiStatus("ready");
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         setMapData(researchMapData);
+        setApiSignals(null);
         setApiTrends(null);
         setActiveCategory("All");
         setSelectedId(researchMapData.signals[0].id);
@@ -718,32 +757,37 @@ export default function ResearchPage() {
     };
   }, []);
 
+  // filteredSignals drives the map hotspots — always uses static geographic signals.
+  // Dep array includes `signals` so category changes after API load re-filter correctly.
   const filteredSignals = useMemo(
     () =>
       activeCategory === "All"
         ? signals
         : signals.filter((signal) => signal.category === activeCategory),
-    [activeCategory],
+    [activeCategory, signals],
   );
 
+  // selectedSignal: prefer live API signals (have editorial scores/sources), fall back to static.
   const selectedSignal =
-    filteredSignals.find((signal) => signal.id === selectedId) ??
-    apiTrends?.find((signal) => signal.id === selectedId) ??
+    apiSignals?.find((s) => s.id === selectedId) ??
+    apiTrends?.find((s) => s.id === selectedId) ??
+    filteredSignals.find((s) => s.id === selectedId) ??
+    apiTrends?.[0] ??
     filteredSignals[0] ??
     signals[0];
 
-  const topTrends = useMemo(
-    () => {
-      if (apiTrends) {
-        return apiTrends.slice(0, 10);
-      }
-
-      return priorityTrendIds
-        .map((id) => signals.find((signal) => signal.id === id))
-        .filter((signal): signal is Signal => Boolean(signal));
-    },
-    [apiTrends, signals],
-  );
+  // Top trends: sort live signals by trend_score (editorial + recency) when API is ready.
+  const topTrends = useMemo(() => {
+    if (apiSignals && apiSignals.length > 0) {
+      return [...apiSignals].sort((a, b) => getTrendScore(b) - getTrendScore(a)).slice(0, 10);
+    }
+    if (apiTrends && apiTrends.length > 0) {
+      return apiTrends.slice(0, 10);
+    }
+    return priorityTrendIds
+      .map((id) => signals.find((signal) => signal.id === id))
+      .filter((signal): signal is Signal => Boolean(signal));
+  }, [apiSignals, apiTrends, signals]);
 
   const filteredSignalIds = useMemo(
     () => new Set(filteredSignals.map((signal) => signal.id)),
@@ -766,11 +810,28 @@ export default function ResearchPage() {
 
   function selectCategory(category: SignalCategory) {
     setActiveCategory(category);
-    const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
-    if (nextSignal) {
-      setSelectedId(nextSignal.id);
+    // When live signals exist, switch the panel to the best-scoring signal for this domain.
+    if (apiSignals && apiSignals.length > 0) {
+      const domain = CATEGORY_TO_DOMAIN[category];
+      const match = domain
+        ? [...apiSignals]
+            .filter((s) => s.category === category)
+            .sort((a, b) => getTrendScore(b) - getTrendScore(a))[0]
+        : [...apiSignals].sort((a, b) => getTrendScore(b) - getTrendScore(a))[0];
+      if (match) { setSelectedId(match.id); return; }
     }
+    const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
+    if (nextSignal) setSelectedId(nextSignal.id);
   }
+
+  // Per-category counts shown on filter chips — uses static signals for map consistency.
+  const categoryCounts = useMemo(() => {
+    const counts: Partial<Record<SignalCategory, number>> = { All: signals.length };
+    for (const s of signals) counts[s.category] = (counts[s.category] ?? 0) + 1;
+    return counts;
+  }, [signals]);
+
+  const isApiSignal = (selectedSignal?.curator_score ?? 0) > 0;
 
   return (
     <>
@@ -787,7 +848,7 @@ export default function ResearchPage() {
           </div>
           <div className={styles.heroMetrics} aria-label="Research map metrics">
             <div>
-              <span>{signals.length}</span>
+              <span>{apiSignals?.length ?? signals.length}</span>
               <p>Signals indexed</p>
             </div>
             <div>
@@ -795,7 +856,7 @@ export default function ResearchPage() {
               <p>Research lanes</p>
             </div>
             <div>
-              <span>10</span>
+              <span>{topTrends.length}</span>
               <p>Priority trends</p>
             </div>
           </div>
@@ -818,6 +879,9 @@ export default function ResearchPage() {
                   >
                     <span />
                     <b>{category}</b>
+                    {categoryCounts[category] !== undefined && (
+                      <em className={styles.filterCount}>{categoryCounts[category]}</em>
+                    )}
                   </button>
                 ))}
               </div>
@@ -831,7 +895,7 @@ export default function ResearchPage() {
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
                 {apiStatus === "loading" ? "Loading research feed" : null}
                 {apiStatus === "fallback" ? "JSON fallback active" : null}
-                {apiStatus === "ready" ? "API-backed research feed" : null}
+                {apiStatus === "ready" ? `API-backed · ${apiSignals?.length ?? 0} approved signals` : null}
               </div>
               <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
                 <defs>
@@ -898,19 +962,56 @@ export default function ResearchPage() {
           <aside className={styles.sidePanel} aria-label="Research signal detail">
             <article className={styles.signalCard} aria-live="polite">
               <div className={styles.cardMeta}>
-                <span>{selectedSignal.id}</span>
                 <span>{selectedSignal.category}</span>
-                <span>{selectedSignal.momentum}</span>
+                {isApiSignal && selectedSignal.published_at ? (
+                  <span>
+                    {new Date(selectedSignal.published_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                ) : (
+                  <span>{selectedSignal.momentum}</span>
+                )}
+                <span>{selectedSignal.id.slice(0, 14)}</span>
               </div>
               <h2>{selectedSignal.title}</h2>
-              <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
+              {isApiSignal && selectedSignal.source_name ? (
+                <p className={styles.location}>
+                  {selectedSignal.source_url ? (
+                    <a
+                      className={styles.sourceLink}
+                      href={selectedSignal.source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {selectedSignal.source_name} ↗
+                    </a>
+                  ) : (
+                    selectedSignal.source_name
+                  )}
+                </p>
+              ) : (
+                <p className={styles.location}>
+                  {selectedSignal.location} / {selectedSignal.region}
+                </p>
+              )}
               <p>{selectedSignal.summary}</p>
               <div className={styles.signalScores}>
-                <div className={styles.intensity}>
-                  <span>Signal strength</span>
-                  <strong>{getSignalStrength(selectedSignal)}</strong>
-                  <i style={{ transform: `scaleX(${getSignalStrength(selectedSignal) / 100})` }} />
-                </div>
+                {isApiSignal && selectedSignal.curator_score ? (
+                  <div className={styles.intensity}>
+                    <span>Editorial score</span>
+                    <strong>{selectedSignal.curator_score}/10</strong>
+                    <i style={{ transform: `scaleX(${selectedSignal.curator_score / 10})` }} />
+                  </div>
+                ) : (
+                  <div className={styles.intensity}>
+                    <span>Signal strength</span>
+                    <strong>{getSignalStrength(selectedSignal)}</strong>
+                    <i style={{ transform: `scaleX(${getSignalStrength(selectedSignal) / 100})` }} />
+                  </div>
+                )}
                 <div className={styles.intensity}>
                   <span>Trend score</span>
                   <strong>{getTrendScore(selectedSignal)}</strong>
@@ -921,8 +1022,10 @@ export default function ResearchPage() {
 
             <div className={styles.trendsPanel}>
               <div className={styles.panelHeader}>
-                <p className={styles.kicker}>Top 10 trends</p>
-                <h2>Priority watchlist</h2>
+                <p className={styles.kicker}>
+                  {apiSignals ? "Top signals · this week" : "Top 10 trends"}
+                </p>
+                <h2>{apiSignals ? "Top Signals This Week" : "Priority watchlist"}</h2>
               </div>
               <ol className={styles.trendList}>
                 {topTrends.map((trend, index) => (
@@ -936,7 +1039,11 @@ export default function ResearchPage() {
                       <span className={styles.rank}>{String(index + 1).padStart(2, "0")}</span>
                       <span>
                         <strong>{trend.title}</strong>
-                        <em>{trend.region} / {trend.category}</em>
+                        <em>
+                          {trend.published_at && (trend.curator_score ?? 0) > 0
+                            ? `${new Date(trend.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${trend.category}`
+                            : `${trend.region} / ${trend.category}`}
+                        </em>
                       </span>
                       <b>{getTrendScore(trend)}</b>
                     </button>

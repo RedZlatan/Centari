@@ -46,6 +46,16 @@
   height: 100%;
 }
 
+.sceneFallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(55, 73, 68, 0.32), transparent 38%),
+    radial-gradient(circle at 62% 18%, rgba(168, 138, 90, 0.08), transparent 24%),
+    #0b0f0f;
+}
+
 .interfaceLayer {
   position: absolute;
   inset: 0;

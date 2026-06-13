@@ -637,6 +637,7 @@ function TypeBar({ active, angle }: { active: boolean; angle: number }) {
 export default function WorkspacePage() {
   const workspaceRef = useRef<HTMLElement>(null);
   const isDragging = useRef(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [dragRotation, setDragRotation] = useState<DragRotation>({ x: 0, y: 0 });
   const [isWriting, setIsWriting] = useState(false);
@@ -645,6 +646,10 @@ export default function WorkspacePage() {
   const [launchedVisions, setLaunchedVisions] = useState<VisionParticle[]>([]);
   const [visionStars, setVisionStars] = useState<VisionStar[]>([]);
   const [selectedVision, setSelectedVision] = useState<VisionStar | null>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     const updateProgress = () => {
@@ -763,17 +768,21 @@ export default function WorkspacePage() {
       }}
     >
       <div className={`${styles.sceneFrame} ${isWriting ? styles.sceneFrameWriting : ""}`}>
-        <WorkspaceScene
-          paperText={paperText}
-          activeKey={activeKey}
-          isWriting={isWriting}
-          scrollProgress={scrollProgress}
-          dragRotation={dragRotation}
-          launchedVisions={launchedVisions}
-          visionStars={visionStars}
-          onVisionSettled={settleVision}
-          onVisionSelect={setSelectedVision}
-        />
+        {hasMounted ? (
+          <WorkspaceScene
+            paperText={paperText}
+            activeKey={activeKey}
+            isWriting={isWriting}
+            scrollProgress={scrollProgress}
+            dragRotation={dragRotation}
+            launchedVisions={launchedVisions}
+            visionStars={visionStars}
+            onVisionSettled={settleVision}
+            onVisionSelect={setSelectedVision}
+          />
+        ) : (
+          <div className={styles.sceneFallback} />
+        )}
         <div className={`${styles.interfaceLayer} ${isWriting ? styles.interfaceLayerWriting : ""}`}>
           <div className={styles.visionHeader}>
             <span>Centari</span>

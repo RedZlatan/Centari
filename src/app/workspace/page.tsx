@@ -8,15 +8,7 @@ import { BackSide, Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import styles from "./workspace.module.css";
 
-const MILESTONES = [
-  "research",
-  "projects",
-  "case studies",
-  "partnerships",
-  "journal entries",
-];
-
-const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+const KEY_ROWS = ["QWERTYUIOPÅ", "ASDFGHJKLÄÖ", "ZXCVBNM"];
 const PAPER_LIMIT = 420;
 const SPAWN_POSITION = new Vector3(0, 1.42, 7.8);
 const TYPEWRITER_POSITION = new Vector3(0, -0.36, 0);
@@ -52,7 +44,7 @@ function normalizeKey(key: string) {
   if (key === " ") return "SPACE";
   if (key === "Backspace") return "BACKSPACE";
   const upper = key.toUpperCase();
-  return /^[A-Z0-9]$/.test(upper) ? upper : "";
+  return /^[A-ZÅÄÖ0-9]$/.test(upper) ? upper : "";
 }
 
 function WorkspaceScene({
@@ -112,8 +104,7 @@ function WorkspaceScene({
         onVisionSelect={onVisionSelect}
       />
       <VisionLaunches visions={launchedVisions} onVisionSettled={onVisionSettled} />
-      <CenterPath />
-      <ResearchObservatory />
+      <DistantMonolith />
       <Typewriter
         paperText={paperText}
         activeKey={activeKey}
@@ -168,16 +159,6 @@ function ObservatoryVoid() {
         <circleGeometry args={[1.72, 128]} />
         <meshBasicMaterial color="#050606" transparent opacity={0.12} />
       </mesh>
-      <Text
-        position={[-5.7, 3.4, -12.4]}
-        rotation={[0, 0.28, 0]}
-        fontSize={0.12}
-        letterSpacing={0.16}
-        color="#485651"
-        anchorX="left"
-      >
-        OBSERVATORY VOID
-      </Text>
     </group>
   );
 }
@@ -253,16 +234,6 @@ function SparseStarfield({
           </mesh>
         </group>
       ))}
-      <Text
-        position={[-6.1, 2.2, -9.5]}
-        rotation={[0, 0.25, 0]}
-        fontSize={0.11}
-        letterSpacing={0.14}
-        color="#5f6c67"
-        anchorX="left"
-      >
-        EMPTY FIELD / AWAITING VISIONS
-      </Text>
     </group>
   );
 }
@@ -360,85 +331,21 @@ function VisionParticle({
   );
 }
 
-function CenterPath() {
+function DistantMonolith() {
   return (
-    <group position={[-1.6, -0.58, -1.05]} rotation={[0, 0.08, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.12, 0.02, -3.1]}>
-        <planeGeometry args={[0.026, 8.4]} />
+    <group position={[-4.9, 0.45, -8.5]} rotation={[0, 0.18, 0]} scale={1.15}>
+      <mesh castShadow>
+        <boxGeometry args={[0.82, 3.4, 0.34]} />
+        <meshStandardMaterial color="#0b0d0d" roughness={0.9} metalness={0.18} />
+      </mesh>
+      <mesh position={[0.43, 0, 0.01]}>
+        <boxGeometry args={[0.018, 3.28, 0.36]} />
         <meshBasicMaterial color="#b59661" transparent opacity={0.18} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.12, 0.02, -3.1]}>
-        <planeGeometry args={[0.026, 8.4]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.18} />
+      <mesh position={[-0.43, 0, 0.01]}>
+        <boxGeometry args={[0.018, 3.28, 0.36]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.08} />
       </mesh>
-      {MILESTONES.map((label, index) => (
-        <Milestone key={label} label={label} index={index} />
-      ))}
-      <Text
-        position={[0, 0.08, -6.72]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.19}
-        letterSpacing={0.12}
-        color="#8f805f"
-        anchorX="center"
-      >
-        FORWARD INDEX
-      </Text>
-    </group>
-  );
-}
-
-function Milestone({ label, index }: { label: string; index: number }) {
-  const z = -1.9 - index * 1.26;
-  const depthScale = 1 - index * 0.055;
-  const width = (index % 2 === 0 ? 1.5 : 1.22) * depthScale;
-
-  return (
-    <group position={[index % 2 === 0 ? -0.42 : 0.42, 0.075, z]} scale={depthScale}>
-      <mesh rotation={[-Math.PI / 2, 0, index % 2 === 0 ? -0.05 : 0.05]} castShadow>
-        <boxGeometry args={[width, 0.86, 0.06]} />
-        <meshStandardMaterial color="#232522" roughness={0.86} metalness={0.15} transparent opacity={0.62} />
-      </mesh>
-      <Text
-        position={[0, 0.055, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.125}
-        color="#d3c7b4"
-        anchorX="center"
-      >
-        {label.toUpperCase()}
-      </Text>
-      <Text
-        position={[-width / 2 + 0.16, 0.057, 0.25]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        fontSize={0.07}
-        color="#a88a5a"
-        anchorX="left"
-      >
-        {String(index + 1).padStart(2, "0")}
-      </Text>
-    </group>
-  );
-}
-
-function ResearchObservatory() {
-  return (
-    <group position={[-5.5, 0.55, -3.9]} rotation={[0, 0.55, 0]} scale={0.68}>
-      <mesh castShadow receiveShadow>
-        <cylinderGeometry args={[0.22, 0.34, 1.8, 32]} />
-        <meshStandardMaterial color="#1b201d" roughness={0.86} metalness={0.28} />
-      </mesh>
-      <mesh position={[0, 0.95, 0]} rotation={[Math.PI / 2, 0.2, 0]}>
-        <coneGeometry args={[0.7, 1.2, 32, 1, true]} />
-        <meshStandardMaterial color="#151b19" roughness={0.78} metalness={0.36} />
-      </mesh>
-      <mesh position={[0, 1.02, -0.38]} rotation={[Math.PI / 2, 0.2, 0]}>
-        <ringGeometry args={[0.42, 0.44, 48]} />
-        <meshBasicMaterial color="#6c8f81" transparent opacity={0.32} />
-      </mesh>
-      <Text position={[0, -1.12, 0.14]} fontSize={0.12} letterSpacing={0.08} color="#c8b999">
-        RESEARCH OBSERVATORY
-      </Text>
     </group>
   );
 }
@@ -523,12 +430,12 @@ function Keyboard({ activeKey }: { activeKey: KeyPress | null }) {
   const keys = useMemo(() => {
     const allKeys: Array<{ key: string; x: number; y: number; row: number }> = [];
     KEY_ROWS.forEach((row, rowIndex) => {
-      const rowOffset = rowIndex * 0.14;
-      const startX = -(row.length - 1) * 0.135 + rowOffset;
+      const rowOffset = rowIndex * 0.12;
+      const startX = -(row.length - 1) * 0.122 + rowOffset;
       row.split("").forEach((key, column) => {
         allKeys.push({
           key,
-          x: startX + column * 0.27,
+          x: startX + column * 0.244,
           y: 0.38 - rowIndex * 0.24,
           row: rowIndex,
         });
@@ -541,11 +448,11 @@ function Keyboard({ activeKey }: { activeKey: KeyPress | null }) {
   return (
     <group position={[0, 0.22, 0.42]} rotation={[-0.58, 0, 0]}>
       <mesh position={[0.08, -0.03, -0.055]} castShadow receiveShadow>
-        <boxGeometry args={[2.95, 1.22, 0.075]} />
+        <boxGeometry args={[3.18, 1.22, 0.075]} />
         <meshStandardMaterial color="#211f1a" roughness={0.58} metalness={0.42} />
       </mesh>
       <mesh position={[0.08, -0.03, -0.01]}>
-        <boxGeometry args={[2.72, 1.0, 0.022]} />
+        <boxGeometry args={[2.96, 1.0, 0.022]} />
         <meshStandardMaterial color="#30291f" roughness={0.68} metalness={0.2} />
       </mesh>
       {keys.map((key) => (
@@ -595,7 +502,7 @@ function TypeKey({
 function TypeBars({ activeKey }: { activeKey: KeyPress | null }) {
   const bars = useMemo(
     () =>
-      "QWERTYUIOPASDFGHJKLZXCVBNM".split("").map((key, index, array) => ({
+      "QWERTYUIOPÅASDFGHJKLÄÖZXCVBNM".split("").map((key, index, array) => ({
         key,
         angle: -0.68 + (index / (array.length - 1)) * 1.36,
       })),

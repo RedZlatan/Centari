@@ -8,8 +8,7 @@ const NAV_ITEMS = [
   { label: "Solutions", href: "/#solutions" },
   { label: "Products", href: "/#products" },
   { label: "Research", href: "/research" },
-  { label: "Journal", href: "#" },
-  { label: "Visions", href: "/workspace" },
+  { label: "Journal", href: "/journal" },
   { label: "Control Room", href: "#", isControlRoom: true },
 ];
 

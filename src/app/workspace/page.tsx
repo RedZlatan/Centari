@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, Text } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BackSide, Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import styles from "./workspace.module.css";
@@ -17,10 +17,11 @@ const MILESTONES = [
 
 const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const PAPER_LIMIT = 420;
-const DEFAULT_CAMERA_POSITION = new Vector3(1.08, 1.58, 3.05);
-const DEFAULT_LOOK_AT = new Vector3(0.92, 0.58, 0.12);
-const WRITING_CAMERA_POSITION = new Vector3(1.52, 1.42, 2.24);
-const WRITING_LOOK_AT = new Vector3(1.16, 0.84, -0.08);
+const SPAWN_POSITION = new Vector3(0, 1.42, 7.8);
+const TYPEWRITER_POSITION = new Vector3(0, -0.36, 0);
+const TYPEWRITER_LOOK_AT = new Vector3(0, 0.68, -0.18);
+const WRITING_CAMERA_POSITION = new Vector3(0.78, 1.36, 1.72);
+const WRITING_LOOK_AT = new Vector3(0.18, 0.95, -0.14);
 
 type KeyPress = {
   key: string;
@@ -38,23 +39,31 @@ function WorkspaceScene({
   paperText,
   activeKey,
   isWriting,
+  isExploring,
+  onWritingChange,
 }: {
   paperText: string;
   activeKey: KeyPress | null;
   isWriting: boolean;
+  isExploring: boolean;
+  onWritingChange: (isWriting: boolean) => void;
 }) {
   return (
     <Canvas
       className={styles.canvas}
-      camera={{ position: DEFAULT_CAMERA_POSITION.toArray(), fov: 50 }}
+      camera={{ position: SPAWN_POSITION.toArray(), fov: 58 }}
       dpr={[1, 1.75]}
       shadows
       gl={{ antialias: true }}
     >
-      <CameraRig isWriting={isWriting} />
+      <CameraRig
+        isWriting={isWriting}
+        isExploring={isExploring}
+        onWritingChange={onWritingChange}
+      />
       <color attach="background" args={[isWriting ? "#070909" : "#0b0f0f"]} />
-      <fog attach="fog" args={[isWriting ? "#070909" : "#0b0f0f", 5.8, 24]} />
-      <ambientLight intensity={isWriting ? 0.38 : 0.5} />
+      <fog attach="fog" args={[isWriting ? "#070909" : "#0b0f0f", 7, 42]} />
+      <ambientLight intensity={isWriting ? 0.34 : 0.48} />
       <directionalLight
         position={[-3.5, 5.4, 3.2]}
         intensity={isWriting ? 1.05 : 1.35}
@@ -62,15 +71,15 @@ function WorkspaceScene({
         castShadow
       />
       <spotLight
-        position={[2.35, 3.2, 2.4]}
-        angle={0.46}
+        position={[0.2, 5.4, 2.2]}
+        angle={0.34}
         penumbra={0.75}
         intensity={isWriting ? 7.2 : 5.8}
         color="#caa772"
         castShadow
       />
-      <pointLight position={[1.95, 1.25, 1.15]} intensity={isWriting ? 3.6 : 3.0} color="#b89562" />
-      <pointLight position={[-3.4, 1.35, -0.15]} intensity={isWriting ? 0.55 : 0.95} color="#7f9d94" />
+      <pointLight position={[0.8, 1.35, 1.1]} intensity={isWriting ? 3.6 : 2.6} color="#b89562" />
+      <pointLight position={[-6.8, 1.8, -5.2]} intensity={isWriting ? 0.38 : 0.8} color="#7f9d94" />
       <ObservatoryVoid />
       <SparseStarfield isWriting={isWriting} />
       <CenterPath />
@@ -80,16 +89,92 @@ function WorkspaceScene({
   );
 }
 
-function CameraRig({ isWriting }: { isWriting: boolean }) {
+function CameraRig({
+  isWriting,
+  isExploring,
+  onWritingChange,
+}: {
+  isWriting: boolean;
+  isExploring: boolean;
+  onWritingChange: (isWriting: boolean) => void;
+}) {
   const { camera } = useThree();
-  const lookAtTarget = useRef(DEFAULT_LOOK_AT.clone());
+  const yaw = useRef(0);
+  const pitch = useRef(-0.08);
+  const keys = useRef<Set<string>>(new Set());
+  const lookAtTarget = useRef(TYPEWRITER_LOOK_AT.clone());
+  const writingState = useRef(isWriting);
 
-  useFrame(() => {
-    const targetPosition = isWriting ? WRITING_CAMERA_POSITION : DEFAULT_CAMERA_POSITION;
-    const targetLookAt = isWriting ? WRITING_LOOK_AT : DEFAULT_LOOK_AT;
-    camera.position.lerp(targetPosition, 0.055);
-    lookAtTarget.current.lerp(targetLookAt, 0.08);
-    camera.lookAt(lookAtTarget.current);
+  useEffect(() => {
+    writingState.current = isWriting;
+  }, [isWriting]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isExploring || writingState.current || document.pointerLockElement === null) return;
+      yaw.current -= event.movementX * 0.0022;
+      pitch.current = Math.max(-1.15, Math.min(1.05, pitch.current - event.movementY * 0.0019));
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onWritingChange(false);
+        return;
+      }
+      if (!isExploring || writingState.current) return;
+      keys.current.add(event.key.toLowerCase());
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      keys.current.delete(event.key.toLowerCase());
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [isExploring, onWritingChange]);
+
+  useFrame((_, delta) => {
+    if (isWriting) {
+      camera.position.lerp(WRITING_CAMERA_POSITION, 0.055);
+      lookAtTarget.current.lerp(WRITING_LOOK_AT, 0.08);
+      camera.lookAt(lookAtTarget.current);
+      return;
+    }
+
+    const direction = new Vector3(
+      Math.sin(yaw.current) * Math.cos(pitch.current),
+      Math.sin(pitch.current),
+      -Math.cos(yaw.current) * Math.cos(pitch.current),
+    );
+    const flatForward = new Vector3(direction.x, 0, direction.z).normalize();
+    const flatRight = new Vector3(flatForward.z, 0, -flatForward.x).normalize();
+    const move = new Vector3();
+
+    if (keys.current.has("w") || keys.current.has("arrowup")) move.add(flatForward);
+    if (keys.current.has("s") || keys.current.has("arrowdown")) move.sub(flatForward);
+    if (keys.current.has("d") || keys.current.has("arrowright")) move.add(flatRight);
+    if (keys.current.has("a") || keys.current.has("arrowleft")) move.sub(flatRight);
+
+    if (move.lengthSq() > 0) {
+      move.normalize().multiplyScalar(delta * 1.85);
+      camera.position.add(move);
+      camera.position.x = Math.max(-7.5, Math.min(7.5, camera.position.x));
+      camera.position.z = Math.max(-8, Math.min(8.8, camera.position.z));
+      camera.position.y = 1.42;
+    }
+
+    camera.lookAt(camera.position.clone().add(direction));
+
+    const distanceToMachine = camera.position.distanceTo(new Vector3(0, 1.1, 1.1));
+    if (distanceToMachine < 1.55) {
+      onWritingChange(true);
+    }
   });
 
   return null;
@@ -102,16 +187,20 @@ function ObservatoryVoid() {
         <sphereGeometry args={[18, 48, 24, 0, Math.PI * 2, 0, Math.PI]} />
         <meshBasicMaterial color="#070b0b" transparent opacity={0.64} side={BackSide} />
       </mesh>
-      <mesh position={[1.1, -0.82, 0.24]} rotation={[-Math.PI / 2, 0, -0.08]}>
-        <ringGeometry args={[1.25, 2.95, 96]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.07} />
+      <mesh position={[0, -0.82, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[1.46, 1.68, 0.24, 96]} />
+        <meshStandardMaterial color="#111414" roughness={0.82} metalness={0.32} />
       </mesh>
-      <mesh position={[1.1, -0.84, 0.24]} rotation={[-Math.PI / 2, 0, -0.08]}>
-        <circleGeometry args={[2.25, 96]} />
-        <meshBasicMaterial color="#050606" transparent opacity={0.36} />
+      <mesh position={[0, -0.67, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[1.48, 2.12, 96]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.08} />
+      </mesh>
+      <mesh position={[0, -0.86, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[4.8, 128]} />
+        <meshBasicMaterial color="#050606" transparent opacity={0.32} />
       </mesh>
       <Text
-        position={[-4.8, 3.3, -11.5]}
+        position={[-5.7, 3.4, -12.4]}
         rotation={[0, 0.28, 0]}
         fontSize={0.12}
         letterSpacing={0.16}
@@ -127,7 +216,7 @@ function ObservatoryVoid() {
 function SparseStarfield({ isWriting }: { isWriting: boolean }) {
   const stars = useMemo(
     () =>
-      Array.from({ length: 150 }, (_, index) => {
+      Array.from({ length: 190 }, (_, index) => {
         const lane = index % 9;
         const spread = lane === 0 ? 24 : 38;
         return {
@@ -136,7 +225,7 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
           y: -2.8 + ((index * 61) % 100) / 100 * 13.6,
           z: -5 - ((index * 43) % 100) / 100 * 28,
           size: 0.009 + (((index * 17) % 100) / 100) * 0.02,
-          opacity: 0.12 + (((index * 29) % 100) / 100) * 0.34,
+          opacity: 0.1 + (((index * 29) % 100) / 100) * 0.32,
         };
       }),
     [],
@@ -154,6 +243,18 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
           />
         </mesh>
       ))}
+      {[[-1.8, 3.3, -15.6], [3.4, 4.6, -21], [6.7, 2.4, -13.8]].map((position, index) => (
+        <group key={index} position={position as [number, number, number]}>
+          <mesh>
+            <sphereGeometry args={[0.035 + index * 0.012, 16, 16]} />
+            <meshBasicMaterial color="#fff1c8" transparent opacity={isWriting ? 0.42 : 0.86} />
+          </mesh>
+          <mesh>
+            <ringGeometry args={[0.18 + index * 0.06, 0.185 + index * 0.06, 48]} />
+            <meshBasicMaterial color="#b59661" transparent opacity={isWriting ? 0.08 : 0.22} />
+          </mesh>
+        </group>
+      ))}
       <Text
         position={[-6.1, 2.2, -9.5]}
         rotation={[0, 0.25, 0]}
@@ -170,7 +271,7 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
 
 function CenterPath() {
   return (
-    <group position={[-1.95, -0.56, -2.45]} rotation={[0, 0.16, 0]}>
+    <group position={[-1.6, -0.58, -1.05]} rotation={[0, 0.08, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.12, 0.02, -3.1]}>
         <planeGeometry args={[0.026, 8.4]} />
         <meshBasicMaterial color="#b59661" transparent opacity={0.18} />
@@ -231,26 +332,21 @@ function Milestone({ label, index }: { label: string; index: number }) {
 
 function ResearchObservatory() {
   return (
-    <group position={[-4.6, 0.32, -3.6]} rotation={[0, 0.42, 0]} scale={0.74}>
+    <group position={[-5.5, 0.55, -3.9]} rotation={[0, 0.55, 0]} scale={0.68}>
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[2.35, 1.65, 0.16]} />
-        <meshStandardMaterial color="#1b201d" roughness={0.9} metalness={0.12} />
+        <cylinderGeometry args={[0.22, 0.34, 1.8, 32]} />
+        <meshStandardMaterial color="#1b201d" roughness={0.86} metalness={0.28} />
       </mesh>
-      <mesh position={[0, 0, 0.09]}>
-        <planeGeometry args={[2.1, 1.36]} />
-        <meshBasicMaterial color="#17201e" transparent opacity={0.88} />
+      <mesh position={[0, 0.95, 0]} rotation={[Math.PI / 2, 0.2, 0]}>
+        <coneGeometry args={[0.7, 1.2, 32, 1, true]} />
+        <meshStandardMaterial color="#151b19" roughness={0.78} metalness={0.36} />
       </mesh>
-      {[-0.64, 0, 0.64].map((x) => (
-        <mesh key={x} position={[x, 0, 0.11]}>
-          <ringGeometry args={[0.2, 0.205, 48]} />
-          <meshBasicMaterial color="#6c8f81" transparent opacity={0.36} />
-        </mesh>
-      ))}
-      <Text position={[0, 0.64, 0.14]} fontSize={0.12} letterSpacing={0.08} color="#c8b999">
+      <mesh position={[0, 1.02, -0.38]} rotation={[Math.PI / 2, 0.2, 0]}>
+        <ringGeometry args={[0.42, 0.44, 48]} />
+        <meshBasicMaterial color="#6c8f81" transparent opacity={0.32} />
+      </mesh>
+      <Text position={[0, -1.12, 0.14]} fontSize={0.12} letterSpacing={0.08} color="#c8b999">
         RESEARCH OBSERVATORY
-      </Text>
-      <Text position={[0, -0.62, 0.14]} fontSize={0.075} color="#7f8a83">
-        placeholder / inactive
       </Text>
     </group>
   );
@@ -274,7 +370,7 @@ function Typewriter({
   });
 
   return (
-    <group position={[1.02, -0.21, 0.8]} rotation={[0, -0.7, 0]} scale={1.62}>
+    <group position={TYPEWRITER_POSITION.toArray()} rotation={[0, 0, 0]} scale={0.92}>
       <mesh position={[0, -0.22, 0]} castShadow receiveShadow>
         <boxGeometry args={[3.16, 0.42, 1.9]} />
         <meshStandardMaterial color="#111313" roughness={0.68} metalness={0.55} />
@@ -429,9 +525,16 @@ function TypeBar({ active, angle }: { active: boolean; angle: number }) {
 }
 
 export default function WorkspacePage() {
+  const workspaceRef = useRef<HTMLElement>(null);
+  const [isExploring, setIsExploring] = useState(false);
   const [isWriting, setIsWriting] = useState(false);
   const [paperText, setPaperText] = useState("");
   const [activeKey, setActiveKey] = useState<KeyPress | null>(null);
+
+  const enterSpace = useCallback(() => {
+    setIsExploring(true);
+    workspaceRef.current?.requestPointerLock?.();
+  }, []);
 
   useEffect(() => {
     if (!isWriting) return;
@@ -470,25 +573,36 @@ export default function WorkspacePage() {
   }, [activeKey]);
 
   return (
-    <section className={styles.workspace}>
+    <section ref={workspaceRef} className={styles.workspace}>
       <div className={`${styles.sceneFrame} ${isWriting ? styles.sceneFrameWriting : ""}`}>
-        <WorkspaceScene paperText={paperText} activeKey={activeKey} isWriting={isWriting} />
+        <WorkspaceScene
+          paperText={paperText}
+          activeKey={activeKey}
+          isWriting={isWriting}
+          isExploring={isExploring}
+          onWritingChange={setIsWriting}
+        />
         <div className={`${styles.interfaceLayer} ${isWriting ? styles.interfaceLayerWriting : ""}`}>
           <div className={styles.statusBlock}>
-            <span>Workspace W1</span>
+            <span>Centari Workspace</span>
             <strong>Vision Machine</strong>
+            <p>
+              {isWriting
+                ? "Write what should exist. The machine is listening."
+                : "Cross the dark floor. Approach the machine."}
+            </p>
           </div>
           <button
             type="button"
-            className={`${styles.writeButton} ${isWriting ? styles.writeButtonActive : ""}`}
-            onClick={() => setIsWriting((current) => !current)}
+            className={`${styles.writeButton} ${isExploring ? styles.writeButtonActive : ""}`}
+            onClick={enterSpace}
           >
-            {isWriting ? "Writing mode active" : "Enter writing mode"}
+            {isWriting ? "Writing mode active" : isExploring ? "Approach the machine" : "Enter space"}
           </button>
           <div className={styles.zoneReadout}>
-            <span>Center: Future index</span>
-            <span>Left: Research Observatory</span>
-            <span>Right: Typewriter</span>
+            <span>WASD: move slowly</span>
+            <span>Mouse: look around</span>
+            <span>Approach: write</span>
           </div>
         </div>
       </div>

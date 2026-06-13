@@ -17,10 +17,10 @@ const MILESTONES = [
 
 const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 const PAPER_LIMIT = 420;
-const DEFAULT_CAMERA_POSITION = new Vector3(1.45, 1.72, 3.62);
-const DEFAULT_LOOK_AT = new Vector3(1.1, 0.62, 0.05);
-const WRITING_CAMERA_POSITION = new Vector3(1.82, 1.55, 2.46);
-const WRITING_LOOK_AT = new Vector3(1.28, 0.82, -0.06);
+const DEFAULT_CAMERA_POSITION = new Vector3(1.08, 1.58, 3.05);
+const DEFAULT_LOOK_AT = new Vector3(0.92, 0.58, 0.12);
+const WRITING_CAMERA_POSITION = new Vector3(1.52, 1.42, 2.24);
+const WRITING_LOOK_AT = new Vector3(1.16, 0.84, -0.08);
 
 type KeyPress = {
   key: string;
@@ -46,14 +46,14 @@ function WorkspaceScene({
   return (
     <Canvas
       className={styles.canvas}
-      camera={{ position: DEFAULT_CAMERA_POSITION.toArray(), fov: 43 }}
+      camera={{ position: DEFAULT_CAMERA_POSITION.toArray(), fov: 50 }}
       dpr={[1, 1.75]}
       shadows
       gl={{ antialias: true }}
     >
       <CameraRig isWriting={isWriting} />
-      <color attach="background" args={["#101313"]} />
-      <fog attach="fog" args={[isWriting ? "#0c0f0f" : "#101313", 3.8, 11.5]} />
+      <color attach="background" args={[isWriting ? "#070909" : "#0b0f0f"]} />
+      <fog attach="fog" args={[isWriting ? "#070909" : "#0b0f0f", 5.8, 24]} />
       <ambientLight intensity={isWriting ? 0.38 : 0.5} />
       <directionalLight
         position={[-3.5, 5.4, 3.2]}
@@ -71,7 +71,8 @@ function WorkspaceScene({
       />
       <pointLight position={[1.95, 1.25, 1.15]} intensity={isWriting ? 3.6 : 3.0} color="#b89562" />
       <pointLight position={[-3.4, 1.35, -0.15]} intensity={isWriting ? 0.55 : 0.95} color="#7f9d94" />
-      <Room />
+      <VastSpace />
+      <SparseStarfield isWriting={isWriting} />
       <CenterPath />
       <ResearchObservatory />
       <Typewriter paperText={paperText} activeKey={activeKey} isWriting={isWriting} />
@@ -94,55 +95,99 @@ function CameraRig({ isWriting }: { isWriting: boolean }) {
   return null;
 }
 
-function Room() {
+function VastSpace() {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.72, -2.0]} receiveShadow>
-        <planeGeometry args={[16, 16]} />
-        <meshStandardMaterial color="#151918" roughness={0.88} metalness={0.08} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.76, -5.2]} receiveShadow>
+        <planeGeometry args={[42, 44]} />
+        <meshStandardMaterial color="#0f1413" roughness={0.94} metalness={0.05} />
       </mesh>
-      <mesh position={[0, 3.0, -7.0]} receiveShadow>
-        <boxGeometry args={[15, 7.2, 0.18]} />
-        <meshStandardMaterial color="#111514" roughness={0.96} />
+      <mesh position={[0, 1.5, -12.4]} receiveShadow>
+        <planeGeometry args={[32, 14]} />
+        <meshBasicMaterial color="#080c0c" transparent opacity={0.76} />
       </mesh>
-      <mesh position={[-6.3, 1.9, -2.35]} rotation={[0, 0.25, 0]} receiveShadow>
-        <boxGeometry args={[0.18, 5.4, 10]} />
-        <meshStandardMaterial color="#141817" roughness={0.92} />
+      <mesh position={[-9.6, 2.0, -5.8]} rotation={[0, 0.34, 0]} receiveShadow>
+        <planeGeometry args={[12, 7]} />
+        <meshBasicMaterial color="#0d1211" transparent opacity={0.5} />
       </mesh>
-      <mesh position={[6.3, 1.9, -2.35]} rotation={[0, -0.25, 0]} receiveShadow>
-        <boxGeometry args={[0.18, 5.4, 10]} />
-        <meshStandardMaterial color="#141817" roughness={0.92} />
+      <mesh position={[9.6, 2.0, -5.8]} rotation={[0, -0.34, 0]} receiveShadow>
+        <planeGeometry args={[12, 7]} />
+        <meshBasicMaterial color="#0d1211" transparent opacity={0.44} />
       </mesh>
-      {[-4.8, -2.4, 0, 2.4, 4.8].map((x) => (
-        <mesh key={x} position={[x, -0.69, -3.25]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.018, 8.8]} />
-          <meshBasicMaterial color="#4b4337" transparent opacity={0.38} />
+      {[-7.2, -3.6, 0, 3.6, 7.2].map((x) => (
+        <mesh key={x} position={[x, -0.735, -6.4]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.014, 23]} />
+          <meshBasicMaterial color="#3f382f" transparent opacity={0.22} />
         </mesh>
       ))}
     </group>
   );
 }
 
+function SparseStarfield({ isWriting }: { isWriting: boolean }) {
+  const stars = useMemo(
+    () =>
+      Array.from({ length: 86 }, (_, index) => {
+        const lane = index % 7;
+        const spread = lane === 0 ? 18 : 26;
+        return {
+          id: index,
+          x: ((index * 37) % 100) / 100 * spread - spread / 2,
+          y: 0.35 + ((index * 61) % 100) / 100 * 6.2,
+          z: -8 - ((index * 43) % 100) / 100 * 19,
+          size: 0.009 + (((index * 17) % 100) / 100) * 0.02,
+          opacity: 0.18 + (((index * 29) % 100) / 100) * 0.34,
+        };
+      }),
+    [],
+  );
+
+  return (
+    <group>
+      {stars.map((star) => (
+        <mesh key={star.id} position={[star.x, star.y, star.z]}>
+          <sphereGeometry args={[star.size, 8, 8]} />
+          <meshBasicMaterial
+            color="#d7c7a8"
+            transparent
+            opacity={isWriting ? star.opacity * 0.42 : star.opacity}
+          />
+        </mesh>
+      ))}
+      <Text
+        position={[-4.6, 2.9, -9.5]}
+        rotation={[0, 0.25, 0]}
+        fontSize={0.11}
+        letterSpacing={0.14}
+        color="#5f6c67"
+        anchorX="left"
+      >
+        EMPTY FIELD / AWAITING VISIONS
+      </Text>
+    </group>
+  );
+}
+
 function CenterPath() {
   return (
-    <group position={[-1.0, -0.66, -0.95]} rotation={[0, 0.1, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -2.65]} receiveShadow>
-        <planeGeometry args={[2.35, 7.4]} />
+    <group position={[-1.75, -0.68, -1.95]} rotation={[0, 0.16, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -3.1]} receiveShadow>
+        <planeGeometry args={[2.15, 8.4]} />
         <meshStandardMaterial color="#1e211f" roughness={0.9} metalness={0.08} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.22, 0.02, -2.65]}>
-        <planeGeometry args={[0.032, 7.4]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.42} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.12, 0.02, -3.1]}>
+        <planeGeometry args={[0.026, 8.4]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.28} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.22, 0.02, -2.65]}>
-        <planeGeometry args={[0.032, 7.4]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.42} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.12, 0.02, -3.1]}>
+        <planeGeometry args={[0.026, 8.4]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.28} />
       </mesh>
       {MILESTONES.map((label, index) => (
         <Milestone key={label} label={label} index={index} />
       ))}
       <Text
-        position={[0, 0.08, -5.92]}
+        position={[0, 0.08, -6.72]}
         rotation={[-Math.PI / 2, 0, 0]}
         fontSize={0.19}
         letterSpacing={0.12}
@@ -156,7 +201,7 @@ function CenterPath() {
 }
 
 function Milestone({ label, index }: { label: string; index: number }) {
-  const z = -1.25 - index * 1.12;
+  const z = -1.65 - index * 1.18;
   const depthScale = 1 - index * 0.055;
   const width = (index % 2 === 0 ? 1.5 : 1.22) * depthScale;
 
@@ -190,7 +235,7 @@ function Milestone({ label, index }: { label: string; index: number }) {
 
 function ResearchObservatory() {
   return (
-    <group position={[-3.55, 0.28, -2.35]} rotation={[0, 0.28, 0]} scale={0.88}>
+    <group position={[-4.6, 0.32, -3.6]} rotation={[0, 0.42, 0]} scale={0.74}>
       <mesh castShadow receiveShadow>
         <boxGeometry args={[2.35, 1.65, 0.16]} />
         <meshStandardMaterial color="#1b201d" roughness={0.9} metalness={0.12} />
@@ -233,7 +278,7 @@ function Typewriter({
   });
 
   return (
-    <group position={[1.22, -0.2, 0.8]} rotation={[0, -0.74, 0]} scale={1.58}>
+    <group position={[1.02, -0.21, 0.8]} rotation={[0, -0.7, 0]} scale={1.62}>
       <mesh position={[0, -0.22, 0]} castShadow receiveShadow>
         <boxGeometry args={[3.16, 0.42, 1.9]} />
         <meshStandardMaterial color="#111313" roughness={0.68} metalness={0.55} />

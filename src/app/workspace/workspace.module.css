@@ -1,5 +1,6 @@
 .workspace {
-  min-height: calc(100vh - var(--header-height));
+  min-height: 100vh;
+  margin-top: calc(var(--header-height) * -1);
   background:
     radial-gradient(circle at 70% 28%, rgba(168, 138, 90, 0.12), transparent 26%),
     radial-gradient(circle at 24% 58%, rgba(98, 126, 113, 0.12), transparent 30%),
@@ -9,9 +10,9 @@
 
 .sceneFrame {
   position: relative;
-  min-height: calc(100vh - var(--header-height));
+  min-height: 100vh;
   overflow: hidden;
-  border-top: 1px solid rgba(168, 138, 90, 0.16);
+  border-top: 0;
 }
 
 .sceneFrame::after {
@@ -20,16 +21,16 @@
   content: "";
   pointer-events: none;
   background:
-    radial-gradient(circle at 64% 38%, transparent 0 26%, rgba(8, 10, 10, 0.18) 58%, rgba(8, 10, 10, 0.5) 100%),
-    linear-gradient(90deg, rgba(10, 13, 13, 0.16), transparent 34%, rgba(10, 13, 13, 0.12));
-  opacity: 0.72;
+    radial-gradient(circle at 62% 42%, transparent 0 18%, rgba(8, 10, 10, 0.12) 52%, rgba(3, 5, 5, 0.58) 100%),
+    linear-gradient(90deg, rgba(4, 7, 7, 0.34), transparent 38%, rgba(4, 7, 7, 0.14));
+  opacity: 0.86;
   transition: opacity 0.35s ease, background 0.35s ease;
 }
 
 .sceneFrameWriting::after {
   background:
-    radial-gradient(circle at 66% 39%, transparent 0 22%, rgba(7, 9, 9, 0.28) 54%, rgba(5, 7, 7, 0.72) 100%),
-    linear-gradient(90deg, rgba(8, 11, 11, 0.28), transparent 30%, rgba(8, 11, 11, 0.18));
+    radial-gradient(circle at 65% 42%, transparent 0 16%, rgba(5, 7, 7, 0.3) 52%, rgba(2, 4, 4, 0.82) 100%),
+    linear-gradient(90deg, rgba(3, 5, 5, 0.44), transparent 31%, rgba(3, 5, 5, 0.24));
   opacity: 0.92;
 }
 
@@ -48,7 +49,7 @@
   grid-template-columns: minmax(170px, 250px) 1fr minmax(130px, 210px);
   align-items: end;
   gap: var(--space-6);
-  padding: var(--space-6) var(--space-8);
+  padding: calc(var(--header-height) + var(--space-6)) var(--space-8) var(--space-6);
   pointer-events: none;
   background:
     linear-gradient(180deg, rgba(16, 19, 19, 0.42), transparent 24%),
@@ -64,9 +65,9 @@
 
 .statusBlock,
 .zoneReadout {
-  border: 1px solid rgba(168, 138, 90, 0.22);
-  background: rgba(16, 19, 19, 0.68);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(168, 138, 90, 0.18);
+  background: rgba(8, 11, 11, 0.38);
+  backdrop-filter: blur(10px);
 }
 
 .statusBlock {
@@ -99,7 +100,7 @@
   align-self: end;
   min-width: 220px;
   border: 1px solid rgba(168, 138, 90, 0.46);
-  background: rgba(17, 18, 18, 0.76);
+  background: rgba(8, 10, 10, 0.52);
   color: #f0ebe1;
   padding: var(--space-3) var(--space-6);
   font-family: var(--font-mono), monospace;
@@ -123,7 +124,7 @@
   gap: var(--space-2);
   padding: var(--space-4);
   align-self: start;
-  margin-top: var(--space-6);
+  margin-top: var(--space-2);
 }
 
 .zoneReadout span {
@@ -156,14 +157,14 @@
 
 @media (max-width: 900px) {
   .sceneFrame {
-    min-height: 760px;
+    min-height: 100vh;
   }
 
   .interfaceLayer {
     grid-template-columns: 1fr;
     align-content: space-between;
     align-items: stretch;
-    padding: var(--space-4);
+    padding: calc(var(--header-height) + var(--space-4)) var(--space-4) var(--space-4);
   }
 
   .statusBlock {

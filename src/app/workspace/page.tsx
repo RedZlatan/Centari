@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html, Text } from "@react-three/drei";
+import { Text } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BackSide, Vector3 } from "three";
 import type { Group, Mesh } from "three";
@@ -20,8 +20,8 @@ const PAPER_LIMIT = 420;
 const SPAWN_POSITION = new Vector3(0, 1.42, 7.8);
 const TYPEWRITER_POSITION = new Vector3(0, -0.36, 0);
 const TYPEWRITER_LOOK_AT = new Vector3(0, 0.68, -0.18);
-const WRITING_CAMERA_POSITION = new Vector3(0.78, 1.36, 1.72);
-const WRITING_LOOK_AT = new Vector3(0.18, 0.95, -0.14);
+const WRITING_CAMERA_POSITION = new Vector3(0.04, 1.18, 1.62);
+const WRITING_LOOK_AT = new Vector3(0, 0.92, -0.24);
 const PAPER_WORLD_POSITION = new Vector3(0.02, 1.05, -0.48);
 
 type KeyPress = {
@@ -128,12 +128,12 @@ function CameraRig({
   useFrame(() => {
     const approach = easedProgress * easedProgress * (3 - 2 * easedProgress);
     const targetPosition = SPAWN_POSITION.clone().lerp(WRITING_CAMERA_POSITION, approach);
-    targetPosition.x += dragRotation.x * 0.42 * (1 - approach * 0.35);
-    targetPosition.y += dragRotation.y * 0.2;
+    targetPosition.x += dragRotation.x * 0.7 * (1 - approach * 0.25);
+    targetPosition.y += dragRotation.y * 0.72;
 
     const targetLookAt = TYPEWRITER_LOOK_AT.clone().lerp(WRITING_LOOK_AT, approach);
-    targetLookAt.x += dragRotation.x * 0.32;
-    targetLookAt.y += dragRotation.y * 0.24;
+    targetLookAt.x += dragRotation.x * 0.46;
+    targetLookAt.y += dragRotation.y * 1.65;
 
     camera.position.lerp(targetPosition, 0.075);
     lookAtTarget.current.lerp(targetLookAt, 0.09);
@@ -203,7 +203,7 @@ function SparseStarfield({
   );
 
   return (
-    <group rotation={[dragRotation.y * 0.08, dragRotation.x * 0.16, 0]}>
+    <group rotation={[dragRotation.y * 0.22, dragRotation.x * 0.2, 0]}>
       {stars.map((star) => (
         <mesh key={star.id} position={[star.x, star.y, star.z]}>
           <sphereGeometry args={[star.size, 8, 8]} />
@@ -434,17 +434,18 @@ function Typewriter({
           <boxGeometry args={[2.02, 1.66, 0.045]} />
           <meshStandardMaterial color="#eee6d6" roughness={0.78} metalness={0.02} />
         </mesh>
-        <Html
-          transform
-          position={[-0.88, 0.91, -0.087]}
+        <Text
+          position={[-0.78, 1.17, -0.142]}
           rotation={[-0.18, 0, 0]}
-          distanceFactor={3.35}
-          occlude
+          fontSize={0.07}
+          lineHeight={1.24}
+          maxWidth={1.42}
+          color="#26221b"
+          anchorX="left"
+          anchorY="top"
         >
-          <div className={styles.paperText}>
-            {paperText || <span className={styles.paperGhost}> </span>}
-          </div>
-        </Html>
+          {paperText || " "}
+        </Text>
       </group>
       <Keyboard activeKey={activeKey} />
       <TypeBars activeKey={activeKey} />

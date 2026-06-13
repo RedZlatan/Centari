@@ -128,7 +128,7 @@
 .writeButton:hover,
 .writeButtonActive {
   border-color: rgba(207, 178, 120, 0.86);
-  background: rgba(168, 138, 90, 0.18);
+  background: rgba(168, 138, 90, 0.24);
   color: #fff8e8;
 }
 
@@ -147,30 +147,6 @@
 
 .zoneReadout span {
   color: rgba(223, 216, 202, 0.72);
-}
-
-.paperText {
-  width: 318px;
-  min-height: 228px;
-  max-height: 228px;
-  overflow: hidden;
-  padding: 24px 25px;
-  color: #211f1a;
-  font-family: var(--font-mono), "Courier New", monospace;
-  font-size: 15px;
-  line-height: 1.52;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  letter-spacing: 0;
-  text-shadow: 0 0 0 #211f1a;
-  pointer-events: none;
-}
-
-.paperGhost {
-  display: inline-block;
-  width: 8px;
-  height: 16px;
-  border-left: 1px solid rgba(35, 31, 24, 0.56);
 }
 
 @media (max-width: 900px) {

@@ -14,6 +14,25 @@
   border-top: 1px solid rgba(168, 138, 90, 0.16);
 }
 
+.sceneFrame::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 64% 38%, transparent 0 26%, rgba(8, 10, 10, 0.18) 58%, rgba(8, 10, 10, 0.5) 100%),
+    linear-gradient(90deg, rgba(10, 13, 13, 0.16), transparent 34%, rgba(10, 13, 13, 0.12));
+  opacity: 0.72;
+  transition: opacity 0.35s ease, background 0.35s ease;
+}
+
+.sceneFrameWriting::after {
+  background:
+    radial-gradient(circle at 66% 39%, transparent 0 22%, rgba(7, 9, 9, 0.28) 54%, rgba(5, 7, 7, 0.72) 100%),
+    linear-gradient(90deg, rgba(8, 11, 11, 0.28), transparent 30%, rgba(8, 11, 11, 0.18));
+  opacity: 0.92;
+}
+
 .canvas {
   position: absolute;
   inset: 0;
@@ -26,14 +45,21 @@
   inset: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(180px, 270px) 1fr minmax(150px, 230px);
+  grid-template-columns: minmax(170px, 250px) 1fr minmax(130px, 210px);
   align-items: end;
   gap: var(--space-6);
   padding: var(--space-6) var(--space-8);
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(16, 19, 19, 0.48), transparent 28%),
-    linear-gradient(0deg, rgba(16, 19, 19, 0.72), transparent 46%);
+    linear-gradient(180deg, rgba(16, 19, 19, 0.42), transparent 24%),
+    linear-gradient(0deg, rgba(16, 19, 19, 0.62), transparent 42%);
+  transition: background 0.35s ease;
+}
+
+.interfaceLayerWriting {
+  background:
+    linear-gradient(180deg, rgba(10, 12, 12, 0.52), transparent 22%),
+    linear-gradient(0deg, rgba(8, 10, 10, 0.78), transparent 38%);
 }
 
 .statusBlock,
@@ -105,15 +131,15 @@
 }
 
 .paperText {
-  width: 286px;
-  min-height: 204px;
-  max-height: 204px;
+  width: 318px;
+  min-height: 228px;
+  max-height: 228px;
   overflow: hidden;
-  padding: 20px 22px;
+  padding: 24px 25px;
   color: #211f1a;
   font-family: var(--font-mono), "Courier New", monospace;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.52;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   letter-spacing: 0;

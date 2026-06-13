@@ -3,7 +3,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, Text } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Vector3 } from "three";
+import { BackSide, Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import styles from "./workspace.module.css";
 
@@ -71,7 +71,7 @@ function WorkspaceScene({
       />
       <pointLight position={[1.95, 1.25, 1.15]} intensity={isWriting ? 3.6 : 3.0} color="#b89562" />
       <pointLight position={[-3.4, 1.35, -0.15]} intensity={isWriting ? 0.55 : 0.95} color="#7f9d94" />
-      <VastSpace />
+      <ObservatoryVoid />
       <SparseStarfield isWriting={isWriting} />
       <CenterPath />
       <ResearchObservatory />
@@ -95,31 +95,31 @@ function CameraRig({ isWriting }: { isWriting: boolean }) {
   return null;
 }
 
-function VastSpace() {
+function ObservatoryVoid() {
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.76, -5.2]} receiveShadow>
-        <planeGeometry args={[42, 44]} />
-        <meshStandardMaterial color="#0f1413" roughness={0.94} metalness={0.05} />
+      <mesh position={[0, 1.45, -14]} rotation={[0, 0, 0]}>
+        <sphereGeometry args={[18, 48, 24, 0, Math.PI * 2, 0, Math.PI]} />
+        <meshBasicMaterial color="#070b0b" transparent opacity={0.64} side={BackSide} />
       </mesh>
-      <mesh position={[0, 1.5, -12.4]} receiveShadow>
-        <planeGeometry args={[32, 14]} />
-        <meshBasicMaterial color="#080c0c" transparent opacity={0.76} />
+      <mesh position={[1.1, -0.82, 0.24]} rotation={[-Math.PI / 2, 0, -0.08]}>
+        <ringGeometry args={[1.25, 2.95, 96]} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.07} />
       </mesh>
-      <mesh position={[-9.6, 2.0, -5.8]} rotation={[0, 0.34, 0]} receiveShadow>
-        <planeGeometry args={[12, 7]} />
-        <meshBasicMaterial color="#0d1211" transparent opacity={0.5} />
+      <mesh position={[1.1, -0.84, 0.24]} rotation={[-Math.PI / 2, 0, -0.08]}>
+        <circleGeometry args={[2.25, 96]} />
+        <meshBasicMaterial color="#050606" transparent opacity={0.36} />
       </mesh>
-      <mesh position={[9.6, 2.0, -5.8]} rotation={[0, -0.34, 0]} receiveShadow>
-        <planeGeometry args={[12, 7]} />
-        <meshBasicMaterial color="#0d1211" transparent opacity={0.44} />
-      </mesh>
-      {[-7.2, -3.6, 0, 3.6, 7.2].map((x) => (
-        <mesh key={x} position={[x, -0.735, -6.4]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[0.014, 23]} />
-          <meshBasicMaterial color="#3f382f" transparent opacity={0.22} />
-        </mesh>
-      ))}
+      <Text
+        position={[-4.8, 3.3, -11.5]}
+        rotation={[0, 0.28, 0]}
+        fontSize={0.12}
+        letterSpacing={0.16}
+        color="#485651"
+        anchorX="left"
+      >
+        OBSERVATORY VOID
+      </Text>
     </group>
   );
 }
@@ -127,16 +127,16 @@ function VastSpace() {
 function SparseStarfield({ isWriting }: { isWriting: boolean }) {
   const stars = useMemo(
     () =>
-      Array.from({ length: 86 }, (_, index) => {
-        const lane = index % 7;
-        const spread = lane === 0 ? 18 : 26;
+      Array.from({ length: 150 }, (_, index) => {
+        const lane = index % 9;
+        const spread = lane === 0 ? 24 : 38;
         return {
           id: index,
           x: ((index * 37) % 100) / 100 * spread - spread / 2,
-          y: 0.35 + ((index * 61) % 100) / 100 * 6.2,
-          z: -8 - ((index * 43) % 100) / 100 * 19,
+          y: -2.8 + ((index * 61) % 100) / 100 * 13.6,
+          z: -5 - ((index * 43) % 100) / 100 * 28,
           size: 0.009 + (((index * 17) % 100) / 100) * 0.02,
-          opacity: 0.18 + (((index * 29) % 100) / 100) * 0.34,
+          opacity: 0.12 + (((index * 29) % 100) / 100) * 0.34,
         };
       }),
     [],
@@ -155,7 +155,7 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
         </mesh>
       ))}
       <Text
-        position={[-4.6, 2.9, -9.5]}
+        position={[-6.1, 2.2, -9.5]}
         rotation={[0, 0.25, 0]}
         fontSize={0.11}
         letterSpacing={0.14}
@@ -170,18 +170,14 @@ function SparseStarfield({ isWriting }: { isWriting: boolean }) {
 
 function CenterPath() {
   return (
-    <group position={[-1.75, -0.68, -1.95]} rotation={[0, 0.16, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, -3.1]} receiveShadow>
-        <planeGeometry args={[2.15, 8.4]} />
-        <meshStandardMaterial color="#1e211f" roughness={0.9} metalness={0.08} />
-      </mesh>
+    <group position={[-1.95, -0.56, -2.45]} rotation={[0, 0.16, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-1.12, 0.02, -3.1]}>
         <planeGeometry args={[0.026, 8.4]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.28} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.18} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.12, 0.02, -3.1]}>
         <planeGeometry args={[0.026, 8.4]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.28} />
+        <meshBasicMaterial color="#b59661" transparent opacity={0.18} />
       </mesh>
       {MILESTONES.map((label, index) => (
         <Milestone key={label} label={label} index={index} />
@@ -201,7 +197,7 @@ function CenterPath() {
 }
 
 function Milestone({ label, index }: { label: string; index: number }) {
-  const z = -1.65 - index * 1.18;
+  const z = -1.9 - index * 1.26;
   const depthScale = 1 - index * 0.055;
   const width = (index % 2 === 0 ? 1.5 : 1.22) * depthScale;
 
@@ -209,7 +205,7 @@ function Milestone({ label, index }: { label: string; index: number }) {
     <group position={[index % 2 === 0 ? -0.42 : 0.42, 0.075, z]} scale={depthScale}>
       <mesh rotation={[-Math.PI / 2, 0, index % 2 === 0 ? -0.05 : 0.05]} castShadow>
         <boxGeometry args={[width, 0.86, 0.06]} />
-        <meshStandardMaterial color="#232522" roughness={0.86} metalness={0.15} />
+        <meshStandardMaterial color="#232522" roughness={0.86} metalness={0.15} transparent opacity={0.62} />
       </mesh>
       <Text
         position={[0, 0.055, 0]}

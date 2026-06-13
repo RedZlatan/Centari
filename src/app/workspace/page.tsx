@@ -790,8 +790,12 @@ export default function WorkspacePage() {
           onVisionSelect={setSelectedVision}
         />
         <div className={`${styles.interfaceLayer} ${isWriting ? styles.interfaceLayerWriting : ""}`}>
+          <div className={styles.visionHeader}>
+            <span>Centari</span>
+            <strong>Visions</strong>
+          </div>
           <div className={styles.statusBlock}>
-            <span>Centari Workspace</span>
+            <span>Vision Machine</span>
             <strong>Vision Machine</strong>
             <p>
               {isWriting

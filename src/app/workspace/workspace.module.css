@@ -68,6 +68,31 @@
     linear-gradient(0deg, rgba(8, 10, 10, 0.78), transparent 38%);
 }
 
+.visionHeader {
+  position: absolute;
+  top: var(--space-8);
+  left: var(--space-8);
+  display: grid;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+.visionHeader span {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.9);
+}
+
+.visionHeader strong {
+  color: #f0ebe1;
+  font-size: clamp(2rem, 4vw, 4rem);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+}
+
 .statusBlock,
 .zoneReadout {
   border: 1px solid rgba(168, 138, 90, 0.16);
@@ -78,7 +103,7 @@
 .statusBlock {
   align-self: start;
   padding: var(--space-4);
-  margin-top: var(--space-6);
+  margin-top: 112px;
 }
 
 .statusBlock span,
@@ -204,7 +229,12 @@
 
   .statusBlock {
     width: min(100%, 360px);
-    margin-top: 0;
+    margin-top: 96px;
+  }
+
+  .visionHeader {
+    top: var(--space-4);
+    left: var(--space-4);
   }
 
   .writeButton {

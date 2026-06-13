@@ -2,9 +2,9 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { ThreeEvent } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Html, Text } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BackSide, Vector3 } from "three";
+import { BackSide, CanvasTexture, ClampToEdgeWrapping, LinearFilter, Vector3 } from "three";
 import type { Group, Mesh } from "three";
 import styles from "./workspace.module.css";
 
@@ -95,6 +95,7 @@ function WorkspaceScene({
         castShadow
       />
       <pointLight position={[0.8, 1.35, 1.1]} intensity={isWriting ? 3.6 : 2.6} color="#b89562" />
+      <pointLight position={[0, 0.5, 1.45]} intensity={isWriting ? 1.8 : 1.1} color="#e0c58e" />
       <pointLight position={[-6.8, 1.8, -5.2]} intensity={isWriting ? 0.38 : 0.8} color="#7f9d94" />
       <ObservatoryVoid />
       <SparseStarfield
@@ -104,7 +105,6 @@ function WorkspaceScene({
         onVisionSelect={onVisionSelect}
       />
       <VisionLaunches visions={launchedVisions} onVisionSettled={onVisionSettled} />
-      <DistantMonolith />
       <Typewriter
         paperText={paperText}
         activeKey={activeKey}
@@ -308,6 +308,7 @@ function VisionParticle({
         <planeGeometry args={[1.16, 1.42]} />
         <meshBasicMaterial color="#efe3ca" transparent opacity={0.94} />
       </mesh>
+      <PaperTextTexture text={vision.text.slice(0, 140)} width={0.88} height={0.98} position={[0, 0.05, 0.026]} />
       <mesh ref={lightCore} position={[0, 0, 0.035]}>
         <sphereGeometry args={[0.16, 24, 24]} />
         <meshBasicMaterial color="#fff0bd" transparent opacity={0.94} />
@@ -316,37 +317,79 @@ function VisionParticle({
         <ringGeometry args={[0.22, 0.24, 64]} />
         <meshBasicMaterial color="#d7a95f" transparent opacity={0.26} />
       </mesh>
-      <Text
-        position={[-0.46, 0.42, 0.02]}
-        fontSize={0.07}
-        maxWidth={0.9}
-        lineHeight={1.2}
-        color="#2b251d"
-        anchorX="left"
-        anchorY="top"
-      >
-        {vision.text.slice(0, 90)}
-      </Text>
     </group>
   );
 }
 
-function DistantMonolith() {
+function PaperTextTexture({
+  text,
+  width,
+  height,
+  position,
+  rotation = [0, 0, 0],
+}: {
+  text: string;
+  width: number;
+  height: number;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 640;
+    const nextTexture = new CanvasTexture(canvas);
+    nextTexture.minFilter = LinearFilter;
+    nextTexture.magFilter = LinearFilter;
+    nextTexture.wrapS = ClampToEdgeWrapping;
+    nextTexture.wrapT = ClampToEdgeWrapping;
+    return nextTexture;
+  }, []);
+
+  useEffect(() => {
+    const canvas = texture.image as HTMLCanvasElement;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "rgba(38, 34, 27, 0.92)";
+    context.font = "28px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    context.textBaseline = "top";
+
+    const left = 46;
+    const top = 54;
+    const lineHeight = 38;
+    const maxWidth = canvas.width - left * 2;
+    const words = (text || "").split(/(\s+)/);
+    const lines: string[] = [];
+    let line = "";
+
+    words.forEach((word) => {
+      const nextLine = `${line}${word}`;
+      if (context.measureText(nextLine).width > maxWidth && line.trim()) {
+        lines.push(line.trimEnd());
+        line = word.trimStart();
+      } else {
+        line = nextLine;
+      }
+    });
+
+    if (line.trim()) lines.push(line.trimEnd());
+
+    lines.slice(0, 12).forEach((nextLine, index) => {
+      context.fillText(nextLine, left, top + index * lineHeight);
+    });
+
+    texture.needsUpdate = true;
+  }, [text, texture]);
+
+  useEffect(() => () => texture.dispose(), [texture]);
+
   return (
-    <group position={[-4.9, 0.45, -8.5]} rotation={[0, 0.18, 0]} scale={1.15}>
-      <mesh castShadow>
-        <boxGeometry args={[0.82, 3.4, 0.34]} />
-        <meshStandardMaterial color="#0b0d0d" roughness={0.9} metalness={0.18} />
-      </mesh>
-      <mesh position={[0.43, 0, 0.01]}>
-        <boxGeometry args={[0.018, 3.28, 0.36]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.18} />
-      </mesh>
-      <mesh position={[-0.43, 0, 0.01]}>
-        <boxGeometry args={[0.018, 3.28, 0.36]} />
-        <meshBasicMaterial color="#b59661" transparent opacity={0.08} />
-      </mesh>
-    </group>
+    <mesh position={position} rotation={rotation}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={texture} transparent />
+    </mesh>
   );
 }
 
@@ -371,22 +414,50 @@ function Typewriter({
 
   return (
     <group position={TYPEWRITER_POSITION.toArray()} rotation={[0, 0, 0]} scale={0.92}>
-      <mesh position={[0, -0.22, 0]} castShadow receiveShadow>
-        <boxGeometry args={[3.16, 0.42, 1.9]} />
-        <meshStandardMaterial color="#111313" roughness={0.68} metalness={0.55} />
+      <mesh position={[0, -0.32, 0.04]} castShadow receiveShadow>
+        <boxGeometry args={[3.28, 0.28, 1.98]} />
+        <meshStandardMaterial color="#090a0a" roughness={0.6} metalness={0.66} />
       </mesh>
-      <mesh position={[0, -0.01, 0.08]} rotation={[-0.15, 0, 0]} castShadow>
-        <boxGeometry args={[2.65, 0.22, 1.25]} />
-        <meshStandardMaterial color="#1c1b18" roughness={0.78} metalness={0.35} />
+      <mesh position={[0, -0.11, 0.08]} castShadow receiveShadow>
+        <boxGeometry args={[3.02, 0.34, 1.68]} />
+        <meshStandardMaterial color="#141514" roughness={0.7} metalness={0.5} />
+      </mesh>
+      <mesh position={[0, 0.02, 0.18]} rotation={[-0.17, 0, 0]} castShadow>
+        <boxGeometry args={[2.74, 0.24, 1.28]} />
+        <meshStandardMaterial color="#1f1b15" roughness={0.72} metalness={0.38} />
+      </mesh>
+      <mesh position={[0, 0.15, 0.84]} rotation={[Math.PI / 2, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.17, 0.17, 2.92, 32]} />
+        <meshStandardMaterial color="#080909" roughness={0.42} metalness={0.78} />
+      </mesh>
+      <mesh position={[0, 0.02, 1.04]} castShadow>
+        <boxGeometry args={[2.86, 0.16, 0.18]} />
+        <meshStandardMaterial color="#211b13" roughness={0.55} metalness={0.36} />
       </mesh>
       <mesh position={[0, 0.08, 0.72]} castShadow>
         <boxGeometry args={[2.85, 0.18, 0.24]} />
         <meshStandardMaterial color="#070808" roughness={0.5} metalness={0.72} />
       </mesh>
+      <mesh position={[0, -0.37, 1.04]} castShadow>
+        <boxGeometry args={[2.3, 0.04, 0.06]} />
+        <meshStandardMaterial color="#b59661" roughness={0.46} metalness={0.52} />
+      </mesh>
       <group ref={carriage} position={[0, 0.72, -0.38]}>
         <mesh castShadow>
           <boxGeometry args={[2.55, 0.16, 0.22]} />
           <meshStandardMaterial color="#090a0a" roughness={0.42} metalness={0.82} />
+        </mesh>
+        <mesh position={[0, -0.04, 0.13]} rotation={[Math.PI / 2, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.08, 0.08, 2.72, 28]} />
+          <meshStandardMaterial color="#11100e" roughness={0.38} metalness={0.84} />
+        </mesh>
+        <mesh position={[-1.44, -0.04, 0.13]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.13, 0.13, 0.16, 28]} />
+          <meshStandardMaterial color="#070808" roughness={0.36} metalness={0.82} />
+        </mesh>
+        <mesh position={[1.44, -0.04, 0.13]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.13, 0.13, 0.16, 28]} />
+          <meshStandardMaterial color="#070808" roughness={0.36} metalness={0.82} />
         </mesh>
         {!isLaunching ? (
           <>
@@ -394,30 +465,41 @@ function Typewriter({
               <boxGeometry args={[2.02, 1.66, 0.045]} />
               <meshStandardMaterial color="#eee6d6" roughness={0.78} metalness={0.02} />
             </mesh>
-            <Text
-              position={[-0.78, 1.17, -0.142]}
+            <PaperTextTexture
+              text={paperText}
+              width={1.54}
+              height={1.14}
+              position={[-0.02, 0.65, -0.016]}
               rotation={[-0.18, 0, 0]}
-              fontSize={0.07}
-              lineHeight={1.24}
-              maxWidth={1.42}
-              color="#26221b"
-              anchorX="left"
-              anchorY="top"
-            >
-              {paperText || " "}
-            </Text>
+            />
+            <mesh position={[-1.08, 0.56, -0.035]} rotation={[-0.18, 0, 0]}>
+              <boxGeometry args={[0.025, 1.5, 0.01]} />
+              <meshBasicMaterial color="#c9b78e" transparent opacity={0.28} />
+            </mesh>
+            <mesh position={[1.08, 0.56, -0.035]} rotation={[-0.18, 0, 0]}>
+              <boxGeometry args={[0.025, 1.5, 0.01]} />
+              <meshBasicMaterial color="#c9b78e" transparent opacity={0.2} />
+            </mesh>
           </>
         ) : null}
       </group>
       <Keyboard activeKey={activeKey} />
       <TypeBars activeKey={activeKey} />
-      <mesh position={[-1.55, 0.82, -0.37]} rotation={[0, 0, Math.PI / 2]} castShadow>
+      <mesh position={[-1.62, 0.82, -0.37]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.065, 0.065, 0.46, 24]} />
         <meshStandardMaterial color="#0b0c0c" roughness={0.36} metalness={0.86} />
       </mesh>
-      <mesh position={[1.55, 0.82, -0.37]} rotation={[0, 0, Math.PI / 2]} castShadow>
+      <mesh position={[1.62, 0.82, -0.37]} rotation={[0, 0, Math.PI / 2]} castShadow>
         <cylinderGeometry args={[0.065, 0.065, 0.46, 24]} />
         <meshStandardMaterial color="#0b0c0c" roughness={0.36} metalness={0.86} />
+      </mesh>
+      <mesh position={[-1.42, -0.52, 0.72]} castShadow>
+        <boxGeometry args={[0.34, 0.13, 0.38]} />
+        <meshStandardMaterial color="#060707" roughness={0.58} metalness={0.58} />
+      </mesh>
+      <mesh position={[1.42, -0.52, 0.72]} castShadow>
+        <boxGeometry args={[0.34, 0.13, 0.38]} />
+        <meshStandardMaterial color="#060707" roughness={0.58} metalness={0.58} />
       </mesh>
       <Text position={[0, -0.02, 1.04]} fontSize={0.08} color="#8e7a5a" anchorX="center">
         {isWriting ? "LIVE CARRIAGE" : "WAITING FOR INPUT"}
@@ -449,11 +531,15 @@ function Keyboard({ activeKey }: { activeKey: KeyPress | null }) {
     <group position={[0, 0.22, 0.42]} rotation={[-0.58, 0, 0]}>
       <mesh position={[0.08, -0.03, -0.055]} castShadow receiveShadow>
         <boxGeometry args={[3.18, 1.22, 0.075]} />
-        <meshStandardMaterial color="#211f1a" roughness={0.58} metalness={0.42} />
+        <meshStandardMaterial color="#2a251d" roughness={0.56} metalness={0.44} />
+      </mesh>
+      <mesh position={[0.08, 0.5, -0.005]} castShadow>
+        <boxGeometry args={[2.72, 0.08, 0.055]} />
+        <meshStandardMaterial color="#120f0b" roughness={0.46} metalness={0.58} />
       </mesh>
       <mesh position={[0.08, -0.03, -0.01]}>
         <boxGeometry args={[2.96, 1.0, 0.022]} />
-        <meshStandardMaterial color="#30291f" roughness={0.68} metalness={0.2} />
+        <meshStandardMaterial color="#3b3123" roughness={0.64} metalness={0.22} />
       </mesh>
       {keys.map((key) => (
         <TypeKey key={key.key} item={key} activeKey={activeKey} />
@@ -469,32 +555,46 @@ function TypeKey({
   item: { key: string; x: number; y: number; row: number };
   activeKey: KeyPress | null;
 }) {
-  const ref = useRef<Mesh>(null);
+  const ref = useRef<Group>(null);
   const isActive = activeKey?.key === item.key;
-  const target = isActive ? -0.045 : 0;
+  const target = isActive ? -0.115 : 0;
 
   useFrame(() => {
     if (!ref.current) return;
-    ref.current.position.z += (target - ref.current.position.z) * 0.42;
+    ref.current.position.z += (target - ref.current.position.z) * 0.5;
   });
 
   return (
     <group position={[item.x, item.y, 0]}>
       <mesh position={[0, 0, -0.055]} castShadow>
         <cylinderGeometry args={[item.key === "SPACE" ? 0.24 : 0.055, item.key === "SPACE" ? 0.22 : 0.048, 0.09, 18]} />
-        <meshStandardMaterial color="#15120e" roughness={0.5} metalness={0.62} />
+        <meshStandardMaterial color="#201a13" roughness={0.48} metalness={0.62} />
       </mesh>
-      <mesh ref={ref} castShadow>
-        <cylinderGeometry args={[item.key === "SPACE" ? 0.31 : 0.098, item.key === "SPACE" ? 0.285 : 0.084, 0.075, 30]} />
-        <meshStandardMaterial
-          color={isActive ? "#d8ba81" : "#4a4030"}
-          roughness={0.54}
-          metalness={0.28}
-        />
-      </mesh>
-      <Text position={[0, 0, 0.058]} fontSize={item.key === "SPACE" ? 0.045 : 0.06} color="#f0e4ca">
-        {item.key === "SPACE" ? "SPACE" : item.key}
-      </Text>
+      <group ref={ref}>
+        <mesh position={[0, 0, -0.072]} castShadow>
+          <cylinderGeometry args={[item.key === "SPACE" ? 0.055 : 0.024, item.key === "SPACE" ? 0.048 : 0.02, 0.16, 14]} />
+          <meshStandardMaterial color="#100e0b" roughness={0.42} metalness={0.74} />
+        </mesh>
+        <mesh castShadow>
+          <cylinderGeometry args={[item.key === "SPACE" ? 0.31 : 0.098, item.key === "SPACE" ? 0.285 : 0.084, 0.075, 30]} />
+          <meshStandardMaterial
+            color={isActive ? "#d8ba81" : "#6a583c"}
+            roughness={0.5}
+            metalness={0.26}
+          />
+        </mesh>
+        <Html
+          transform
+          position={[0, 0, 0.078]}
+          distanceFactor={5.2}
+          className={styles.keyLabel}
+          center
+        >
+          <span className={item.key === "SPACE" ? styles.spaceKeyLabel : ""}>
+            {item.key === "SPACE" ? "SPACE" : item.key}
+          </span>
+        </Html>
+      </group>
     </group>
   );
 }
@@ -530,12 +630,12 @@ function TypeBar({ active, angle }: { active: boolean; angle: number }) {
   return (
     <group ref={ref} rotation={[0, angle, 0]} position={[0, 0, 0]}>
       <mesh position={[0, 0.03, -0.34]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.009, 0.009, 0.88, 8]} />
-        <meshStandardMaterial color="#1f201e" roughness={0.5} metalness={0.9} />
+        <cylinderGeometry args={[0.011, 0.011, 0.9, 8]} />
+        <meshStandardMaterial color={active ? "#b59661" : "#252521"} roughness={0.44} metalness={0.9} />
       </mesh>
       <mesh position={[0, 0.1, -0.78]} castShadow>
         <boxGeometry args={[0.08, 0.06, 0.015]} />
-        <meshStandardMaterial color="#090a0a" roughness={0.4} metalness={0.85} />
+        <meshStandardMaterial color={active ? "#c7a160" : "#090a0a"} roughness={0.4} metalness={0.85} />
       </mesh>
     </group>
   );

@@ -46,6 +46,62 @@
   height: 100%;
 }
 
+.keyLabel {
+  pointer-events: none;
+  color: #f0e4ca;
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 0 4px rgba(240, 228, 202, 0.28);
+  user-select: none;
+}
+
+.keyLabel span {
+  display: block;
+  min-width: 14px;
+}
+
+.spaceKeyLabel {
+  min-width: 34px;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.paperText,
+.launchPaperText {
+  pointer-events: none;
+  color: #26221b;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  line-height: 1.28;
+  letter-spacing: 0;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: none;
+}
+
+.paperText span {
+  display: block;
+  width: 176px;
+  max-height: 128px;
+  overflow: hidden;
+}
+
+.launchPaperText {
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.launchPaperText span {
+  display: block;
+  width: 118px;
+  max-height: 86px;
+  overflow: hidden;
+}
+
 .sceneFallback {
   position: absolute;
   inset: 0;
@@ -144,8 +200,9 @@
 }
 
 .writeButton {
-  justify-self: center;
-  align-self: end;
+  position: absolute;
+  top: calc(var(--space-8) + 146px);
+  right: var(--space-8);
   min-width: 220px;
   border: 1px solid rgba(168, 138, 90, 0.46);
   background: rgba(8, 10, 10, 0.52);
@@ -248,8 +305,10 @@
   }
 
   .writeButton {
-    order: 3;
-    width: 100%;
+    top: auto;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    width: calc(100% - var(--space-8));
   }
 
   .zoneReadout {

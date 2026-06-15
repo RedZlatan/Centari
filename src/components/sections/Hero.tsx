@@ -1,50 +1,35 @@
 import { Container } from "@/components/layout/Container";
 import styles from "./Hero.module.css";
 
-// Switch to "B" to review the alternate supporting line.
-const SUPPORTING_LINE_VARIANT: "A" | "B" = "A";
-
-const SUPPORTING_LINES = {
-  A: {
-    lines: ["AI.", "Simulation.", "Infrastructure."],
-    closing: "Tools, not goals.",
-  },
-  B: {
-    lines: ["Understand.", "Train.", "Operate."],
-    closing: null,
-  },
-} as const;
-
 export function Hero() {
-  const supportingLine = SUPPORTING_LINES[SUPPORTING_LINE_VARIANT];
-
   return (
     <section className={styles.hero}>
       <Container className={styles.inner}>
         <div className={styles.content}>
-          <h1 className={styles.headline}>Solve the problem.</h1>
+          <div className={styles.tagline} aria-hidden="true">
+            <span>Before Reality.</span>
+          </div>
+          <h1 className={styles.headline}>
+            Understand. Build.
+            <br />
+            Learn. Operate.
+          </h1>
           <div
             className={styles.supportingLine}
-            aria-label={[
-              ...supportingLine.lines,
-              supportingLine.closing,
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            aria-label="Research. Simulation. Spatial Computing."
           >
-            <span>{supportingLine.lines.join(" ")}</span>
-            {supportingLine.closing ? <span>{supportingLine.closing}</span> : null}
+            <span>Research. Simulation. Spatial Computing.</span>
           </div>
           <p className={styles.body}>
-            Centari builds systems that help organisations understand, train for
-            and shape the future.
+            Centari builds the systems organisations use to understand what is changing,
+            build for it before it arrives, learn how to operate within it, and run it over time.
           </p>
           <div className={styles.ctas}>
-            <a href="#products" className={styles.primaryCta}>
-              Explore Solutions
+            <a href="#platform" className={styles.primaryCta}>
+              See the Platform
             </a>
-            <a href="/control-room" className={styles.secondaryCta}>
-              Enter Control Room
+            <a href="/research" className={styles.secondaryCta}>
+              Research Map
             </a>
           </div>
         </div>

@@ -3,20 +3,13 @@ import { Header } from "@/components/layout/Header";
 import { Container } from "@/components/layout/Container";
 import styles from "./journal.module.css";
 
-const journalEntries = [
+const roadEntries = [
   {
     type: "Project story",
     title: "Building systems before they become software",
     summary:
       "Notes from shaping spatial, operational and AI-assisted work into something teams can stand inside.",
     meta: "Company notes / Prototype practice",
-  },
-  {
-    type: "Research commentary",
-    title: "Signals are more useful when they become rooms",
-    summary:
-      "A short observation on research maps, strategic sensing and why spatial context changes how teams read weak signals.",
-    meta: "Research / Signal mapping",
   },
   {
     type: "Partner observation",
@@ -34,6 +27,23 @@ const journalEntries = [
   },
 ];
 
+const researchEntries = [
+  {
+    type: "Research commentary",
+    title: "Signals are more useful when they become rooms",
+    summary:
+      "A short observation on research maps, strategic sensing and why spatial context changes how teams read weak signals.",
+    meta: "Research / Signal mapping",
+  },
+  {
+    type: "Research commentary",
+    title: "The edge of the map is where the work starts",
+    summary:
+      "Most organisations track what is already known. The useful signal is what sits just outside established understanding.",
+    meta: "Research / Future Atlas",
+  },
+];
+
 export default function JournalPage() {
   return (
     <>
@@ -44,16 +54,22 @@ export default function JournalPage() {
             <p className={styles.eyebrow}>Centari Journal</p>
             <h1>Notes from before reality.</h1>
             <p className={styles.intro}>
-              Company notes, project stories, partner observations and research commentary
-              from the work of building physical, spatial and operational systems.
+              Company notes, project stories and research commentary from the work of
+              building physical, spatial and operational systems.
             </p>
           </Container>
         </section>
 
-        <section className={styles.entries} aria-label="Journal entries">
+        <section className={styles.category} aria-label="Road to Centari">
           <Container>
+            <div className={styles.categoryHeader}>
+              <p className={styles.categoryLabel}>Road to Centari</p>
+              <p className={styles.categoryDesc}>
+                How the company, the products and the thinking are taking shape.
+              </p>
+            </div>
             <div className={styles.grid}>
-              {journalEntries.map((entry) => (
+              {roadEntries.map((entry) => (
                 <article className={styles.card} key={entry.title}>
                   <div className={styles.cardTop}>
                     <span>{entry.type}</span>
@@ -61,7 +77,31 @@ export default function JournalPage() {
                   </div>
                   <h2>{entry.title}</h2>
                   <p>{entry.summary}</p>
-                  <span className={styles.placeholder}>Editorial placeholder</span>
+                  <span className={styles.placeholder}>Coming soon</span>
+                </article>
+              ))}
+            </div>
+          </Container>
+        </section>
+
+        <section className={styles.category} aria-label="Research Commentary">
+          <Container>
+            <div className={styles.categoryHeader}>
+              <p className={styles.categoryLabel}>Research Commentary</p>
+              <p className={styles.categoryDesc}>
+                Observations from the Research Map and the signals driving the platform.
+              </p>
+            </div>
+            <div className={styles.grid}>
+              {researchEntries.map((entry) => (
+                <article className={styles.card} key={entry.title}>
+                  <div className={styles.cardTop}>
+                    <span>{entry.type}</span>
+                    <span>{entry.meta}</span>
+                  </div>
+                  <h2>{entry.title}</h2>
+                  <p>{entry.summary}</p>
+                  <span className={styles.placeholder}>Coming soon</span>
                 </article>
               ))}
             </div>

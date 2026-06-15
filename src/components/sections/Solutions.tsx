@@ -8,10 +8,10 @@ export function Solutions() {
       <Container>
         <div className={styles.header}>
           <p className={styles.label}>Solutions</p>
-          <h2>Spatial systems for operational work.</h2>
+          <h2>What organisations achieve with Centari.</h2>
           <p>
-            Centari helps organizations shape physical, spatial and AI-assisted systems before
-            they become expensive to build incorrectly.
+            Every solution maps to a stage of the operational cycle. Understand what is shifting.
+            Build before you commit. Learn through doing. Run at scale.
           </p>
         </div>
         <div className={styles.grid}>

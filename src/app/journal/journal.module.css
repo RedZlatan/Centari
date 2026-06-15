@@ -36,6 +36,36 @@
   line-height: 1.65;
 }
 
+.category {
+  padding: var(--space-16) 0 var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.category:last-of-type {
+  padding-bottom: var(--space-24);
+}
+
+.categoryHeader {
+  margin-bottom: var(--space-10);
+}
+
+.categoryLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  opacity: 0.8;
+  margin-bottom: var(--space-2);
+}
+
+.categoryDesc {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.6;
+  max-width: 60ch;
+}
+
 .entries {
   padding: var(--space-16) 0 var(--space-24);
 }

@@ -9,9 +9,10 @@ export function Products() {
       <Container>
         <div className={styles.header}>
           <p className={styles.label}>Products</p>
-          <h2>Centari builds systems, not apps.</h2>
+          <h2>The tools inside the platform.</h2>
           <p>
-            Early product surfaces for spatial work, operational intelligence and physical computing.
+            Hardware and software for each stage of the operational cycle. From first prototype
+            to continuous operation.
           </p>
         </div>
         <div className={styles.grid}>

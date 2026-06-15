@@ -41,6 +41,16 @@
   transform: translateY(-8vh);
 }
 
+.tagline {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  opacity: 0.6;
+  margin-bottom: var(--space-5);
+}
+
 .headline {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: clamp(2.5rem, 6vw, 5.5rem);

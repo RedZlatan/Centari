@@ -10,6 +10,26 @@ import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import styles from "./research.module.css";
+import dynamic from "next/dynamic";
+import type { Mission, GlobeSignal, GlobeMapProps } from "@/components/research/GlobeMap";
+
+const GlobeMapDynamic = dynamic<GlobeMapProps>(
+  () => import("@/components/research/GlobeMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", color: "#3d5c45", fontSize: "11px", letterSpacing: "0.06em" }}>
+        Initialising globe…
+      </div>
+    ),
+  },
+);
+
+const SATELLITE_INFO: Record<Mission, { name: string; fullName: string; color: string }> = {
+  iss:    { name: "ISS",    fullName: "International Space Station", color: "#60a5fa" },
+  hubble: { name: "Hubble", fullName: "Hubble Space Telescope",      color: "#fbbf24" },
+  jwst:   { name: "JWST",   fullName: "James Webb Space Telescope",  color: "#a78bfa" },
+};
 
 // Natural Earth via world-atlas keeps the map geodata-based without a heavy map runtime.
 type SignalCategory =
@@ -44,6 +64,7 @@ type Signal = {
   source_url?: string;
   published_at?: string;
   curator_score?: number;
+  tags?: string[];
 };
 
 type SignalCluster = {
@@ -552,6 +573,14 @@ function getPayloadArray(payload: unknown, keys: string[]) {
   return [];
 }
 
+function getStringArray(record: ApiRecord, keys: string[]): string[] {
+  for (const key of keys) {
+    const value = record[key];
+    if (Array.isArray(value)) return value.filter((v): v is string => typeof v === "string");
+  }
+  return [];
+}
+
 function getString(record: ApiRecord, keys: string[], fallback: string) {
   for (const key of keys) {
     const value = record[key];
@@ -636,6 +665,7 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
         source_url:     getString(item, ["source_url"], ""),
         published_at:   getString(item, ["published_at"], ""),
         curator_score:  getNumber(item, ["curator_score"], 0),
+        tags:           getStringArray(item, ["tags"]),
       };
 
       return signal;
@@ -695,6 +725,7 @@ export default function ResearchPage() {
   const { categories, signals, clusters } = mapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
+  const [activeMission, setActiveMission] = useState<Mission | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -765,6 +796,30 @@ export default function ResearchPage() {
         ? signals
         : signals.filter((signal) => signal.category === activeCategory),
     [activeCategory, signals],
+  );
+
+  // Convert static map signals' SVG %-coordinates to lat/lng for the globe.
+  // mapProjection.invert([x_px, y_px]) → [longitude, latitude]
+  const globeSignals = useMemo<GlobeSignal[]>(
+    () =>
+      filteredSignals.flatMap((sig): GlobeSignal[] => {
+        const coords = mapProjection.invert?.([sig.x * 10, sig.y * 5.2]) ?? null;
+        if (!coords || !isFinite(coords[0]) || !isFinite(coords[1])) return [];
+        return [{ id: sig.id, lat: coords[1], lng: coords[0], category: sig.category, title: sig.title, intensity: sig.intensity }];
+      }),
+    [filteredSignals],
+  );
+
+  // NASA signals for the active satellite mission panel
+  const missionSignals = useMemo(
+    () =>
+      activeMission
+        ? (apiSignals ?? [])
+            .filter((s) => s.tags?.includes(activeMission))
+            .sort((a, b) => (b.curator_score ?? 0) - (a.curator_score ?? 0))
+            .slice(0, 5)
+        : [],
+    [activeMission, apiSignals],
   );
 
   // selectedSignal: prefer live API signals (have editorial scores/sources), fall back to static.
@@ -889,77 +944,67 @@ export default function ResearchPage() {
 
             <div className={styles.mapSurface}>
               <div className={styles.mapStatus} aria-hidden="true">
-                <span>Equal Earth / strategic signal layer</span>
-                <span>{filteredSignals.length} visible signals</span>
+                <span>Interactive 3D Globe · drag to rotate · scroll to zoom · click satellites for NASA feed</span>
+                <span>{globeSignals.length} signals · 3 satellites</span>
               </div>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
                 {apiStatus === "loading" ? "Loading research feed" : null}
                 {apiStatus === "fallback" ? "JSON fallback active" : null}
                 {apiStatus === "ready" ? `API-backed · ${apiSignals?.length ?? 0} approved signals` : null}
               </div>
-              <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
-                <defs>
-                  <linearGradient id="landGradient" x1="0" x2="1" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#334039" />
-                    <stop offset="100%" stopColor="#18201d" />
-                  </linearGradient>
-                </defs>
-                <g className={styles.mapGraticule} aria-hidden="true">
-                  {graticuleLines.map((line) => (
-                    <path key={line} d={line} />
-                  ))}
-                </g>
-                <g className={styles.landMasses}>
-                  {countryPaths.map((path, index) => (
-                    <path key={index} d={path} />
-                  ))}
-                </g>
-                {borderPath ? <path className={styles.countryBorders} d={borderPath} /> : null}
-                <g className={styles.mapLabels} aria-hidden="true">
-                  <text x="125" y="121">NORTH AMERICA</text>
-                  <text x="244" y="342">SOUTH AMERICA</text>
-                  <text x="482" y="140">EUROPE</text>
-                  <text x="514" y="318">AFRICA</text>
-                  <text x="744" y="171">ASIA</text>
-                  <text x="780" y="420">AUSTRALIA</text>
-                </g>
-              </svg>
-
-              <div className={styles.gridOverlay} aria-hidden="true" />
-              {visibleClusters.map((cluster) => {
-                const primarySignal = cluster.signals.reduce((strongest, signal) =>
-                  getTrendScore(signal) > getTrendScore(strongest) ? signal : strongest,
-                );
-                const tier = getSignalTier(primarySignal, cluster.signals.length);
-                const size = getSignalSize(getSignalStrength(primarySignal)) + cluster.signals.length * 3;
-                const selected = cluster.signals.some((signal) => signal.id === selectedSignal.id);
-
-                return (
-                  <button
-                    key={cluster.id}
-                    type="button"
-                    className={`${styles.hotspot} ${styles[tier]} ${selected ? styles.hotspotSelected : ""}`}
-                    style={
-                      {
-                        left: `${cluster.x}%`,
-                        top: `${cluster.y}%`,
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        "--signal-color": categoryAccent[primarySignal.category],
-                    } as CSSProperties
-                    }
-                    onClick={() => setSelectedId(primarySignal.id)}
-                    aria-label={`${cluster.label}, ${cluster.signals.length} signals, score ${getTrendScore(primarySignal)}`}
-                    title={`${cluster.label}: ${cluster.signals.length} signals`}
-                  >
-                    <span>{cluster.signals.length}</span>
-                  </button>
-                );
-              })}
+              <div style={{ position: "absolute", inset: 0, top: "2.5rem" }}>
+                <GlobeMapDynamic
+                  signals={globeSignals}
+                  selectedId={selectedId}
+                  onSignalClick={(id) => { setActiveMission(null); setSelectedId(id); }}
+                  activeMission={activeMission}
+                  onSatelliteClick={(mission) => setActiveMission((prev) => prev === mission ? null : mission)}
+                />
+              </div>
             </div>
           </div>
 
           <aside className={styles.sidePanel} aria-label="Research signal detail">
+            {activeMission ? (
+              <article className={styles.signalCard} aria-live="polite">
+                <div className={styles.cardMeta}>
+                  <span style={{ color: SATELLITE_INFO[activeMission].color }}>NASA</span>
+                  <span>Space</span>
+                  <span>{SATELLITE_INFO[activeMission].name}</span>
+                </div>
+                <h2>{SATELLITE_INFO[activeMission].fullName}</h2>
+                <p style={{ marginBottom: "1rem", opacity: 0.7, fontSize: "0.8rem" }}>
+                  Mission-specific research signals from NASA NTRS.
+                  {missionSignals.length === 0 && " Run the NASA worker to populate this feed."}
+                </p>
+                {missionSignals.length > 0 ? (
+                  <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {missionSignals.map((sig) => (
+                      <li key={sig.id}>
+                        <button
+                          type="button"
+                          style={{ background: "transparent", border: "none", textAlign: "left", cursor: "pointer", padding: 0, width: "100%" }}
+                          onClick={() => { setSelectedId(sig.id); setActiveMission(null); }}
+                        >
+                          <strong style={{ display: "block", fontSize: "0.78rem", color: "#c8c8c0", lineHeight: 1.3 }}>{sig.title}</strong>
+                          <em style={{ display: "block", fontSize: "0.7rem", opacity: 0.55, marginTop: "0.2rem" }}>
+                            {sig.published_at ? new Date(sig.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                            {" · "}Score {sig.curator_score}/10
+                          </em>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setActiveMission(null)}
+                  style={{ marginTop: "1.25rem", fontSize: "0.72rem", opacity: 0.5, background: "transparent", border: "1px solid currentColor", padding: "0.3rem 0.75rem", cursor: "pointer", color: "inherit", letterSpacing: "0.04em" }}
+                >
+                  Close satellite panel
+                </button>
+              </article>
+            ) : (
             <article className={styles.signalCard} aria-live="polite">
               <div className={styles.cardMeta}>
                 <span>{selectedSignal.category}</span>
@@ -1019,6 +1064,7 @@ export default function ResearchPage() {
                 </div>
               </div>
             </article>
+            )}
 
             <div className={styles.trendsPanel}>
               <div className={styles.panelHeader}>

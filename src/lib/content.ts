@@ -12,62 +12,67 @@ export interface Principle {
 
 export const products: Product[] = [
   {
-    id: "forge",
-    name: "Forge",
+    id: "knowledge",
+    name: "Knowledge",
     description:
-      "Configure and deploy complex operational systems with structured precision tooling.",
+      "Turn documents, manuals, drawings and field knowledge into material the system can use.",
   },
   {
-    id: "mission",
-    name: "Mission",
+    id: "interfaces",
+    name: "2D Interfaces",
     description:
-      "Plan, simulate and execute multi-phase operational scenarios in a shared environment.",
+      "Use dashboards, forms and decision surfaces when a screen is the clearest answer.",
   },
   {
-    id: "twin",
-    name: "Twin",
+    id: "models",
+    name: "3D Models",
     description:
-      "Build and interact with high-fidelity digital representations of physical systems.",
+      "Inspect products, places and systems in three dimensions before they are built or changed.",
   },
   {
-    id: "insight",
-    name: "Insight",
+    id: "spatial",
+    name: "Spatial Rooms",
     description:
-      "Surface patterns and anomalies in sensor and operational data as they emerge.",
+      "Use XR only when presence, scale or shared spatial understanding creates real value.",
   },
   {
-    id: "workstation",
-    name: "Workstation",
+    id: "physical",
+    name: "Physical Workflows",
     description:
-      "A unified workspace for teams doing technical, time-critical collaborative work.",
+      "Connect digital planning to real environments, equipment, people and constraints.",
   },
   {
-    id: "lab",
-    name: "Lab",
+    id: "ai",
+    name: "AI Support",
     description:
-      "Prototype, test and validate system behaviours before committing to production.",
+      "Use AI to search, compare, explain and assist decisions without hiding the workflow.",
   },
 ];
 
 export const principles: Principle[] = [
   {
-    id: "physical",
-    label: "Grounded in the physical",
-    body: "Our products interact with the real world through sensors, actuators, and spatial context. Software abstractions serve physical outcomes.",
+    id: "understand",
+    label: "Understand",
+    body: "Map the people, systems, objectives and constraints before choosing a medium.",
   },
   {
-    id: "edge",
-    label: "Intelligence at the edge",
-    body: "AI capabilities belong close to where decisions are made — in the device, in the space, not only in the cloud.",
+    id: "design",
+    label: "Design",
+    body: "Choose the right combination of AI, 2D, 3D, XR and physical process for the task.",
   },
   {
-    id: "surface",
-    label: "Small surface, deep value",
-    body: "We build fewer things, built well. A product that solves one hard problem precisely beats a platform that solves many problems poorly.",
+    id: "build",
+    label: "Build",
+    body: "Move quickly using existing material whenever possible: documents, data, models and field knowledge.",
   },
   {
-    id: "process",
-    label: "Open process",
-    body: "We document decisions, sprint goals, and architectural tradeoffs. The process is part of the product.",
+    id: "validate",
+    label: "Validate",
+    body: "Test with real users and operational scenarios before the solution becomes everyday work.",
+  },
+  {
+    id: "deploy",
+    label: "Deploy",
+    body: "Move what works into daily use and keep improving it as conditions change.",
   },
 ];

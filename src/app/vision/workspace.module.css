@@ -1,0 +1,349 @@
+.workspace {
+  position: relative;
+  z-index: 1;
+  min-height: 360vh;
+  background:
+    radial-gradient(circle at 70% 28%, rgba(168, 138, 90, 0.12), transparent 26%),
+    radial-gradient(circle at 24% 58%, rgba(98, 126, 113, 0.12), transparent 30%),
+    #101313;
+  color: var(--color-text);
+}
+
+.sceneFrame {
+  position: sticky;
+  top: 0;
+  inset: 0;
+  height: 100vh;
+  overflow: hidden;
+  border-top: 0;
+}
+
+.sceneFrame::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 62% 42%, transparent 0 18%, rgba(8, 10, 10, 0.12) 52%, rgba(3, 5, 5, 0.58) 100%),
+    linear-gradient(90deg, rgba(4, 7, 7, 0.34), transparent 38%, rgba(4, 7, 7, 0.14));
+  opacity: 0.86;
+  transition: opacity 0.35s ease, background 0.35s ease;
+}
+
+.sceneFrameWriting::after {
+  background:
+    radial-gradient(circle at 65% 42%, transparent 0 16%, rgba(5, 7, 7, 0.3) 52%, rgba(2, 4, 4, 0.82) 100%),
+    linear-gradient(90deg, rgba(3, 5, 5, 0.44), transparent 31%, rgba(3, 5, 5, 0.24));
+  opacity: 0.92;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.keyLabel {
+  pointer-events: none;
+  color: #f0e4ca;
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 0 4px rgba(240, 228, 202, 0.28);
+  user-select: none;
+}
+
+.keyLabel span {
+  display: block;
+  min-width: 14px;
+}
+
+.spaceKeyLabel {
+  min-width: 34px;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.starHitArea {
+  pointer-events: auto;
+}
+
+.starHitArea button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(215, 169, 95, 0.42);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 244, 201, 0.42), rgba(215, 169, 95, 0.16) 34%, transparent 68%);
+  box-shadow: 0 0 24px rgba(215, 169, 95, 0.22);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.starHitArea button:hover,
+.starHitArea button:focus-visible {
+  opacity: 1;
+  outline: none;
+  transform: scale(1.18);
+}
+
+.paperText,
+.launchPaperText {
+  pointer-events: none;
+  color: #26221b;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  line-height: 1.28;
+  letter-spacing: 0;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: none;
+}
+
+.paperText span {
+  display: block;
+  width: 176px;
+  max-height: 128px;
+  overflow: hidden;
+}
+
+.launchPaperText {
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.launchPaperText span {
+  display: block;
+  width: 118px;
+  max-height: 86px;
+  overflow: hidden;
+}
+
+.sceneFallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(55, 73, 68, 0.32), transparent 38%),
+    radial-gradient(circle at 62% 18%, rgba(168, 138, 90, 0.08), transparent 24%),
+    #0b0f0f;
+}
+
+.interfaceLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(180px, 300px) 1fr minmax(140px, 220px);
+  align-items: end;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(16, 19, 19, 0.42), transparent 24%),
+    linear-gradient(0deg, rgba(16, 19, 19, 0.62), transparent 42%);
+  transition: background 0.35s ease;
+}
+
+.interfaceLayerWriting {
+  background:
+    linear-gradient(180deg, rgba(10, 12, 12, 0.52), transparent 22%),
+    linear-gradient(0deg, rgba(8, 10, 10, 0.78), transparent 38%);
+}
+
+.visionHeader {
+  position: absolute;
+  top: calc(var(--header-height) + var(--space-6));
+  left: var(--space-8);
+  display: grid;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+.visionHeader span {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.9);
+}
+
+.visionHeader strong {
+  color: #f0ebe1;
+  font-size: clamp(1.25rem, 2.1vw, 2.4rem);
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  line-height: 0.95;
+}
+
+.statusBlock,
+.zoneReadout {
+  border: 1px solid rgba(168, 138, 90, 0.16);
+  background: rgba(8, 11, 11, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.statusBlock {
+  align-self: start;
+  padding: var(--space-4);
+  margin-top: calc(var(--header-height) + 120px);
+}
+
+.statusBlock span,
+.zoneReadout span {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.86);
+}
+
+.statusBlock strong {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: clamp(1.2rem, 2vw, 2rem);
+  font-weight: 400;
+  line-height: 1;
+  color: #f0ebe1;
+}
+
+.statusBlock p {
+  max-width: 24ch;
+  margin-top: var(--space-4);
+  color: rgba(233, 229, 223, 0.72);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.writeButton {
+  position: absolute;
+  top: calc(var(--header-height) + var(--space-8));
+  right: var(--space-8);
+  min-width: 220px;
+  border: 1px solid rgba(168, 138, 90, 0.46);
+  background: rgba(8, 10, 10, 0.52);
+  color: #f0ebe1;
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.writeButton:hover,
+.writeButtonActive {
+  border-color: rgba(207, 178, 120, 0.86);
+  background: rgba(168, 138, 90, 0.24);
+  color: #fff8e8;
+}
+
+.writeButton:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+
+.zoneReadout {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  align-self: start;
+  margin-top: var(--space-2);
+}
+
+.zoneReadout span {
+  color: rgba(223, 216, 202, 0.72);
+}
+
+.visionCard {
+  position: absolute;
+  right: var(--space-8);
+  bottom: calc(var(--space-8) + 72px);
+  width: min(380px, calc(100vw - 32px));
+  border: 1px solid rgba(168, 138, 90, 0.34);
+  background:
+    linear-gradient(180deg, rgba(23, 26, 25, 0.92), rgba(7, 9, 9, 0.88)),
+    rgba(8, 11, 11, 0.72);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+  padding: var(--space-5);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.visionCard span {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.92);
+}
+
+.visionCard p {
+  margin-top: var(--space-3);
+  color: rgba(240, 235, 225, 0.86);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+.visionCard button {
+  margin-top: var(--space-4);
+  border: 1px solid rgba(168, 138, 90, 0.34);
+  background: transparent;
+  color: rgba(240, 235, 225, 0.8);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .sceneFrame {
+    min-height: 100vh;
+  }
+
+  .interfaceLayer {
+    grid-template-columns: 1fr;
+    align-content: space-between;
+    align-items: stretch;
+    padding: var(--space-4);
+  }
+
+  .statusBlock {
+    width: min(100%, 360px);
+    margin-top: calc(var(--header-height) + 96px);
+  }
+
+  .visionHeader {
+    top: calc(var(--header-height) + var(--space-4));
+    left: var(--space-4);
+  }
+
+  .writeButton {
+    top: auto;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    width: calc(100% - var(--space-8));
+  }
+
+  .zoneReadout {
+    display: none;
+  }
+
+  .visionCard {
+    right: var(--space-4);
+    bottom: 84px;
+  }
+}

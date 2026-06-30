@@ -137,8 +137,8 @@ export function ControlRoomShell({ page }: ControlRoomShellProps) {
               <span className={styles.brass}>Brass</span>
             </div>
             <p>
-              The shell validates Centari as infrastructure: measured, quiet,
-              durable, and designed for real operating environments.
+              The shell keeps work visible: measured, quiet and designed for
+              decisions that have to survive contact with real environments.
             </p>
           </aside>
         </section>

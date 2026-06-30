@@ -2,10 +2,14 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { geoEqualEarth, geoPath } from "d3-geo";
-import type { FeatureCollection, Geometry } from "geojson";
-import { feature, mesh } from "topojson-client";
+import { Canvas } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
+import { Billboard, Line, OrbitControls, Text } from "@react-three/drei";
+import { geoEqualEarth } from "d3-geo";
+import type { FeatureCollection, Position } from "geojson";
+import { feature } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
+import { BackSide, DoubleSide, MathUtils, Vector3 } from "three";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -64,30 +68,20 @@ type WorldAtlasObjects = {
 
 const worldTopology = worldAtlas as unknown as Topology<WorldAtlasObjects>;
 const worldFeature = feature(worldTopology, worldTopology.objects.countries) as unknown as FeatureCollection;
-const worldBorders = mesh(
-  worldTopology,
-  worldTopology.objects.countries,
-  (a, b) => a !== b,
-) as unknown as Geometry;
 
 const mapProjection = geoEqualEarth().fitSize([1000, 520], { type: "Sphere" });
-const mapPath = geoPath(mapProjection);
-const countryPaths = worldFeature.features
-  .map((country) => mapPath(country))
-  .filter((path): path is string => Boolean(path));
-const borderPath = mapPath(worldBorders);
-const graticuleLines = [
-  "M80 95H920",
-  "M80 175H920",
-  "M80 255H920",
-  "M80 335H920",
-  "M80 415H920",
-  "M170 54V468",
-  "M330 54V468",
-  "M500 54V468",
-  "M670 54V468",
-  "M830 54V468",
-];
+const globeRadius = 2.42;
+const globeOutlineRadius = globeRadius + 0.014;
+const markerRadius = globeRadius + 0.08;
+
+type GlobeCluster = SignalCluster & {
+  signals: Signal[];
+};
+
+type GlobePoint = {
+  lat: number;
+  lon: number;
+};
 
 const researchMapData: ResearchMapPayload = {
   categories: [
@@ -499,6 +493,52 @@ const categoryAccent: Record<ResearchCategory, string> = {
   Nano: "#78c4a0",
 };
 
+const signalGlobePoints: Record<string, GlobePoint> = {
+  "SIG-001": { lon: 20.4, lat: 68.4 },
+  "SIG-002": { lon: -2.2, lat: 51.8 },
+  "SIG-003": { lon: 24.6, lat: 57.8 },
+  "SIG-004": { lon: 4.5, lat: 51.9 },
+  "SIG-005": { lon: 10.2, lat: 47.0 },
+  "SIG-006": { lon: 19.4, lat: 37.0 },
+  "SIG-007": { lon: -3.4, lat: 31.0 },
+  "SIG-008": { lon: -1.6, lat: 15.0 },
+  "SIG-009": { lon: 53.5, lat: 25.0 },
+  "SIG-010": { lon: 36.0, lat: 33.3 },
+  "SIG-011": { lon: 30.9, lat: 45.2 },
+  "SIG-012": { lon: 47.2, lat: 41.1 },
+  "SIG-013": { lon: 76.0, lat: 13.0 },
+  "SIG-014": { lon: 81.0, lat: 28.2 },
+  "SIG-015": { lon: 106.0, lat: 0.2 },
+  "SIG-016": { lon: 121.5, lat: 25.0 },
+  "SIG-017": { lon: 127.0, lat: 37.5 },
+  "SIG-018": { lon: 140.0, lat: 37.0 },
+  "SIG-019": { lon: 131.0, lat: -12.4 },
+  "SIG-020": { lon: 158.0, lat: 3.0 },
+  "SIG-021": { lon: -120.2, lat: 37.2 },
+  "SIG-022": { lon: -150.0, lat: 66.0 },
+  "SIG-023": { lon: -81.0, lat: 43.0 },
+  "SIG-024": { lon: -74.2, lat: 40.6 },
+  "SIG-025": { lon: -60.0, lat: -3.1 },
+  "SIG-026": { lon: -72.0, lat: -15.0 },
+  "SIG-027": { lon: -28.0, lat: -42.0 },
+  "SIG-028": { lon: 42.0, lat: 10.0 },
+  "SIG-029": { lon: 17.0, lat: 48.0 },
+  "SIG-030": { lon: 8.0, lat: 48.0 },
+  "SIG-031": { lon: 121.0, lat: 31.0 },
+};
+
+const clusterGlobePoints: Record<string, GlobePoint> = {
+  "north-america": { lon: -101.0, lat: 38.5 },
+  "south-america": { lon: -60.0, lat: -18.0 },
+  europe: { lon: 14.0, lat: 53.0 },
+  africa: { lon: 20.0, lat: 3.0 },
+  "middle-east": { lon: 44.0, lat: 30.0 },
+  "south-asia": { lon: 77.0, lat: 21.0 },
+  "east-asia": { lon: 124.0, lat: 34.0 },
+  pacific: { lon: 145.0, lat: -10.0 },
+  "global-emerging": { lon: 8.0, lat: 48.0 },
+};
+
 const priorityTrendIds = [
   "SIG-016",
   "SIG-001",
@@ -621,10 +661,6 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
     .filter((signal): signal is Signal => Boolean(signal));
 }
 
-function getSignalSize(intensity: number) {
-  return 9 + Math.round((intensity - 60) / 6);
-}
-
 function getSignalStrength(signal: Signal) {
   return signal.signal_strength ?? signal.intensity;
 }
@@ -645,6 +681,239 @@ function getSignalTier(signal: Signal, count = 1) {
   }
 
   return "normalSignal";
+}
+
+function projectedPointToLonLat(x: number, y: number): GlobePoint {
+  const inverted = mapProjection.invert?.([x * 10, y * 5.2]);
+
+  if (inverted) {
+    return {
+      lon: inverted[0],
+      lat: inverted[1],
+    };
+  }
+
+  return {
+    lon: x * 3.6 - 180,
+    lat: 90 - y * 1.8,
+  };
+}
+
+function getSignalGlobePoint(signal: Signal): GlobePoint {
+  return signalGlobePoints[signal.id] ?? projectedPointToLonLat(signal.x, signal.y);
+}
+
+function getClusterGlobePoint(cluster: GlobeCluster): GlobePoint {
+  if (cluster.signals.length === 1) {
+    return getSignalGlobePoint(cluster.signals[0]);
+  }
+
+  return clusterGlobePoints[cluster.id] ?? projectedPointToLonLat(cluster.x, cluster.y);
+}
+
+function lonLatToVector3(lon: number, lat: number, radius = globeRadius) {
+  const phi = MathUtils.degToRad(90 - lat);
+  const theta = MathUtils.degToRad(lon + 180);
+
+  return new Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta),
+  );
+}
+
+function ringToPoints(ring: Position[], radius = globeOutlineRadius) {
+  return ring
+    .filter(([lon, lat]) => Number.isFinite(lon) && Number.isFinite(lat))
+    .map(([lon, lat]) => lonLatToVector3(lon, lat, radius));
+}
+
+function getWorldRings() {
+  return worldFeature.features.flatMap((country) => {
+    const { geometry } = country;
+
+    if (!geometry) {
+      return [];
+    }
+
+    if (geometry.type === "Polygon") {
+      return geometry.coordinates.map((ring) => ringToPoints(ring)).filter((ring) => ring.length > 2);
+    }
+
+    if (geometry.type === "MultiPolygon") {
+      return geometry.coordinates
+        .flatMap((polygon) => polygon.map((ring) => ringToPoints(ring)))
+        .filter((ring) => ring.length > 2);
+    }
+
+    return [];
+  });
+}
+
+function getGraticuleRings() {
+  const latitudeRings = [-60, -30, 0, 30, 60].map((lat) =>
+    Array.from({ length: 73 }, (_, index) => lonLatToVector3(index * 5 - 180, lat, globeRadius + 0.006)),
+  );
+
+  const longitudeRings = Array.from({ length: 12 }, (_, index) => {
+    const lon = index * 30 - 180;
+    return Array.from({ length: 49 }, (__, pointIndex) =>
+      lonLatToVector3(lon, pointIndex * 3.75 - 90, globeRadius + 0.006),
+    );
+  });
+
+  return [...latitudeRings, ...longitudeRings];
+}
+
+function ResearchGlobe({
+  clusters,
+  selectedSignal,
+  onSelectSignal,
+}: {
+  clusters: GlobeCluster[];
+  selectedSignal: Signal;
+  onSelectSignal: (id: string) => void;
+}) {
+  const worldRings = useMemo(() => getWorldRings(), []);
+  const graticuleRings = useMemo(() => getGraticuleRings(), []);
+
+  return (
+    <div className={styles.globeStage}>
+      <Canvas
+        camera={{ position: [0, 0.25, 7.1], fov: 38 }}
+        dpr={[1, 1.75]}
+        gl={{ alpha: false, antialias: true, preserveDrawingBuffer: true }}
+      >
+        <color attach="background" args={["#080a09"]} />
+        <ambientLight intensity={0.58} />
+        <directionalLight position={[-3.2, 2.8, 4.4]} intensity={2.1} color="#f1e1c5" />
+        <directionalLight position={[3.6, -1.6, -3.2]} intensity={0.62} color="#8fa3b8" />
+
+        <group rotation={[0.08, -0.42, 0]}>
+          <mesh>
+            <sphereGeometry args={[globeRadius, 96, 64]} />
+            <meshStandardMaterial color="#1d2a24" roughness={0.78} metalness={0.08} />
+          </mesh>
+          <mesh scale={1.035}>
+            <sphereGeometry args={[globeRadius, 96, 64]} />
+            <meshBasicMaterial color="#c6a46d" transparent opacity={0.038} side={BackSide} />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <torusGeometry args={[globeRadius + 0.04, 0.0025, 8, 180]} />
+            <meshBasicMaterial color="#a88a5a" transparent opacity={0.24} />
+          </mesh>
+
+          {graticuleRings.map((points, index) => (
+            <Line
+              key={`graticule-${index}`}
+              points={points}
+              color="#e9e5df"
+              lineWidth={0.38}
+              transparent
+              opacity={0.1}
+            />
+          ))}
+
+          {worldRings.map((points, index) => (
+            <Line
+              key={`coast-${index}`}
+              points={points}
+              color="#d8d0c3"
+              lineWidth={0.82}
+              transparent
+              opacity={0.28}
+            />
+          ))}
+
+          {clusters.map((cluster) => {
+            const primarySignal = cluster.signals.reduce((strongest, signal) =>
+              getTrendScore(signal) > getTrendScore(strongest) ? signal : strongest,
+            );
+            const selected = cluster.signals.some((signal) => signal.id === selectedSignal.id);
+            const point = selected ? getSignalGlobePoint(selectedSignal) : getClusterGlobePoint(cluster);
+            const position = lonLatToVector3(point.lon, point.lat, markerRadius);
+
+            return (
+              <GlobeMarker
+                key={cluster.id}
+                cluster={cluster}
+                primarySignal={primarySignal}
+                position={position}
+                selected={selected}
+                onSelectSignal={onSelectSignal}
+              />
+            );
+          })}
+        </group>
+
+        <OrbitControls
+          enableDamping
+          dampingFactor={0.08}
+          enablePan={false}
+          enableZoom={false}
+          autoRotate
+          autoRotateSpeed={0.22}
+          rotateSpeed={0.62}
+          minPolarAngle={0.18}
+          maxPolarAngle={Math.PI - 0.18}
+        />
+      </Canvas>
+      <div className={styles.globeHint} aria-hidden="true">
+        Drag to rotate / click signals
+      </div>
+    </div>
+  );
+}
+
+function GlobeMarker({
+  cluster,
+  primarySignal,
+  position,
+  selected,
+  onSelectSignal,
+}: {
+  cluster: GlobeCluster;
+  primarySignal: Signal;
+  position: Vector3;
+  selected: boolean;
+  onSelectSignal: (id: string) => void;
+}) {
+  const tier = getSignalTier(primarySignal, cluster.signals.length);
+  const strength = getSignalStrength(primarySignal);
+  const markerScale = (0.17 + cluster.signals.length * 0.018 + strength / 820) * (selected ? 1.18 : 1);
+  const accent = categoryAccent[primarySignal.category];
+
+  function handleClick(event: ThreeEvent<MouseEvent>) {
+    event.stopPropagation();
+    onSelectSignal(primarySignal.id);
+  }
+
+  return (
+    <Billboard position={position}>
+      <mesh scale={[markerScale * 2.5, markerScale * 2.5, 1]} onClick={handleClick}>
+        <circleGeometry args={[0.16, 4]} />
+        <meshBasicMaterial color={accent} transparent opacity={selected ? 0.24 : 0.12} side={DoubleSide} />
+      </mesh>
+      <mesh rotation={[0, 0, Math.PI / 4]} scale={[markerScale, markerScale, 1]} onClick={handleClick}>
+        <planeGeometry args={[0.34, 0.34]} />
+        <meshBasicMaterial color={selected ? "#f5ecdc" : accent} transparent opacity={selected ? 0.94 : 0.72} side={DoubleSide} />
+      </mesh>
+      <mesh scale={[markerScale * 0.42, markerScale * 0.42, 1]} onClick={handleClick}>
+        <planeGeometry args={[0.22, 0.22]} />
+        <meshBasicMaterial color="#080a09" transparent opacity={tier === "normalSignal" ? 0.82 : 0.58} side={DoubleSide} />
+      </mesh>
+      <Text
+        color={selected ? "#111312" : "#f4ead8"}
+        fontSize={markerScale * 0.24}
+        anchorX="center"
+        anchorY="middle"
+        position={[0, 0, 0.012]}
+        onClick={handleClick}
+      >
+        {cluster.signals.length}
+      </Text>
+    </Billboard>
+  );
 }
 
 export default function ResearchPage() {
@@ -778,11 +1047,11 @@ export default function ResearchPage() {
       <main className={styles.shell}>
         <section className={styles.hero}>
           <div>
-            <p className={styles.kicker}>Centari Research Observatory</p>
+            <p className={styles.kicker}>Centari Research Map</p>
             <h1>Research Map</h1>
             <p>
-              A live working surface for public research signals across AI, spatial systems,
-              robotics, quantum, space, energy, materials, and nano.
+              A public signal layer for tracking where technology, operations and
+              physical constraints are changing how work should be planned.
             </p>
           </div>
           <div className={styles.heroMetrics} aria-label="Research map metrics">
@@ -805,8 +1074,8 @@ export default function ResearchPage() {
           <div className={styles.mapColumn}>
             <div className={styles.toolbar}>
               <div>
-                <p className={styles.kicker}>Signal calibration</p>
-                <h2>Global operating picture</h2>
+                <p className={styles.kicker}>Signal layer</p>
+                <h2>Where the task is changing</h2>
               </div>
               <div className={styles.filters} aria-label="Category filters">
                 {categories.map((category) => (
@@ -825,7 +1094,7 @@ export default function ResearchPage() {
 
             <div className={styles.mapSurface}>
               <div className={styles.mapStatus} aria-hidden="true">
-                <span>Equal Earth / strategic signal layer</span>
+                <span>Rotating globe / strategic signal layer</span>
                 <span>{filteredSignals.length} visible signals</span>
               </div>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
@@ -833,65 +1102,13 @@ export default function ResearchPage() {
                 {apiStatus === "fallback" ? "JSON fallback active" : null}
                 {apiStatus === "ready" ? "API-backed research feed" : null}
               </div>
-              <svg className={styles.worldMap} viewBox="0 0 1000 520" role="img" aria-label="World map signal surface">
-                <defs>
-                  <linearGradient id="landGradient" x1="0" x2="1" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#334039" />
-                    <stop offset="100%" stopColor="#18201d" />
-                  </linearGradient>
-                </defs>
-                <g className={styles.mapGraticule} aria-hidden="true">
-                  {graticuleLines.map((line) => (
-                    <path key={line} d={line} />
-                  ))}
-                </g>
-                <g className={styles.landMasses}>
-                  {countryPaths.map((path, index) => (
-                    <path key={index} d={path} />
-                  ))}
-                </g>
-                {borderPath ? <path className={styles.countryBorders} d={borderPath} /> : null}
-                <g className={styles.mapLabels} aria-hidden="true">
-                  <text x="125" y="121">NORTH AMERICA</text>
-                  <text x="244" y="342">SOUTH AMERICA</text>
-                  <text x="482" y="140">EUROPE</text>
-                  <text x="514" y="318">AFRICA</text>
-                  <text x="744" y="171">ASIA</text>
-                  <text x="780" y="420">AUSTRALIA</text>
-                </g>
-              </svg>
 
               <div className={styles.gridOverlay} aria-hidden="true" />
-              {visibleClusters.map((cluster) => {
-                const primarySignal = cluster.signals.reduce((strongest, signal) =>
-                  getTrendScore(signal) > getTrendScore(strongest) ? signal : strongest,
-                );
-                const tier = getSignalTier(primarySignal, cluster.signals.length);
-                const size = getSignalSize(getSignalStrength(primarySignal)) + cluster.signals.length * 3;
-                const selected = cluster.signals.some((signal) => signal.id === selectedSignal.id);
-
-                return (
-                  <button
-                    key={cluster.id}
-                    type="button"
-                    className={`${styles.hotspot} ${styles[tier]} ${selected ? styles.hotspotSelected : ""}`}
-                    style={
-                      {
-                        left: `${cluster.x}%`,
-                        top: `${cluster.y}%`,
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        "--signal-color": categoryAccent[primarySignal.category],
-                    } as CSSProperties
-                    }
-                    onClick={() => setSelectedId(primarySignal.id)}
-                    aria-label={`${cluster.label}, ${cluster.signals.length} signals, score ${getTrendScore(primarySignal)}`}
-                    title={`${cluster.label}: ${cluster.signals.length} signals`}
-                  >
-                    <span>{cluster.signals.length}</span>
-                  </button>
-                );
-              })}
+              <ResearchGlobe
+                clusters={visibleClusters}
+                selectedSignal={selectedSignal}
+                onSelectSignal={setSelectedId}
+              />
             </div>
           </div>
 

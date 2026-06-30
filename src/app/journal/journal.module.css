@@ -1,0 +1,425 @@
+.shell {
+  min-height: 100vh;
+  padding: calc(var(--header-height) + var(--space-12)) clamp(var(--space-6), 4vw, var(--space-16)) var(--space-16);
+  background:
+    linear-gradient(rgba(233, 229, 223, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.02) 1px, transparent 1px),
+    radial-gradient(circle at 50% 20%, rgba(168, 138, 90, 0.1), transparent 30%),
+    radial-gradient(circle at 78% 52%, rgba(91, 112, 104, 0.12), transparent 36%),
+    linear-gradient(180deg, #17191a 0%, #101212 100%);
+  background-size: 88px 88px, 88px 88px, auto, auto, auto;
+}
+
+.atlasHero {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.56fr) minmax(420px, 1fr) minmax(240px, 0.5fr);
+  gap: clamp(var(--space-6), 4vw, var(--space-16));
+  align-items: center;
+  max-width: 1560px;
+  min-height: calc(100vh - var(--header-height) - 140px);
+  margin: 0 auto var(--space-8);
+}
+
+.kicker,
+.laneBand,
+.indexPanel,
+.memoryMap {
+  font-family: var(--font-mono), monospace;
+}
+
+.kicker {
+  margin-bottom: var(--space-3);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.atlasCopy h1 {
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+  font-size: clamp(3.4rem, 7vw, 7.6rem);
+  font-weight: 300;
+  letter-spacing: 0;
+  line-height: 0.9;
+}
+
+.atlasCopy > p:last-child {
+  max-width: 520px;
+  color: #bdb6ab;
+  font-size: var(--text-lg);
+  line-height: 1.58;
+}
+
+.bodyAtlas {
+  position: relative;
+  min-height: clamp(500px, 68vh, 760px);
+  overflow: hidden;
+  border: 1px solid rgba(233, 229, 223, 0.1);
+  background:
+    linear-gradient(rgba(233, 229, 223, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.015) 1px, transparent 1px),
+    radial-gradient(circle at 50% 37%, rgba(168, 138, 90, 0.13), transparent 22%),
+    radial-gradient(circle at 50% 52%, rgba(95, 122, 112, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(14, 17, 16, 0.88), rgba(5, 7, 7, 0.96));
+  background-size: 72px 72px, 72px 72px, auto, auto, auto;
+  box-shadow:
+    0 32px 100px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(233, 229, 223, 0.04);
+}
+
+.bodyAtlas::before,
+.bodyAtlas::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.bodyAtlas::before {
+  inset: 9%;
+  border: 1px solid rgba(168, 138, 90, 0.12);
+  border-radius: 50%;
+  opacity: 0.56;
+}
+
+.bodyAtlas::after {
+  right: var(--space-4);
+  bottom: var(--space-4);
+  width: 96px;
+  height: 1px;
+  background: rgba(168, 138, 90, 0.38);
+}
+
+.humanFigure {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(42vw, 310px);
+  height: min(70vh, 600px);
+  transform: translate(-50%, -50%) perspective(900px) rotateY(-10deg);
+  transform-style: preserve-3d;
+  animation: bodyDrift 14s ease-in-out infinite;
+}
+
+.head,
+.spine,
+.shoulders,
+.torso,
+.brain {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.head {
+  top: 2%;
+  width: 92px;
+  height: 116px;
+  border: 1px solid rgba(233, 229, 223, 0.34);
+  border-radius: 48% 52% 44% 56%;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(168, 138, 90, 0.18), transparent 42%),
+    rgba(233, 229, 223, 0.018);
+  box-shadow: 0 0 42px rgba(168, 138, 90, 0.08);
+}
+
+.brain {
+  top: 40px;
+  width: 58px;
+  height: 36px;
+  border: 1px solid rgba(168, 138, 90, 0.44);
+  border-radius: 54% 46% 42% 58%;
+  background:
+    radial-gradient(circle at 26% 54%, rgba(168, 138, 90, 0.32), transparent 26%),
+    radial-gradient(circle at 68% 45%, rgba(233, 229, 223, 0.16), transparent 28%);
+}
+
+.spine {
+  top: 126px;
+  width: 1px;
+  height: 344px;
+  background: linear-gradient(180deg, rgba(233, 229, 223, 0.34), rgba(168, 138, 90, 0.34), transparent);
+}
+
+.shoulders {
+  top: 154px;
+  width: 230px;
+  height: 74px;
+  border-top: 1px solid rgba(233, 229, 223, 0.22);
+  border-radius: 50% 50% 0 0;
+}
+
+.torso {
+  top: 175px;
+  width: 210px;
+  height: 330px;
+  border: 1px solid rgba(233, 229, 223, 0.18);
+  border-top: 0;
+  border-radius: 36% 36% 18% 18%;
+  background:
+    linear-gradient(90deg, transparent 49.5%, rgba(168, 138, 90, 0.12) 50%, transparent 50.5%),
+    linear-gradient(180deg, rgba(233, 229, 223, 0.018), rgba(233, 229, 223, 0.004));
+  clip-path: polygon(12% 0, 88% 0, 100% 82%, 70% 100%, 30% 100%, 0 82%);
+}
+
+.humanFigure::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  width: 1px;
+  height: 54%;
+  background: linear-gradient(180deg, transparent, rgba(233, 229, 223, 0.42), transparent);
+  transform: translateX(-50%);
+  animation: scanLine 3.8s ease-in-out infinite;
+}
+
+.humanFigure::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 15%;
+  width: 270px;
+  height: 270px;
+  border: 1px solid rgba(168, 138, 90, 0.1);
+  border-radius: 50%;
+  transform: translateX(-50%) rotateX(64deg);
+}
+
+.senseNode {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: rgba(233, 229, 223, 0.66);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.senseNode::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(168, 138, 90, 0.7);
+  background: rgba(168, 138, 90, 0.12);
+  transform: rotate(45deg);
+}
+
+.senseNode::after {
+  content: attr(data-node);
+}
+
+.senseNode:nth-of-type(2) {
+  top: 22%;
+  left: 15%;
+}
+
+.senseNode:nth-of-type(3) {
+  top: 34%;
+  right: 10%;
+}
+
+.senseNode:nth-of-type(4) {
+  bottom: 20%;
+  left: 11%;
+}
+
+.senseNode:nth-of-type(5) {
+  top: 53%;
+  left: 17%;
+}
+
+.senseNode:nth-of-type(6) {
+  right: 11%;
+  bottom: 24%;
+}
+
+.indexPanel {
+  border: 1px solid rgba(168, 138, 90, 0.2);
+  background: linear-gradient(180deg, rgba(22, 25, 23, 0.72), rgba(8, 10, 10, 0.86));
+  color: rgba(233, 229, 223, 0.62);
+  padding: var(--space-6);
+}
+
+.panelLabel {
+  margin-bottom: var(--space-4);
+  color: var(--color-accent);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.indexPanel strong {
+  display: block;
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(var(--text-xl), 2vw, var(--text-3xl));
+  font-weight: 300;
+  line-height: 1.08;
+}
+
+.indexPanel span,
+.indexPanel p {
+  display: block;
+  margin-top: var(--space-3);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.indexPanel i {
+  display: block;
+  height: 1px;
+  margin: var(--space-6) 0;
+  background: rgba(233, 229, 223, 0.12);
+}
+
+.laneBand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  max-width: 1560px;
+  margin: 0 auto var(--space-6);
+}
+
+.laneBand span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 34px;
+  border: 1px solid rgba(233, 229, 223, 0.1);
+  background: rgba(12, 14, 13, 0.48);
+  color: rgba(233, 229, 223, 0.58);
+  font-size: 0.66rem;
+  letter-spacing: 0.11em;
+  padding: 0 var(--space-3);
+  text-transform: uppercase;
+}
+
+.laneBand span::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border: 1px solid rgba(168, 138, 90, 0.66);
+  transform: rotate(45deg);
+}
+
+.layout {
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.entryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.memoryMap {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.45fr) minmax(0, 1fr);
+  gap: var(--space-8);
+  max-width: 1560px;
+  margin: var(--space-8) auto 0;
+  border-top: 1px solid rgba(233, 229, 223, 0.1);
+  color: #bdb6ab;
+  padding-top: var(--space-6);
+}
+
+.memoryMap h2 {
+  max-width: 520px;
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(var(--text-2xl), 4vw, var(--text-4xl));
+  font-weight: 300;
+  line-height: 1;
+}
+
+.memoryMap > p {
+  max-width: 760px;
+  justify-self: end;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+@keyframes bodyDrift {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) perspective(900px) rotateY(-10deg);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) perspective(900px) rotateY(10deg);
+  }
+}
+
+@keyframes scanLine {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: translateX(-50%) translateY(-24px);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: translateX(-50%) translateY(72px);
+  }
+}
+
+@media (max-width: 1180px) {
+  .atlasHero,
+  .memoryMap {
+    grid-template-columns: 1fr;
+  }
+
+  .atlasHero {
+    min-height: auto;
+  }
+
+  .bodyAtlas {
+    min-height: 620px;
+  }
+
+  .indexPanel {
+    max-width: 540px;
+  }
+
+  .entryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .memoryMap > p {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+  }
+
+  .atlasCopy h1 {
+    font-size: clamp(3rem, 16vw, 4.8rem);
+  }
+
+  .bodyAtlas {
+    min-height: 520px;
+  }
+
+  .humanFigure {
+    width: 240px;
+    height: 500px;
+  }
+
+  .senseNode {
+    font-size: 0.58rem;
+  }
+
+  .entryGrid {
+    grid-template-columns: 1fr;
+  }
+}

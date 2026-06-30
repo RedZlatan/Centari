@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Centari",
   description:
-    "Centari builds systems that help organisations understand, train for and shape the future.",
+    "Centari helps organisations choose the right level of reality for planning, simulation and operational work.",
 };
 
 export default function RootLayout({

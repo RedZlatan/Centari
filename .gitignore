@@ -34,6 +34,7 @@ out/
 # Logs
 *.log
 logs/
+data/vision-notes.json
 
 # Test coverage
 coverage/

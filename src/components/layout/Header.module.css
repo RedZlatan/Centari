@@ -22,12 +22,59 @@
   justify-content: space-between;
 }
 
+.brandCluster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: fit-content;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: fit-content;
+}
+
+.brandMark {
+  width: 24px;
+  height: 48px;
+  flex: 0 0 auto;
+  fill: rgba(233, 229, 223, 0.08);
+  stroke: rgba(233, 229, 223, 0.78);
+  stroke-width: 1.45;
+  stroke-linejoin: round;
+}
+
+.brassStroke {
+  stroke: var(--color-accent);
+  stroke-width: 1.6;
+}
+
 .wordmark {
   font-family: var(--font-mono), monospace;
   font-size: clamp(var(--text-lg), 1.5vw, var(--text-xl));
   letter-spacing: 0.18em;
   color: var(--color-text);
   user-select: none;
+}
+
+.visionEntry {
+  position: relative;
+  top: 1px;
+  border-left: 1px solid rgba(168, 138, 90, 0.24);
+  color: rgba(168, 138, 90, 0.72);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  padding-left: var(--space-4);
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.visionEntry:hover {
+  color: var(--color-accent);
 }
 
 .nav {
@@ -39,6 +86,16 @@
 @media (min-width: 900px) {
   .nav {
     display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .brandCluster {
+    gap: var(--space-3);
+  }
+
+  .visionEntry {
+    display: none;
   }
 }
 

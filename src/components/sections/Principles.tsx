@@ -7,6 +7,14 @@ export function Principles() {
     <section className={styles.section} id="principles">
       <Container>
         <p className={styles.label}>How we work</p>
+        <div className={styles.intro}>
+          <h2>Start with the task.</h2>
+          <p>
+            The medium is chosen after the problem is understood. Sometimes that
+            means a document, sometimes a 3D model, sometimes XR, and sometimes
+            a change in the physical workflow.
+          </p>
+        </div>
         <div className={styles.grid}>
           {principles.map((principle) => (
             <div key={principle.id} className={styles.item}>

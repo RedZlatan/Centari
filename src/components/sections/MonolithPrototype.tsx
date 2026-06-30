@@ -7,11 +7,11 @@ import { MathUtils } from "three";
 import styles from "./MonolithPrototype.module.css";
 
 const categories = [
-  "Training & Readiness",
-  "Operational Understanding",
-  "Edge Intelligence",
-  "Digital Operations",
-  "Innovation & Simulation",
+  "Planning",
+  "Simulation",
+  "Operational workflow",
+  "Data analysis",
+  "Validation",
 ];
 
 const valueRanges = [
@@ -224,8 +224,8 @@ export function MonolithPrototype() {
           <h2>{inside ? "Inside the reference point." : "Bring your problem."}</h2>
           <p>
             {inside
-              ? "State the problem from inside the system. The interface is a mock intake surface for validating flow and feeling."
-              : "Start outside the Monolith. Move toward it. Enter only when the problem is clear enough to be named."}
+              ? "State the task clearly. The intake is a prototype for choosing the right medium before work begins."
+              : "Start with the task, not the technology. Move forward only when the problem is clear enough to name."}
           </p>
           <div className={styles.progressRail} aria-hidden="true">
             <span style={{ transform: `scaleX(${progress})` }} />
@@ -236,9 +236,9 @@ export function MonolithPrototype() {
           {submitted ? (
             <div className={styles.submittedState} role="status">
               <p className={styles.kicker}>Mock submit state</p>
-              <h3>Problem registered.</h3>
-              <p>
-                Reference <strong>{reference}</strong> has been created for visual validation.
+                <h3>Problem registered.</h3>
+                <p>
+                Reference <strong>{reference}</strong> has been created for review.
                 No data was sent or stored.
               </p>
               <button type="button" onClick={() => setSubmitted(false)}>
@@ -249,12 +249,12 @@ export function MonolithPrototype() {
             <form className={styles.form} onSubmit={handleSubmit}>
               <div className={styles.formHeader}>
                 <p className={styles.kicker}>Bring Your Problem</p>
-                <h3>Problem submission</h3>
+                <h3>Task intake</h3>
               </div>
 
               <label className={styles.field}>
                 <span>Problem title</span>
-                <input name="title" type="text" required placeholder="What needs to be understood?" />
+                <input name="title" type="text" required placeholder="What needs to be understood or tested?" />
               </label>
 
               <label className={styles.field}>
@@ -263,7 +263,7 @@ export function MonolithPrototype() {
                   name="description"
                   required
                   rows={4}
-                  placeholder="Describe the environment, stakes, constraints, and current bottleneck."
+                  placeholder="Describe the people, environment, constraints and current bottleneck."
                 />
               </label>
 
@@ -278,7 +278,7 @@ export function MonolithPrototype() {
                 </label>
 
                 <label className={styles.field}>
-                  <span>Estimated value</span>
+                  <span>Estimated scale</span>
                   <select name="value" defaultValue={valueRanges[2]}>
                     {valueRanges.map((range) => (
                       <option key={range}>{range}</option>
@@ -288,7 +288,7 @@ export function MonolithPrototype() {
               </div>
 
               <fieldset className={styles.visibility}>
-                <legend>Visibility</legend>
+                <legend>Review mode</legend>
                 <label>
                   <input type="radio" name="visibility" value="private" defaultChecked />
                   <span>Private</span>

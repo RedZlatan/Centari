@@ -45,10 +45,10 @@ export const controlRoomContent: Record<ControlRoomPage, ControlRoomPageContent>
     eyebrow: "Control Room / Overview",
     title: "Operational picture",
     summary:
-      "A static command surface for validating Centari OS structure, product readiness, and active workstreams.",
+      "A static command surface for reviewing product structure, readiness and active workstreams.",
     signal: "Reference point stable",
     modules: [
-      { label: "Products online", value: "07", meta: "Centari OS + modules" },
+      { label: "Products online", value: "07", meta: "Ecosystem + modules" },
       { label: "Open tickets", value: "18", meta: "4 require review" },
       { label: "Asset packages", value: "42", meta: "12 updated this week" },
       { label: "Release channel", value: "1.5", meta: "Identity candidate" },
@@ -56,7 +56,7 @@ export const controlRoomContent: Record<ControlRoomPage, ControlRoomPageContent>
     rows: [
       { id: "CR-104", title: "Identity candidate review", status: "In review", owner: "Design", updated: "Today" },
       { id: "CR-097", title: "Control Room shell validation", status: "Active", owner: "Product", updated: "Today" },
-      { id: "CR-091", title: "Workstation badge tests", status: "Ready", owner: "Industrial", updated: "Yesterday" },
+      { id: "CR-091", title: "Operate module badge tests", status: "Ready", owner: "Industrial", updated: "Yesterday" },
       { id: "CR-086", title: "Monolith mark vector pass", status: "Queued", owner: "Brand", updated: "Jun 10" },
     ],
   },
@@ -65,19 +65,19 @@ export const controlRoomContent: Record<ControlRoomPage, ControlRoomPageContent>
     eyebrow: "Control Room / Products",
     title: "System catalogue",
     summary:
-      "Product modules are presented as a structured operating ecosystem for review, planning, and future release surfaces.",
-    signal: "Centari OS anchors the system",
+      "Product modules are presented as clear operational functions for review, planning and future release surfaces.",
+    signal: "The ecosystem anchors the system",
     modules: [
       { label: "Platform", value: "OS", meta: "Parent layer" },
-      { label: "Modules", value: "06", meta: "Forge through Lab" },
+      { label: "Modules", value: "06", meta: "Build through Validate" },
       { label: "Readiness", value: "72%", meta: "Mock aggregate" },
       { label: "Visual spec", value: "1.5", meta: "Candidate direction" },
     ],
     rows: [
       { id: "CT.OS", title: "Centari OS", status: "Platform", owner: "Core", updated: "Stable" },
-      { id: "CT.FG", title: "Forge", status: "Module", owner: "Systems", updated: "Draft" },
-      { id: "CT.MS", title: "Mission", status: "Module", owner: "Operations", updated: "Draft" },
-      { id: "CT.TW", title: "Twin", status: "Module", owner: "Simulation", updated: "Draft" },
+      { id: "CT.BD", title: "Build", status: "Module", owner: "Systems", updated: "Draft" },
+      { id: "CT.PL", title: "Plan", status: "Module", owner: "Operations", updated: "Draft" },
+      { id: "CT.SM", title: "Simulate", status: "Module", owner: "Simulation", updated: "Draft" },
     ],
   },
   Downloads: {
@@ -94,7 +94,7 @@ export const controlRoomContent: Record<ControlRoomPage, ControlRoomPageContent>
       { label: "Checksums", value: "100%", meta: "Displayed only" },
     ],
     rows: [
-      { id: "DL-210", title: "Centari Workstation visual kit", status: "Ready", owner: "Design", updated: "82 MB" },
+      { id: "DL-210", title: "Centari interface visual kit", status: "Ready", owner: "Design", updated: "82 MB" },
       { id: "DL-188", title: "Control Room shell spec", status: "Draft", owner: "Product", updated: "12 MB" },
       { id: "DL-171", title: "Identity candidate packet", status: "Ready", owner: "Brand", updated: "148 MB" },
       { id: "DL-140", title: "Monolith mark source review", status: "Queued", owner: "Brand", updated: "24 MB" },
@@ -156,7 +156,7 @@ export const controlRoomContent: Record<ControlRoomPage, ControlRoomPageContent>
     rows: [
       { id: "ORG-01", title: "Brand direction", status: "AD owner", owner: "Design", updated: "Active" },
       { id: "ORG-02", title: "Control Room product", status: "Product owner", owner: "Product", updated: "Active" },
-      { id: "ORG-03", title: "Workstation hardware", status: "Industrial owner", owner: "Hardware", updated: "Planned" },
+      { id: "ORG-03", title: "Physical workflow hardware", status: "Industrial owner", owner: "Hardware", updated: "Planned" },
       { id: "ORG-04", title: "Research publication", status: "Editorial owner", owner: "Research", updated: "Planned" },
     ],
   },

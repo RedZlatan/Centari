@@ -313,10 +313,11 @@ async function run(): Promise<void> {
 
         result.signals_found++;
 
-        const title   = truncateSentence(award.title.replace(/\s+/g, ' ').trim(), 200);
-        const summary = truncateSentence((award.abstractText ?? '').replace(/\s+/g, ' ').trim(), 497);
+        const title      = truncateSentence(award.title.replace(/\s+/g, ' ').trim(), 200);
+        const rawAbstract = (award.abstractText ?? '').replace(/\s+/g, ' ').trim();
+        const summary    = truncateSentence(rawAbstract, 497);
 
-        if (title.length < 5) { result.signals_skipped++; continue; }
+        if (title.length < 5 || !rawAbstract) { result.signals_skipped++; continue; }
 
         const grantedAt = parseNsfDate(award.startDate);
         if (isNaN(grantedAt.getTime())) { result.signals_skipped++; continue; }
@@ -340,7 +341,7 @@ async function run(): Promise<void> {
           source_name:          'NSF Award Search',
           published_at:         grantedAt.toISOString(),
           title,
-          summary:              summary || null,
+          summary,
           category:             domain,
           secondary_categories: [],
           signal_type:          'funding',

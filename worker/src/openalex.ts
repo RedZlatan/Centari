@@ -362,9 +362,11 @@ async function run(): Promise<void> {
       result.signals_found++;
 
       const title   = truncateSentence(work.title.replace(/\s+/g, ' ').trim(), 200);
-      const summary = truncateSentence(reconstructAbstract(work.abstract_inverted_index).replace(/\s+/g, ' ').trim(), 497);
+      const rawAbstract = reconstructAbstract(work.abstract_inverted_index).replace(/\s+/g, ' ').trim();
+      const summary = truncateSentence(rawAbstract, 497);
 
-      if (title.length < 5) { result.signals_skipped++; continue; }
+      // Skip papers with no abstract — summary is NOT NULL in schema and scoring quality is poor
+      if (title.length < 5 || !rawAbstract) { result.signals_skipped++; continue; }
 
       const inferred     = inferDomainFromConcepts(work.concepts ?? []);
       const storedDomain: StoredDomain = inferred.domain;
@@ -392,7 +394,7 @@ async function run(): Promise<void> {
         source_name:          'OpenAlex',
         published_at:         publishedAt.toISOString(),
         title,
-        summary:              summary || null,
+        summary,
         category:             storedDomain,
         secondary_categories: [],
         signal_type:          signalType,

@@ -282,14 +282,18 @@ async function run(): Promise<void> {
 
   const seenIds = new Set<string>();
 
+  // Budget per keyword query so all domains get coverage, not just the first ones
+  const PER_KEYWORD_CAP = Math.max(5, Math.ceil(MAX_TOTAL / DOMAIN_QUERIES.length));
+
   // 4. Iterate domain query groups
   for (const { domain, keyword } of DOMAIN_QUERIES) {
     if (result.signals_written >= MAX_TOTAL) break;
 
-    log('info', `Querying NSF`, { keyword, domain });
+    log('info', `Querying NSF`, { keyword, domain, per_keyword_cap: PER_KEYWORD_CAP });
     let offset = 1;
+    let writtenThisKeyword = 0;
 
-    while (result.signals_written < MAX_TOTAL) {
+    while (result.signals_written < MAX_TOTAL && writtenThisKeyword < PER_KEYWORD_CAP) {
       let awards: NsfAward[];
       try {
         awards = await fetchNsfPage(keyword, dateStart, dateEnd, offset);
@@ -361,6 +365,7 @@ async function run(): Promise<void> {
             amount_usd: amount, keyword,
           });
           result.signals_written++;
+          writtenThisKeyword++;
           continue;
         }
 
@@ -375,6 +380,7 @@ async function run(): Promise<void> {
         } else {
           log('info', 'Inserted', { slug, domain, curator_score: curatorScore, amount_usd: amount });
           result.signals_written++;
+          writtenThisKeyword++;
         }
       }
 

@@ -37,6 +37,8 @@ type Signal = {
   category: ResearchCategory;
   x: number;
   y: number;
+  lon?: number;
+  lat?: number;
   intensity: number;
   signal_strength?: number;
   trend_score?: number;
@@ -604,6 +606,72 @@ function getNumber(record: ApiRecord, keys: string[], fallback: number) {
   return fallback;
 }
 
+function getOptionalNumber(record: ApiRecord | null, keys: string[]) {
+  if (!record) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const parsed = Number.parseFloat(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+}
+
+function getNestedRecord(record: ApiRecord, key: string) {
+  const value = record[key];
+  return isRecord(value) ? value : null;
+}
+
+function normalizeScore(value: number, fallback: number) {
+  const score = Number.isFinite(value) ? value : fallback;
+  return score <= 1.5 ? Math.round(score * 100) : Math.round(score);
+}
+
+function getMomentumLabel(record: ApiRecord, fallback: string) {
+  const textValue = getString(record, ["momentum", "change", "delta"], "");
+  if (textValue) {
+    return textValue;
+  }
+
+  const momentumScore = getOptionalNumber(record, ["momentum_score"]);
+  if (momentumScore == null) {
+    return fallback;
+  }
+
+  return `+${normalizeScore(momentumScore, 0)}%`;
+}
+
+function getLocationLabel(record: ApiRecord, locationRecord: ApiRecord | null, fallback: string) {
+  const directLabel = getString(record, ["location", "place", "market", "location_label"], "");
+  if (directLabel) {
+    return directLabel;
+  }
+
+  if (!locationRecord) {
+    return fallback;
+  }
+
+  const city = getString(locationRecord, ["city"], "");
+  const country = getString(locationRecord, ["country_name", "country_code"], "");
+
+  if (city && country) {
+    return `${city} / ${country}`;
+  }
+
+  return city || country || fallback;
+}
+
 function normalizeCategory(value: string, fallback: ResearchCategory): ResearchCategory {
   const normalized = value.trim().toLowerCase();
   const aliases: Record<string, ResearchCategory> = {
@@ -636,23 +704,36 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
       }
 
       const fallback = fallbackSignals[index % fallbackSignals.length] ?? researchMapData.signals[0];
+      const locationRecord = getNestedRecord(item, "location");
+      const lon =
+        getOptionalNumber(locationRecord, ["lng", "lon", "longitude"]) ??
+        getOptionalNumber(item, ["lng", "lon", "longitude"]);
+      const lat =
+        getOptionalNumber(locationRecord, ["lat", "latitude"]) ??
+        getOptionalNumber(item, ["lat", "latitude"]);
       const category = normalizeCategory(
-        getString(item, ["category", "research_lane", "lane", "topic"], fallback.category),
+        getString(item, ["category", "primary_category", "research_lane", "lane", "topic"], fallback.category),
         fallback.category,
+      );
+      const strength = normalizeScore(
+        getNumber(item, ["signal_strength", "strength", "intensity"], fallback.intensity),
+        fallback.intensity,
       );
 
       const signal: Signal = {
         id: getString(item, ["id", "signal_id", "slug"], fallback.id),
         title: getString(item, ["title", "name", "signal_title"], fallback.title),
-        location: getString(item, ["location", "place", "market"], fallback.location),
-        region: getString(item, ["region", "geography", "area"], fallback.region),
+        location: getLocationLabel(item, locationRecord, fallback.location),
+        region: getString(item, ["region", "geography", "area"], getString(locationRecord ?? {}, ["region"], fallback.region)),
         category,
         x: getNumber(item, ["x", "map_x", "longitude_x"], fallback.x),
         y: getNumber(item, ["y", "map_y", "latitude_y"], fallback.y),
-        intensity: getNumber(item, ["intensity", "signal_strength", "strength"], fallback.intensity),
-        signal_strength: getNumber(item, ["signal_strength", "strength", "intensity"], fallback.intensity),
-        trend_score: getNumber(item, ["trend_score", "score", "priority"], getTrendScore(fallback)),
-        momentum: getString(item, ["momentum", "change", "delta"], fallback.momentum),
+        lon: lon ?? undefined,
+        lat: lat ?? undefined,
+        intensity: strength,
+        signal_strength: strength,
+        trend_score: normalizeScore(getNumber(item, ["trend_score", "score", "priority"], getTrendScore(fallback)), getTrendScore(fallback)),
+        momentum: getMomentumLabel(item, fallback.momentum),
         summary: getString(item, ["summary", "description", "body"], fallback.summary),
       };
 
@@ -700,7 +781,21 @@ function projectedPointToLonLat(x: number, y: number): GlobePoint {
 }
 
 function getSignalGlobePoint(signal: Signal): GlobePoint {
+  if (typeof signal.lon === "number" && typeof signal.lat === "number") {
+    return { lon: signal.lon, lat: signal.lat };
+  }
+
   return signalGlobePoints[signal.id] ?? projectedPointToLonLat(signal.x, signal.y);
+}
+
+function buildApiClusters(signals: Signal[]): SignalCluster[] {
+  return signals.map((signal) => ({
+    id: `cluster-${signal.id}`,
+    label: signal.region || signal.location,
+    x: signal.x,
+    y: signal.y,
+    signalIds: [signal.id],
+  }));
 }
 
 function getClusterGlobePoint(cluster: GlobeCluster): GlobePoint {
@@ -960,7 +1055,7 @@ export default function ResearchPage() {
         setMapData({
           categories: researchMapData.categories,
           signals: apiSignals,
-          clusters: researchMapData.clusters,
+          clusters: buildApiClusters(apiSignals),
         });
         setApiTrends(nextTrends.length > 0 ? nextTrends : null);
         setActiveCategory("All");
@@ -992,7 +1087,7 @@ export default function ResearchPage() {
       activeCategory === "All"
         ? signals
         : signals.filter((signal) => signal.category === activeCategory),
-    [activeCategory],
+    [activeCategory, signals],
   );
 
   const selectedSignal =

@@ -1,0 +1,308 @@
+/* ─── Page shell ─────────────────────────────────────────────── */
+.page {
+  padding-top: var(--space-24);
+  padding-bottom: var(--space-32);
+}
+
+/* ─── Intro block ────────────────────────────────────────────── */
+.intro {
+  max-width: 680px;
+  margin-bottom: var(--space-16);
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: var(--space-4);
+}
+
+.heading {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--color-text);
+  margin-bottom: var(--space-6);
+}
+
+.subheading {
+  font-size: var(--text-base);
+  color: var(--color-muted);
+  line-height: 1.65;
+  max-width: 480px;
+}
+
+/* ─── Form layout ────────────────────────────────────────────── */
+.form {
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 580px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.sectionLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+/* ─── Fields ─────────────────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.required {
+  color: var(--color-accent);
+  margin-left: 2px;
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────── */
+.input,
+.textarea {
+  width: 100%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-base);
+  padding: var(--space-3) var(--space-4);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--color-accent);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-muted);
+  opacity: 0.55;
+}
+
+.input:disabled,
+.textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 140px;
+  line-height: 1.6;
+}
+
+/* ─── Select ─────────────────────────────────────────────────── */
+.selectWrapper {
+  position: relative;
+}
+
+.selectWrapper::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--color-muted);
+  pointer-events: none;
+}
+
+.select {
+  width: 100%;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-base);
+  padding: var(--space-3) var(--space-8) var(--space-3) var(--space-4);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.select:focus {
+  border-color: var(--color-accent);
+}
+
+.select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Error states ───────────────────────────────────────────── */
+.inputError {
+  border-color: #c24d4d !important;
+}
+
+.fieldError {
+  font-size: var(--text-xs);
+  color: #c24d4d;
+  line-height: 1.4;
+}
+
+.serverError {
+  font-size: var(--text-sm);
+  color: #c24d4d;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(194, 77, 77, 0.4);
+  background-color: rgba(194, 77, 77, 0.05);
+  line-height: 1.5;
+}
+
+/* ─── Radio visibility group ─────────────────────────────────── */
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 500px) {
+  .radioGroup {
+    flex-direction: row;
+    gap: var(--space-8);
+  }
+}
+
+.radioOption {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.radioOption input[type="radio"] {
+  margin-top: 2px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.radioOption input[type="radio"]:disabled {
+  cursor: not-allowed;
+}
+
+/* ─── Submit button ──────────────────────────────────────────── */
+.submitButton {
+  align-self: flex-start;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: var(--space-3) var(--space-8);
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  background-color: transparent;
+  color: var(--color-accent);
+}
+
+.submitButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ─── Honeypot — visually hidden, inaccessible to screen readers ── */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ─── Success state ──────────────────────────────────────────── */
+.success {
+  max-width: 680px;
+  padding-top: var(--space-24);
+  padding-bottom: var(--space-32);
+}
+
+.successEyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: var(--space-4);
+}
+
+.successHeading {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--color-text);
+  margin-bottom: var(--space-6);
+}
+
+.successBody {
+  color: var(--color-muted);
+  line-height: 1.65;
+  max-width: 420px;
+  margin-bottom: var(--space-8);
+}
+
+.resetButton {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resetButton:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+}

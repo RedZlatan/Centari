@@ -1,0 +1,164 @@
+.section {
+  padding: var(--space-24) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.header {
+  max-width: 640px;
+  margin-bottom: var(--space-16);
+}
+
+.label {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin-bottom: var(--space-6);
+}
+
+.heading {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(var(--text-xl), 2.8vw, var(--text-3xl));
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.subheading {
+  font-size: var(--text-base);
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+@media (min-width: 768px) {
+  .stages {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .stages {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stage {
+  padding: var(--space-8) 0;
+  padding-right: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .stage:nth-child(odd) {
+    padding-right: var(--space-12);
+  }
+
+  .stage:nth-child(even) {
+    padding-left: var(--space-12);
+    padding-right: 0;
+    border-left: 1px solid var(--color-border);
+  }
+}
+
+@media (min-width: 1200px) {
+  .stage {
+    padding: var(--space-8) var(--space-6) var(--space-8) 0;
+  }
+
+  .stage + .stage {
+    padding-left: var(--space-6);
+    border-left: 1px solid var(--color-border);
+  }
+
+  .stage:nth-child(even) {
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+    border-left: 1px solid var(--color-border);
+  }
+}
+
+.stageIndex {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.indexNum {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  color: var(--color-accent);
+  opacity: 0.7;
+}
+
+.emergingBadge {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+  padding: 1px 6px;
+  opacity: 0.7;
+}
+
+.stageLabel {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: var(--text-xl);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.stageQuestion {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  margin-bottom: var(--space-4);
+  opacity: 0.7;
+}
+
+.stageBody {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.7;
+  margin-bottom: var(--space-6);
+}
+
+.capabilities {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.capabilities li {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  opacity: 0.5;
+  padding-left: var(--space-3);
+  position: relative;
+}
+
+.capabilities li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  opacity: 0.5;
+}

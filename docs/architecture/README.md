@@ -7,6 +7,7 @@ Technical design documents live here. Each document covers a discrete system, co
 | Document | Sprint | Subject |
 |----------|--------|---------|
 | [web-frontend.md](web-frontend.md) | 1 | Next.js 15, CSS Modules, font strategy, deployment |
+| [control-room-decisions.md](control-room-decisions.md) | 1.2 | Auth library, session strategy, org creation, multi-tenancy, app structure |
 
 ## Document format
 

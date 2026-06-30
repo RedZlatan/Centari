@@ -10,6 +10,22 @@ export interface Principle {
   body: string;
 }
 
+export interface FrameworkStage {
+  id: string;
+  label: string;
+  question: string;
+  body: string;
+  capabilities: string[];
+  emerging?: boolean;
+}
+
+export interface Solution {
+  id: string;
+  name: string;
+  signal: string;
+  body: string;
+}
+
 export const products: Product[] = [
   {
     id: "knowledge",
@@ -74,5 +90,58 @@ export const principles: Principle[] = [
     id: "deploy",
     label: "Deploy",
     body: "Move what works into daily use and keep improving it as conditions change.",
+  },
+];
+
+export const framework: FrameworkStage[] = [
+  {
+    id: "understand",
+    label: "Understand",
+    question: "What needs to be understood?",
+    body: "Map the task, environment, users and constraints before choosing the medium.",
+    capabilities: ["Research intake", "System mapping", "Constraint review"],
+  },
+  {
+    id: "choose",
+    label: "Choose",
+    question: "Which level of reality is enough?",
+    body: "Decide whether the work belongs in text, 2D, 3D, XR or the physical environment.",
+    capabilities: ["Medium selection", "Workflow design", "Prototype scope"],
+  },
+  {
+    id: "validate",
+    label: "Validate",
+    question: "Does it work before reality?",
+    body: "Test the workflow with real users and operational scenarios before committing at scale.",
+    capabilities: ["Scenario testing", "User review", "Readiness checks"],
+  },
+  {
+    id: "operate",
+    label: "Operate",
+    question: "How does it improve daily work?",
+    body: "Move useful tools into everyday operations and improve them as conditions change.",
+    capabilities: ["Deployment support", "Signal review", "Continuous improvement"],
+    emerging: true,
+  },
+];
+
+export const solutions: Solution[] = [
+  {
+    id: "planning",
+    name: "Planning before commitment",
+    signal: "Plan",
+    body: "Test options before people, money or hardware are committed to the physical world.",
+  },
+  {
+    id: "simulation",
+    name: "Simulation at the right fidelity",
+    signal: "Simulate",
+    body: "Use 3D or XR when it improves understanding, not because it is the most advanced medium.",
+  },
+  {
+    id: "operations",
+    name: "Operational decision support",
+    signal: "Operate",
+    body: "Bring data, AI and spatial context into workflows where teams need clearer decisions.",
   },
 ];

@@ -81,6 +81,18 @@ Cargo.lock
 # TypeScript
 tsconfig.tsbuildinfo
 
+# SQLite database at project root (contains submission data — never commit)
+/data/
+
+# Docker / infrastructure
+.env
+backups/
+nginx/ssl/*.pem
+nginx/ssl/*.crt
+nginx/ssl/*.key
+worker/node_modules/
+worker/dist/
+
 # Claude Code
 .claude/settings.local.json
 .claude/

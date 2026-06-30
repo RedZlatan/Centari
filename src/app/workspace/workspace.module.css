@@ -1,0 +1,263 @@
+.workspace {
+  position: relative;
+  z-index: 1;
+  min-height: 360vh;
+  background:
+    radial-gradient(circle at 70% 28%, rgba(168, 138, 90, 0.12), transparent 26%),
+    radial-gradient(circle at 24% 58%, rgba(98, 126, 113, 0.12), transparent 30%),
+    #101313;
+  color: var(--color-text);
+}
+
+.sceneFrame {
+  position: sticky;
+  top: 0;
+  inset: 0;
+  height: 100vh;
+  overflow: hidden;
+  border-top: 0;
+}
+
+.sceneFrame::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 62% 42%, transparent 0 18%, rgba(8, 10, 10, 0.12) 52%, rgba(3, 5, 5, 0.58) 100%),
+    linear-gradient(90deg, rgba(4, 7, 7, 0.34), transparent 38%, rgba(4, 7, 7, 0.14));
+  opacity: 0.86;
+  transition: opacity 0.35s ease, background 0.35s ease;
+}
+
+.sceneFrameWriting::after {
+  background:
+    radial-gradient(circle at 65% 42%, transparent 0 16%, rgba(5, 7, 7, 0.3) 52%, rgba(2, 4, 4, 0.82) 100%),
+    linear-gradient(90deg, rgba(3, 5, 5, 0.44), transparent 31%, rgba(3, 5, 5, 0.24));
+  opacity: 0.92;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sceneFallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(55, 73, 68, 0.32), transparent 38%),
+    radial-gradient(circle at 62% 18%, rgba(168, 138, 90, 0.08), transparent 24%),
+    #0b0f0f;
+}
+
+.interfaceLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(180px, 300px) 1fr minmax(140px, 220px);
+  align-items: end;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(16, 19, 19, 0.42), transparent 24%),
+    linear-gradient(0deg, rgba(16, 19, 19, 0.62), transparent 42%);
+  transition: background 0.35s ease;
+}
+
+.interfaceLayerWriting {
+  background:
+    linear-gradient(180deg, rgba(10, 12, 12, 0.52), transparent 22%),
+    linear-gradient(0deg, rgba(8, 10, 10, 0.78), transparent 38%);
+}
+
+.visionHeader {
+  position: absolute;
+  top: var(--space-8);
+  left: var(--space-8);
+  display: grid;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+.visionHeader span {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.9);
+}
+
+.visionHeader strong {
+  color: #f0ebe1;
+  font-size: clamp(2rem, 4vw, 4rem);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+}
+
+.statusBlock,
+.zoneReadout {
+  border: 1px solid rgba(168, 138, 90, 0.16);
+  background: rgba(8, 11, 11, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.statusBlock {
+  align-self: start;
+  padding: var(--space-4);
+  margin-top: 112px;
+}
+
+.statusBlock span,
+.zoneReadout span {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.86);
+}
+
+.statusBlock strong {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: clamp(1.5rem, 2.6vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1;
+  color: #f0ebe1;
+}
+
+.statusBlock p {
+  max-width: 24ch;
+  margin-top: var(--space-4);
+  color: rgba(233, 229, 223, 0.72);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.writeButton {
+  justify-self: center;
+  align-self: end;
+  min-width: 220px;
+  border: 1px solid rgba(168, 138, 90, 0.46);
+  background: rgba(8, 10, 10, 0.52);
+  color: #f0ebe1;
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.writeButton:hover,
+.writeButtonActive {
+  border-color: rgba(207, 178, 120, 0.86);
+  background: rgba(168, 138, 90, 0.24);
+  color: #fff8e8;
+}
+
+.writeButton:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+
+.zoneReadout {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  align-self: start;
+  margin-top: var(--space-2);
+}
+
+.zoneReadout span {
+  color: rgba(223, 216, 202, 0.72);
+}
+
+.visionCard {
+  position: absolute;
+  right: var(--space-8);
+  bottom: calc(var(--space-8) + 72px);
+  width: min(320px, calc(100vw - 32px));
+  border: 1px solid rgba(168, 138, 90, 0.34);
+  background: rgba(8, 11, 11, 0.72);
+  padding: var(--space-4);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.visionCard span {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(168, 138, 90, 0.92);
+}
+
+.visionCard p {
+  margin-top: var(--space-3);
+  color: rgba(240, 235, 225, 0.86);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.visionCard button {
+  margin-top: var(--space-4);
+  border: 1px solid rgba(168, 138, 90, 0.34);
+  background: transparent;
+  color: rgba(240, 235, 225, 0.8);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .sceneFrame {
+    min-height: 100vh;
+  }
+
+  .interfaceLayer {
+    grid-template-columns: 1fr;
+    align-content: space-between;
+    align-items: stretch;
+    padding: var(--space-4);
+  }
+
+  .statusBlock {
+    width: min(100%, 360px);
+    margin-top: 96px;
+  }
+
+  .visionHeader {
+    top: var(--space-4);
+    left: var(--space-4);
+  }
+
+  .writeButton {
+    order: 3;
+    width: 100%;
+  }
+
+  .zoneReadout {
+    display: none;
+  }
+
+  .visionCard {
+    right: var(--space-4);
+    bottom: 84px;
+  }
+}

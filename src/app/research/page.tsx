@@ -14,6 +14,7 @@ import type { Group } from "three";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { SpyRadio } from "@/components/research/SpyRadio";
 import styles from "./research.module.css";
 
 // Natural Earth via world-atlas keeps the map geodata-based without a heavy map runtime.
@@ -165,7 +166,7 @@ type EarthLayerSelection =
   | { type: "launch"; item: LaunchEvent }
   | { type: "spaceweather"; item: SpaceWeather };
 
-type LiveLayer = "satellites" | "earthquakes" | "buoys" | "asteroids" | "spaceweather" | "launches";
+type LiveLayer = "satellites" | "earthquakes" | "buoys" | "asteroids" | "spaceweather" | "launches" | "radio";
 
 type WorldAtlasObjects = {
   countries: GeometryCollection;
@@ -1502,6 +1503,65 @@ function SpaceWeatherShield({
   );
 }
 
+function SpyRadioMarker({
+  active,
+  onOpen,
+}: {
+  active: boolean;
+  onOpen: () => void;
+}) {
+  const markerRef = useRef<Group>(null);
+  const position = useMemo(() => lonLatToVector3(37.1, 56.1, markerRadius + 0.09), []);
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) {
+      return;
+    }
+
+    const pulse = 1 + Math.sin(clock.elapsedTime * 3.8) * 0.14;
+    markerRef.current.scale.setScalar(active ? pulse * 1.18 : pulse);
+  });
+
+  return (
+    <group
+      ref={markerRef}
+      position={position}
+      onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        onOpen();
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <Billboard>
+        <mesh>
+          <ringGeometry args={[0.11, 0.2, 32]} />
+          <meshBasicMaterial color="#77d7e8" transparent opacity={active ? 0.72 : 0.32} side={DoubleSide} />
+        </mesh>
+        <mesh>
+          <circleGeometry args={[0.058, 20]} />
+          <meshBasicMaterial color="#77d7e8" transparent opacity={0.74} side={DoubleSide} />
+        </mesh>
+        <Line
+          points={[new Vector3(-0.1, 0.12, 0), new Vector3(0, 0.24, 0), new Vector3(0.1, 0.12, 0)]}
+          color="#77d7e8"
+          lineWidth={1.1}
+          transparent
+          opacity={0.48}
+        />
+        <mesh>
+          <sphereGeometry args={[0.36, 16, 16]} />
+          <meshBasicMaterial color="#77d7e8" transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
 function ResearchGlobe({
   clusters,
   selectedSignal,
@@ -1514,6 +1574,9 @@ function ResearchGlobe({
   asteroids,
   spaceWeather,
   launches,
+  showRadio,
+  radioActive,
+  onOpenRadio,
   selectedEarthLayer,
   onSelectEarthLayer,
 }: {
@@ -1528,6 +1591,9 @@ function ResearchGlobe({
   asteroids: AsteroidEvent[];
   spaceWeather: SpaceWeather | null;
   launches: LaunchEvent[];
+  showRadio: boolean;
+  radioActive: boolean;
+  onOpenRadio: () => void;
   selectedEarthLayer: EarthLayerSelection | null;
   onSelectEarthLayer: (selection: EarthLayerSelection) => void;
 }) {
@@ -1638,6 +1704,8 @@ function ResearchGlobe({
             />
           ))}
 
+          {showRadio ? <SpyRadioMarker active={radioActive} onOpen={onOpenRadio} /> : null}
+
           {clusters.map((cluster) => {
             const primarySignal = cluster.signals.reduce((strongest, signal) =>
               getTrendScore(signal) > getTrendScore(strongest) ? signal : strongest,
@@ -1747,6 +1815,7 @@ export default function ResearchPage() {
   const [selectedId, setSelectedId] = useState(signals[0].id);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [selectedEarthLayer, setSelectedEarthLayer] = useState<EarthLayerSelection | null>(null);
+  const [spyRadioActive, setSpyRadioActive] = useState(false);
   const [liveLayers, setLiveLayers] = useState<Record<LiveLayer, boolean>>({
     satellites: true,
     earthquakes: true,
@@ -1754,6 +1823,7 @@ export default function ResearchPage() {
     asteroids: true,
     spaceweather: true,
     launches: true,
+    radio: true,
   });
 
   useEffect(() => {
@@ -1985,6 +2055,7 @@ export default function ResearchPage() {
     setActiveCategory(category);
     setActiveMission(null);
     setSelectedEarthLayer(null);
+    setSpyRadioActive(false);
     const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
     if (nextSignal) {
       setSelectedId(nextSignal.id);
@@ -1994,17 +2065,26 @@ export default function ResearchPage() {
   function selectSignal(id: string) {
     setActiveMission(null);
     setSelectedEarthLayer(null);
+    setSpyRadioActive(false);
     setSelectedId(id);
   }
 
   function selectMission(mission: Mission) {
     setSelectedEarthLayer(null);
+    setSpyRadioActive(false);
     setActiveMission(mission);
   }
 
   function selectEarthLayer(selection: EarthLayerSelection) {
     setActiveMission(null);
+    setSpyRadioActive(false);
     setSelectedEarthLayer(selection);
+  }
+
+  function openSpyRadio() {
+    setActiveMission(null);
+    setSelectedEarthLayer(null);
+    setSpyRadioActive(true);
   }
 
   function toggleLiveLayer(layer: LiveLayer) {
@@ -2036,6 +2116,10 @@ export default function ResearchPage() {
 
       if (selectedEarthLayer?.type === "launch" && layer === "launches" && !next.launches) {
         setSelectedEarthLayer(null);
+      }
+
+      if (layer === "radio" && !next.radio) {
+        setSpyRadioActive(false);
       }
 
       return next;
@@ -2098,6 +2182,7 @@ export default function ResearchPage() {
                   ["asteroids", `NEO ${visibleAsteroids.length}`],
                   ["spaceweather", `Kp ${spaceWeather ? spaceWeather.current_kp.toFixed(1) : "-"}`],
                   ["launches", `Launches ${visibleLaunches.length}`],
+                  ["radio", "Radio"],
                   ["satellites", "Satellites"],
                 ] as const).map(([layer, label]) => (
                   <button
@@ -2139,9 +2224,15 @@ export default function ResearchPage() {
                 asteroids={visibleAsteroids}
                 spaceWeather={visibleSpaceWeather}
                 launches={visibleLaunches}
+                showRadio={liveLayers.radio}
+                radioActive={spyRadioActive}
+                onOpenRadio={openSpyRadio}
                 selectedEarthLayer={selectedEarthLayer}
                 onSelectEarthLayer={selectEarthLayer}
               />
+              {spyRadioActive ? (
+                <SpyRadio onClose={() => setSpyRadioActive(false)} />
+              ) : null}
             </div>
           </div>
 

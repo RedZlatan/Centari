@@ -1,0 +1,151 @@
+.panel {
+  position: absolute;
+  left: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 8;
+  width: min(420px, calc(100% - var(--space-10)));
+  border: 1px solid rgba(119, 215, 232, 0.26);
+  background:
+    linear-gradient(180deg, rgba(14, 21, 21, 0.94), rgba(5, 7, 8, 0.98)),
+    #050708;
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(233, 229, 223, 0.06);
+  color: var(--color-text);
+  padding: var(--space-5);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.header span,
+.frequency span,
+.status {
+  color: rgba(119, 215, 232, 0.7);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.header strong,
+.frequency strong {
+  display: block;
+  margin-top: var(--space-1);
+  color: #f0e8dc;
+  font-size: var(--text-lg);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.header button,
+.actions button {
+  border: 1px solid rgba(119, 215, 232, 0.32);
+  background: rgba(119, 215, 232, 0.07);
+  color: rgba(233, 229, 223, 0.72);
+  cursor: pointer;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  padding: 0.72rem 0.9rem;
+  text-transform: uppercase;
+}
+
+.receiver {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  align-items: end;
+  margin-top: var(--space-5);
+  border-top: 1px solid rgba(233, 229, 223, 0.08);
+  padding-top: var(--space-4);
+}
+
+.status {
+  border: 1px solid rgba(233, 229, 223, 0.12);
+  padding: var(--space-2) var(--space-3);
+}
+
+.status[data-status="live"] {
+  border-color: rgba(120, 196, 160, 0.42);
+  color: rgba(146, 220, 179, 0.86);
+}
+
+.status[data-status="lost"] {
+  border-color: rgba(255, 91, 74, 0.38);
+  color: rgba(255, 142, 124, 0.86);
+}
+
+.scope {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 96px;
+  margin-top: var(--space-5);
+  border: 1px solid rgba(119, 215, 232, 0.14);
+  background:
+    linear-gradient(rgba(119, 215, 232, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(119, 215, 232, 0.04) 1px, transparent 1px),
+    rgba(0, 6, 7, 0.62);
+  background-size: 100% 24px, 28px 100%;
+  overflow: hidden;
+  padding: var(--space-3);
+}
+
+.scope span {
+  --bar-index: 0;
+  flex: 1;
+  height: calc(18% + ((var(--bar-index) % 7) * 7%));
+  background: linear-gradient(180deg, rgba(119, 215, 232, 0.92), rgba(119, 215, 232, 0.16));
+  opacity: 0.38;
+  transform-origin: center;
+}
+
+.scope[data-active="true"] span {
+  animation: signalBar 0.92s infinite ease-in-out;
+  animation-delay: calc(var(--bar-index) * -58ms);
+  opacity: 0.72;
+}
+
+.panel p {
+  color: rgba(233, 229, 223, 0.58);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  margin-top: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.actions button {
+  border-color: rgba(168, 138, 90, 0.46);
+  background: rgba(168, 138, 90, 0.1);
+  color: #d9c59f;
+}
+
+@keyframes signalBar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+
+  50% {
+    transform: scaleY(1.22);
+  }
+}
+
+@media (max-width: 720px) {
+  .panel {
+    left: var(--space-3);
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: auto;
+  }
+}

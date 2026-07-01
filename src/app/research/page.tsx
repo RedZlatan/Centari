@@ -127,6 +127,8 @@ type EarthLayerSelection =
   | { type: "earthquake"; item: EarthquakeEvent }
   | { type: "buoy"; item: BuoyObservation };
 
+type LiveLayer = "satellites" | "earthquakes" | "buoys";
+
 type WorldAtlasObjects = {
   countries: GeometryCollection;
 };
@@ -885,6 +887,41 @@ function getSignalMissions(signal: Signal) {
     .map((satellite) => satellite.id);
 }
 
+function getDistributedBuoys(buoys: BuoyObservation[], maxCount = 36) {
+  const cells = new Set<string>();
+  const scoredBuoys = [...buoys].sort((a, b) => (b.waveHeight_m ?? 0) - (a.waveHeight_m ?? 0));
+  const selected: BuoyObservation[] = [];
+
+  for (const buoy of scoredBuoys) {
+    const latCell = Math.floor((buoy.coordinates.latitude + 90) / 14);
+    const lonCell = Math.floor((buoy.coordinates.longitude + 180) / 18);
+    const cellKey = `${latCell}:${lonCell}`;
+
+    if (cells.has(cellKey)) {
+      continue;
+    }
+
+    cells.add(cellKey);
+    selected.push(buoy);
+
+    if (selected.length >= maxCount) {
+      return selected;
+    }
+  }
+
+  for (const buoy of scoredBuoys) {
+    if (!selected.some((selectedBuoy) => selectedBuoy.id === buoy.id)) {
+      selected.push(buoy);
+    }
+
+    if (selected.length >= maxCount) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
 function getSignalTier(signal: Signal, count = 1) {
   const score = getTrendScore(signal);
   if (count >= 4 || score >= 92) {
@@ -1193,6 +1230,7 @@ function ResearchGlobe({
   onSelectSignal,
   activeMission,
   onSelectMission,
+  showSatellites,
   earthquakes,
   buoys,
   selectedEarthLayer,
@@ -1203,6 +1241,7 @@ function ResearchGlobe({
   onSelectSignal: (id: string) => void;
   activeMission: Mission | null;
   onSelectMission: (mission: Mission) => void;
+  showSatellites: boolean;
   earthquakes: EarthquakeEvent[];
   buoys: BuoyObservation[];
   selectedEarthLayer: EarthLayerSelection | null;
@@ -1259,16 +1298,18 @@ function ResearchGlobe({
             />
           ))}
 
-          {satellites.map((satellite) => (
-            <SatelliteOrbit
-              key={satellite.id}
-              satellite={satellite}
-              active={activeMission === satellite.id}
-              onSelect={onSelectMission}
-            />
-          ))}
+          {showSatellites
+            ? satellites.map((satellite) => (
+                <SatelliteOrbit
+                  key={satellite.id}
+                  satellite={satellite}
+                  active={activeMission === satellite.id}
+                  onSelect={onSelectMission}
+                />
+              ))
+            : null}
 
-          {earthquakes.slice(0, 32).map((earthquake) => (
+          {earthquakes.map((earthquake) => (
             <EarthquakeMarker
               key={earthquake.id}
               earthquake={earthquake}
@@ -1277,7 +1318,7 @@ function ResearchGlobe({
             />
           ))}
 
-          {buoys.slice(0, 80).map((buoy) => (
+          {buoys.map((buoy) => (
             <BuoyMarker
               key={buoy.id}
               buoy={buoy}
@@ -1392,6 +1433,11 @@ export default function ResearchPage() {
   const [selectedId, setSelectedId] = useState(signals[0].id);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [selectedEarthLayer, setSelectedEarthLayer] = useState<EarthLayerSelection | null>(null);
+  const [liveLayers, setLiveLayers] = useState<Record<LiveLayer, boolean>>({
+    satellites: true,
+    earthquakes: true,
+    buoys: true,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -1571,6 +1617,11 @@ export default function ResearchPage() {
 
     return exactMatches.length > 0 ? exactMatches : spaceTelemetry.slice(0, 4);
   }, [activeSatellite, spaceTelemetry]);
+  const visibleEarthquakes = liveLayers.earthquakes ? earthquakes.slice(0, 32) : [];
+  const visibleBuoys = useMemo(
+    () => (liveLayers.buoys ? getDistributedBuoys(buoys, 36) : []),
+    [buoys, liveLayers.buoys],
+  );
 
   const filteredSignalIds = useMemo(
     () => new Set(filteredSignals.map((signal) => signal.id)),
@@ -1615,6 +1666,29 @@ export default function ResearchPage() {
   function selectEarthLayer(selection: EarthLayerSelection) {
     setActiveMission(null);
     setSelectedEarthLayer(selection);
+  }
+
+  function toggleLiveLayer(layer: LiveLayer) {
+    setLiveLayers((current) => {
+      const next = {
+        ...current,
+        [layer]: !current[layer],
+      };
+
+      if (layer === "satellites" && !next.satellites) {
+        setActiveMission(null);
+      }
+
+      if (selectedEarthLayer?.type === "earthquake" && layer === "earthquakes" && !next.earthquakes) {
+        setSelectedEarthLayer(null);
+      }
+
+      if (selectedEarthLayer?.type === "buoy" && layer === "buoys" && !next.buoys) {
+        setSelectedEarthLayer(null);
+      }
+
+      return next;
+    });
   }
 
   return (
@@ -1666,12 +1740,31 @@ export default function ResearchPage() {
                   </button>
                 ))}
               </div>
+              <div className={styles.layerFilters} aria-label="Live layer filters">
+                {([
+                  ["earthquakes", `Quakes ${earthquakes.length}`],
+                  ["buoys", `Buoys ${visibleBuoys.length}`],
+                  ["satellites", "Satellites"],
+                ] as const).map(([layer, label]) => (
+                  <button
+                    key={layer}
+                    type="button"
+                    className={liveLayers[layer] ? styles.layerActive : ""}
+                    onClick={() => toggleLiveLayer(layer)}
+                  >
+                    <span />
+                    <b>{label}</b>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className={styles.mapSurface}>
               <div className={styles.mapStatus} aria-hidden="true">
                 <span>Rotating globe / strategic signal layer</span>
-                <span>{filteredSignals.length} visible signals</span>
+                <span>
+                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleBuoys.length} buoys
+                </span>
               </div>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
                 {apiStatus === "loading" ? "Loading research feed" : null}
@@ -1686,8 +1779,9 @@ export default function ResearchPage() {
                 onSelectSignal={selectSignal}
                 activeMission={activeMission}
                 onSelectMission={selectMission}
-                earthquakes={earthquakes}
-                buoys={buoys}
+                showSatellites={liveLayers.satellites}
+                earthquakes={visibleEarthquakes}
+                buoys={visibleBuoys}
                 selectedEarthLayer={selectedEarthLayer}
                 onSelectEarthLayer={selectEarthLayer}
               />

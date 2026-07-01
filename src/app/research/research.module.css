@@ -19,6 +19,7 @@
 .kicker,
 .heroMetrics,
 .filters,
+.layerFilters,
 .cardMeta,
 .intensity,
 .rank,
@@ -112,6 +113,7 @@
   gap: var(--space-6);
   align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: var(--space-6);
   border-bottom: 1px solid rgba(233, 229, 223, 0.1);
 }
@@ -124,7 +126,8 @@
   line-height: 1.1;
 }
 
-.filters {
+.filters,
+.layerFilters {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -134,7 +137,12 @@
   padding: 3px;
 }
 
-.filters button {
+.layerFilters {
+  border-color: rgba(119, 215, 232, 0.16);
+}
+
+.filters button,
+.layerFilters button {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -151,12 +159,21 @@
   transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
 }
 
-.filters button b {
+.layerFilters button {
+  min-height: 32px;
+  color: rgba(195, 219, 220, 0.72);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+}
+
+.filters button b,
+.layerFilters button b {
   font: inherit;
   white-space: nowrap;
 }
 
-.filters button span {
+.filters button span,
+.layerFilters button span {
   width: 6px;
   height: 6px;
   border: 1px solid currentColor;
@@ -170,6 +187,15 @@
     linear-gradient(180deg, rgba(168, 138, 90, 0.2), rgba(168, 138, 90, 0.08)),
     rgba(168, 138, 90, 0.13);
   color: #efe8dc;
+}
+
+.layerFilters button:hover,
+.layerFilters .layerActive {
+  border-color: rgba(119, 215, 232, 0.58);
+  background:
+    linear-gradient(180deg, rgba(119, 215, 232, 0.16), rgba(119, 215, 232, 0.05)),
+    rgba(119, 215, 232, 0.08);
+  color: #d8f5f8;
 }
 
 .mapSurface {

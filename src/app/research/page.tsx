@@ -1,8 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import type { ThreeEvent } from "@react-three/fiber";
 import { Billboard, Line, OrbitControls, Text } from "@react-three/drei";
 import { geoEqualEarth } from "d3-geo";
@@ -10,6 +10,7 @@ import type { FeatureCollection, Position } from "geojson";
 import { feature } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import { BackSide, DoubleSide, MathUtils, Vector3 } from "three";
+import type { Mesh } from "three";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -47,6 +48,7 @@ type Signal = {
   sourceName?: string;
   sourceUrl?: string;
   publishedAt?: string;
+  tags?: string[];
 };
 
 type SignalCluster = {
@@ -67,6 +69,19 @@ type ApiLoadStatus = "loading" | "ready" | "fallback";
 
 type ApiRecord = Record<string, unknown>;
 
+type Mission = "iss" | "hubble" | "jwst";
+
+type SatelliteDefinition = {
+  id: Mission;
+  name: string;
+  fullName: string;
+  radius: number;
+  inclination: number;
+  ascendingNode: number;
+  speed: number;
+  color: string;
+};
+
 type WorldAtlasObjects = {
   countries: GeometryCollection;
 };
@@ -78,6 +93,45 @@ const mapProjection = geoEqualEarth().fitSize([1000, 520], { type: "Sphere" });
 const globeRadius = 2.42;
 const globeOutlineRadius = globeRadius + 0.014;
 const markerRadius = globeRadius + 0.08;
+
+const satellites: SatelliteDefinition[] = [
+  {
+    id: "iss",
+    name: "ISS",
+    fullName: "International Space Station",
+    radius: globeRadius + 0.42,
+    inclination: 51.6,
+    ascendingNode: 0,
+    speed: 0.45,
+    color: "#60a5fa",
+  },
+  {
+    id: "hubble",
+    name: "Hubble",
+    fullName: "Hubble Space Telescope",
+    radius: globeRadius + 0.64,
+    inclination: 28.5,
+    ascendingNode: Math.PI * 0.75,
+    speed: 0.3,
+    color: "#fbbf24",
+  },
+  {
+    id: "jwst",
+    name: "JWST",
+    fullName: "James Webb Space Telescope",
+    radius: globeRadius + 1.08,
+    inclination: 5,
+    ascendingNode: Math.PI * 1.4,
+    speed: 0.13,
+    color: "#a78bfa",
+  },
+];
+
+const missionKeywords: Record<Mission, string[]> = {
+  iss: ["iss", "international space station"],
+  hubble: ["hubble", "hubble space telescope"],
+  jwst: ["jwst", "james webb", "james webb space telescope"],
+};
 
 type GlobeCluster = SignalCluster & {
   signals: Signal[];
@@ -591,6 +645,26 @@ function getString(record: ApiRecord, keys: string[], fallback: string) {
   return fallback;
 }
 
+function getStringArray(record: ApiRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (Array.isArray(value)) {
+      return value
+        .filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+        .map((item) => item.trim());
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      return value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
 function getNumber(record: ApiRecord, keys: string[], fallback: number) {
   for (const key of keys) {
     const value = record[key];
@@ -741,6 +815,7 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
         sourceName: getString(item, ["source_name", "source"], ""),
         sourceUrl: getString(item, ["source_url", "url", "href"], ""),
         publishedAt: getString(item, ["published_at", "date"], ""),
+        tags: getStringArray(item, ["tags", "missions", "mission"]),
       };
 
       return signal;
@@ -755,6 +830,14 @@ function getSignalStrength(signal: Signal) {
 function getTrendScore(signal: Signal) {
   const momentum = Number.parseInt(signal.momentum.replace("+", "").replace("%", ""), 10);
   return signal.trend_score ?? Math.min(100, Math.round(signal.intensity * 0.82 + (Number.isNaN(momentum) ? 0 : momentum)));
+}
+
+function getSignalMissions(signal: Signal) {
+  const text = `${signal.title} ${signal.summary} ${signal.sourceName ?? ""} ${(signal.tags ?? []).join(" ")}`.toLowerCase();
+
+  return satellites
+    .filter((satellite) => missionKeywords[satellite.id].some((keyword) => text.includes(keyword)))
+    .map((satellite) => satellite.id);
 }
 
 function getSignalTier(signal: Signal, count = 1) {
@@ -866,14 +949,82 @@ function getGraticuleRings() {
   return [...latitudeRings, ...longitudeRings];
 }
 
+function getOrbitPoints(radius: number, inclination: number) {
+  const inc = MathUtils.degToRad(inclination);
+
+  return Array.from({ length: 161 }, (_, index) => {
+    const angle = (index / 160) * Math.PI * 2;
+
+    return new Vector3(
+      Math.cos(angle) * radius,
+      Math.sin(angle) * Math.sin(inc) * radius,
+      Math.sin(angle) * Math.cos(inc) * radius,
+    );
+  });
+}
+
+function SatelliteOrbit({
+  satellite,
+  active,
+  onSelect,
+}: {
+  satellite: SatelliteDefinition;
+  active: boolean;
+  onSelect: (mission: Mission) => void;
+}) {
+  const satelliteRef = useRef<Mesh>(null);
+  const angleRef = useRef(satellite.ascendingNode * 0.6);
+  const orbitPoints = useMemo(() => getOrbitPoints(satellite.radius, satellite.inclination), [satellite]);
+  const inc = MathUtils.degToRad(satellite.inclination);
+
+  useFrame((_, delta) => {
+    angleRef.current += delta * satellite.speed;
+    const angle = angleRef.current;
+
+    if (satelliteRef.current) {
+      satelliteRef.current.position.set(
+        Math.cos(angle) * satellite.radius,
+        Math.sin(angle) * Math.sin(inc) * satellite.radius,
+        Math.sin(angle) * Math.cos(inc) * satellite.radius,
+      );
+    }
+  });
+
+  return (
+    <group rotation={[0, satellite.ascendingNode, 0]}>
+      <Line
+        points={orbitPoints}
+        color={satellite.color}
+        lineWidth={active ? 1.2 : 0.72}
+        transparent
+        opacity={active ? 0.44 : 0.18}
+      />
+      <mesh
+        ref={satelliteRef}
+        onClick={(event: ThreeEvent<MouseEvent>) => {
+          event.stopPropagation();
+          onSelect(satellite.id);
+        }}
+      >
+        <octahedronGeometry args={[active ? 0.105 : 0.078, 0]} />
+        <meshBasicMaterial color={satellite.color} transparent opacity={active ? 0.98 : 0.82} />
+      </mesh>
+    </group>
+  );
+}
+
 function ResearchGlobe({
   clusters,
   selectedSignal,
   onSelectSignal,
+  activeMission,
+  onSelectMission,
 }: {
   clusters: GlobeCluster[];
   selectedSignal: Signal;
   onSelectSignal: (id: string) => void;
+  activeMission: Mission | null;
+  onSelectMission: (mission: Mission) => void;
 }) {
   const worldRings = useMemo(() => getWorldRings(), []);
   const graticuleRings = useMemo(() => getGraticuleRings(), []);
@@ -923,6 +1074,15 @@ function ResearchGlobe({
               lineWidth={0.82}
               transparent
               opacity={0.28}
+            />
+          ))}
+
+          {satellites.map((satellite) => (
+            <SatelliteOrbit
+              key={satellite.id}
+              satellite={satellite}
+              active={activeMission === satellite.id}
+              onSelect={onSelectMission}
             />
           ))}
 
@@ -1025,6 +1185,7 @@ export default function ResearchPage() {
   const { categories, signals, clusters } = mapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
+  const [activeMission, setActiveMission] = useState<Mission | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1066,6 +1227,7 @@ export default function ResearchPage() {
         setApiTrends(nextTrends.length > 0 ? nextTrends : null);
         setActiveCategory("All");
         setSelectedId(apiSignals[0].id);
+        setActiveMission(null);
         setApiStatus("ready");
       } catch (error) {
         if (cancelled) {
@@ -1076,6 +1238,7 @@ export default function ResearchPage() {
         setApiTrends(null);
         setActiveCategory("All");
         setSelectedId(researchMapData.signals[0].id);
+        setActiveMission(null);
         setApiStatus("fallback");
         setApiError(error instanceof Error ? error.message : "Research API unavailable");
       }
@@ -1115,6 +1278,12 @@ export default function ResearchPage() {
     [apiTrends, signals],
   );
 
+  const activeSatellite = activeMission ? satellites.find((satellite) => satellite.id === activeMission) ?? null : null;
+  const missionSignals = useMemo(
+    () => (activeMission ? signals.filter((signal) => getSignalMissions(signal).includes(activeMission)) : []),
+    [activeMission, signals],
+  );
+
   const filteredSignalIds = useMemo(
     () => new Set(filteredSignals.map((signal) => signal.id)),
     [filteredSignals],
@@ -1136,10 +1305,16 @@ export default function ResearchPage() {
 
   function selectCategory(category: SignalCategory) {
     setActiveCategory(category);
+    setActiveMission(null);
     const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
     if (nextSignal) {
       setSelectedId(nextSignal.id);
     }
+  }
+
+  function selectSignal(id: string) {
+    setActiveMission(null);
+    setSelectedId(id);
   }
 
   return (
@@ -1208,51 +1383,85 @@ export default function ResearchPage() {
               <ResearchGlobe
                 clusters={visibleClusters}
                 selectedSignal={selectedSignal}
-                onSelectSignal={setSelectedId}
+                onSelectSignal={selectSignal}
+                activeMission={activeMission}
+                onSelectMission={setActiveMission}
               />
             </div>
           </div>
 
           <aside className={styles.sidePanel} aria-label="Research signal detail">
-            <article className={styles.signalCard} aria-live="polite">
-              <div className={styles.cardMeta}>
-                <span>{selectedSignal.id}</span>
-                <span>{selectedSignal.category}</span>
-                <span>{selectedSignal.momentum}</span>
-              </div>
-              <h2>{selectedSignal.title}</h2>
-              <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
-              <p>{selectedSignal.summary}</p>
-              {(selectedSignal.sourceUrl || selectedSignal.sourceName || selectedSignal.publishedAt) ? (
-                <div className={styles.sourceRow}>
-                  {selectedSignal.sourceName ? <span>{selectedSignal.sourceName}</span> : null}
-                  {selectedSignal.publishedAt ? (
-                    <span>{new Date(selectedSignal.publishedAt).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}</span>
-                  ) : null}
-                  {selectedSignal.sourceUrl ? (
-                    <a href={selectedSignal.sourceUrl} target="_blank" rel="noreferrer">
-                      Read original source
-                    </a>
-                  ) : null}
+            {activeSatellite ? (
+              <article className={styles.signalCard} aria-live="polite">
+                <div className={styles.cardMeta}>
+                  <span>Satellite channel</span>
+                  <span>{activeSatellite.name}</span>
+                  <span>{activeSatellite.inclination.toFixed(1)} deg orbit</span>
                 </div>
-              ) : null}
-              <div className={styles.signalScores}>
-                <div className={styles.intensity}>
-                  <span>Signal strength</span>
-                  <strong>{getSignalStrength(selectedSignal)}</strong>
-                  <i style={{ transform: `scaleX(${getSignalStrength(selectedSignal) / 100})` }} />
+                <h2>{activeSatellite.fullName}</h2>
+                <p className={styles.location}>NASA mission layer / Space research feed</p>
+                <p>
+                  Signals in this view are tagged to the selected mission. Use it as a quick way to
+                  separate space infrastructure from the broader research map.
+                </p>
+                <button type="button" className={styles.panelAction} onClick={() => setActiveMission(null)}>
+                  Return to signal detail
+                </button>
+                <div className={styles.missionSignalList}>
+                  {missionSignals.length > 0 ? (
+                    missionSignals.slice(0, 6).map((signal) => (
+                      <button key={signal.id} type="button" onClick={() => selectSignal(signal.id)}>
+                        <span>{signal.category}</span>
+                        <strong>{signal.title}</strong>
+                        <em>{signal.sourceName || signal.location}</em>
+                      </button>
+                    ))
+                  ) : (
+                    <p>No mission-specific signals are loaded in the current feed yet.</p>
+                  )}
                 </div>
-                <div className={styles.intensity}>
-                  <span>Trend score</span>
-                  <strong>{getTrendScore(selectedSignal)}</strong>
-                  <i style={{ transform: `scaleX(${getTrendScore(selectedSignal) / 100})` }} />
+              </article>
+            ) : (
+              <article className={styles.signalCard} aria-live="polite">
+                <div className={styles.cardMeta}>
+                  <span>{selectedSignal.id}</span>
+                  <span>{selectedSignal.category}</span>
+                  <span>{selectedSignal.momentum}</span>
                 </div>
-              </div>
-            </article>
+                <h2>{selectedSignal.title}</h2>
+                <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
+                <p>{selectedSignal.summary}</p>
+                {(selectedSignal.sourceUrl || selectedSignal.sourceName || selectedSignal.publishedAt) ? (
+                  <div className={styles.sourceRow}>
+                    {selectedSignal.sourceName ? <span>{selectedSignal.sourceName}</span> : null}
+                    {selectedSignal.publishedAt ? (
+                      <span>{new Date(selectedSignal.publishedAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}</span>
+                    ) : null}
+                    {selectedSignal.sourceUrl ? (
+                      <a href={selectedSignal.sourceUrl} target="_blank" rel="noreferrer">
+                        Read original source
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+                <div className={styles.signalScores}>
+                  <div className={styles.intensity}>
+                    <span>Signal strength</span>
+                    <strong>{getSignalStrength(selectedSignal)}</strong>
+                    <i style={{ transform: `scaleX(${getSignalStrength(selectedSignal) / 100})` }} />
+                  </div>
+                  <div className={styles.intensity}>
+                    <span>Trend score</span>
+                    <strong>{getTrendScore(selectedSignal)}</strong>
+                    <i style={{ transform: `scaleX(${getTrendScore(selectedSignal) / 100})` }} />
+                  </div>
+                </div>
+              </article>
+            )}
 
             <div className={styles.trendsPanel}>
               <div className={styles.panelHeader}>
@@ -1265,7 +1474,7 @@ export default function ResearchPage() {
                     <button
                       type="button"
                       className={trend.id === selectedSignal.id ? styles.trendActive : ""}
-                      onClick={() => setSelectedId(trend.id)}
+                      onClick={() => selectSignal(trend.id)}
                       style={{ "--signal-color": categoryAccent[trend.category] } as CSSProperties}
                     >
                       <span className={styles.rank}>{String(index + 1).padStart(2, "0")}</span>

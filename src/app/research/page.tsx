@@ -114,7 +114,7 @@ const satellites: SatelliteDefinition[] = [
     radius: globeRadius + 0.42,
     inclination: 51.6,
     ascendingNode: 0,
-    speed: 0.45,
+    speed: 0.16,
     color: "#60a5fa",
   },
   {
@@ -124,7 +124,7 @@ const satellites: SatelliteDefinition[] = [
     radius: globeRadius + 0.64,
     inclination: 28.5,
     ascendingNode: Math.PI * 0.75,
-    speed: 0.3,
+    speed: 0.105,
     color: "#fbbf24",
   },
   {
@@ -134,7 +134,7 @@ const satellites: SatelliteDefinition[] = [
     radius: globeRadius + 1.08,
     inclination: 5,
     ascendingNode: Math.PI * 1.4,
-    speed: 0.13,
+    speed: 0.045,
     color: "#a78bfa",
   },
 ];

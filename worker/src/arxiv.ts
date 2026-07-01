@@ -16,8 +16,12 @@ const PER_CATEGORY = parseInt(argv.find(a => a.startsWith('--per-category='))?.s
 // ── Env loading ───────────────────────────────────────────────────────────────
 
 function loadEnv(): void {
-  const envPath = path.join(process.cwd(), '.env.local');
-  if (!fs.existsSync(envPath)) return;
+  const candidates = [
+    path.join(process.cwd(), '.env.local'),
+    path.join(process.cwd(), '..', '.env.local'),
+  ];
+  const envPath = candidates.find(p => fs.existsSync(p));
+  if (!envPath) return;
   const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
@@ -488,7 +492,7 @@ async function run(): Promise<void> {
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceKey) {
+  if (!DRY_RUN && (!supabaseUrl || !serviceKey)) {
     log('error', 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
     process.exit(1);
   }
@@ -502,9 +506,9 @@ async function run(): Promise<void> {
     version:       '1.3',
   });
 
-  const supabase: SupabaseClient = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false },
-  });
+  const supabase: SupabaseClient = DRY_RUN
+    ? (null as unknown as SupabaseClient)
+    : createClient(supabaseUrl!, serviceKey!, { auth: { persistSession: false } });
 
   const startedAt = new Date().toISOString();
   const result: WorkerResult = {

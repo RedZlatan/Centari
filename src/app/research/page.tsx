@@ -48,6 +48,7 @@ type Signal = {
   sourceName?: string;
   sourceUrl?: string;
   publishedAt?: string;
+  confidence?: "verified" | "probable" | "preliminary" | string;
   tags?: string[];
 };
 
@@ -862,6 +863,7 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
         sourceName: getString(item, ["source_name", "source"], ""),
         sourceUrl: getString(item, ["source_url", "url", "href"], ""),
         publishedAt: getString(item, ["published_at", "date"], ""),
+        confidence: getString(item, ["confidence", "source_confidence"], ""),
         tags: getStringArray(item, ["tags", "missions", "mission"]),
       };
 
@@ -880,11 +882,36 @@ function getTrendScore(signal: Signal) {
 }
 
 function getSignalMissions(signal: Signal) {
+  const tags = signal.tags ?? [];
+  const exactMissionTags = satellites
+    .filter((satellite) => tags.includes(satellite.id))
+    .map((satellite) => satellite.id);
+
+  if (exactMissionTags.length > 0) {
+    return exactMissionTags;
+  }
+
   const text = `${signal.title} ${signal.summary} ${signal.sourceName ?? ""} ${(signal.tags ?? []).join(" ")}`.toLowerCase();
 
   return satellites
     .filter((satellite) => missionKeywords[satellite.id].some((keyword) => text.includes(keyword)))
     .map((satellite) => satellite.id);
+}
+
+function getConfidenceLabel(confidence?: Signal["confidence"]) {
+  if (confidence === "verified") {
+    return "Verified";
+  }
+
+  if (confidence === "probable") {
+    return "Probable";
+  }
+
+  if (confidence === "preliminary") {
+    return "Preliminary";
+  }
+
+  return confidence ? confidence : null;
 }
 
 function getDistributedBuoys(buoys: BuoyObservation[], maxCount = 36) {
@@ -1935,9 +1962,14 @@ export default function ResearchPage() {
                 <h2>{selectedSignal.title}</h2>
                 <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
                 <p>{selectedSignal.summary}</p>
-                {(selectedSignal.sourceUrl || selectedSignal.sourceName || selectedSignal.publishedAt) ? (
+                {(selectedSignal.sourceUrl || selectedSignal.sourceName || selectedSignal.publishedAt || selectedSignal.confidence) ? (
                   <div className={styles.sourceRow}>
                     {selectedSignal.sourceName ? <span>{selectedSignal.sourceName}</span> : null}
+                    {getConfidenceLabel(selectedSignal.confidence) ? (
+                      <span className={styles.confidenceBadge} data-confidence={selectedSignal.confidence}>
+                        {getConfidenceLabel(selectedSignal.confidence)}
+                      </span>
+                    ) : null}
                     {selectedSignal.publishedAt ? (
                       <span>{new Date(selectedSignal.publishedAt).toLocaleDateString("en-GB", {
                         day: "numeric",

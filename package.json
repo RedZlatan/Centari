@@ -10,7 +10,15 @@
     "worker:arxiv": "tsx worker/src/arxiv.ts",
     "worker:arxiv:dry": "tsx worker/src/arxiv.ts --dry-run --per-category=3",
     "worker:arxiv:compare": "tsx worker/src/arxiv.ts --dry-run --per-category=8",
-    "worker:arxiv:once": "tsx worker/src/arxiv.ts --per-category=5 --days=7"
+    "worker:arxiv:once": "tsx worker/src/arxiv.ts --per-category=5 --days=7",
+    "worker:cordis": "tsx worker/src/cordis.ts",
+    "worker:cordis:dry": "tsx worker/src/cordis.ts --dry-run --max=10",
+    "worker:nasa": "tsx worker/src/nasa.ts",
+    "worker:nasa:dry": "tsx worker/src/nasa.ts --dry-run --max=10",
+    "worker:nsf": "tsx worker/src/nsf.ts",
+    "worker:nsf:dry": "tsx worker/src/nsf.ts --dry-run --max=10",
+    "worker:osti": "tsx worker/src/osti.ts",
+    "worker:osti:dry": "tsx worker/src/osti.ts --dry-run --max=10"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

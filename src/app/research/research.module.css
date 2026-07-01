@@ -407,6 +407,25 @@
   color: var(--color-text);
 }
 
+.sourceRow .confidenceBadge {
+  border-color: rgba(233, 229, 223, 0.14);
+}
+
+.sourceRow .confidenceBadge[data-confidence="verified"] {
+  border-color: rgba(120, 196, 160, 0.42);
+  color: rgba(146, 220, 179, 0.86);
+}
+
+.sourceRow .confidenceBadge[data-confidence="probable"] {
+  border-color: rgba(208, 173, 112, 0.46);
+  color: rgba(226, 194, 134, 0.88);
+}
+
+.sourceRow .confidenceBadge[data-confidence="preliminary"] {
+  border-style: dashed;
+  color: rgba(233, 229, 223, 0.5);
+}
+
 .panelAction {
   width: fit-content;
   border: 1px solid rgba(168, 138, 90, 0.42);

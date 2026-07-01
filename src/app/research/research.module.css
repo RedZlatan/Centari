@@ -497,6 +497,49 @@
   padding: var(--space-3);
 }
 
+.liveMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.liveMetrics div {
+  border: 1px solid rgba(233, 229, 223, 0.09);
+  background: rgba(233, 229, 223, 0.025);
+  padding: var(--space-3);
+}
+
+.liveMetrics span {
+  display: block;
+  color: rgba(233, 229, 223, 0.46);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.liveMetrics strong {
+  display: block;
+  color: #efe8dc;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  margin-top: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.warningNote {
+  border: 1px solid rgba(213, 107, 56, 0.42);
+  background: rgba(213, 107, 56, 0.08);
+  color: #f2c7a8;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  line-height: 1.45;
+  padding: var(--space-3);
+  text-transform: uppercase;
+}
+
 .missionSignalList {
   display: grid;
   gap: var(--space-2);

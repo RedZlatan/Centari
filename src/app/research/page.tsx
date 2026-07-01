@@ -94,6 +94,39 @@ type SpaceTelemetry = {
   rtlt?: string;
 };
 
+type EarthquakeEvent = {
+  id: string;
+  title: string;
+  magnitude: number;
+  place: string;
+  time: number;
+  url?: string | null;
+  alert?: string | null;
+  tsunami: boolean;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+    depth_km: number;
+  };
+};
+
+type BuoyObservation = {
+  id: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  timestamp: string;
+  windSpeed_ms: number | null;
+  waveHeight_m: number | null;
+  airTemp_c: number | null;
+  waterTemp_c: number | null;
+};
+
+type EarthLayerSelection =
+  | { type: "earthquake"; item: EarthquakeEvent }
+  | { type: "buoy"; item: BuoyObservation };
+
 type WorldAtlasObjects = {
   countries: GeometryCollection;
 };
@@ -1037,18 +1070,143 @@ function SatelliteOrbit({
   );
 }
 
+function EarthquakeMarker({
+  earthquake,
+  selected,
+  onSelect,
+}: {
+  earthquake: EarthquakeEvent;
+  selected: boolean;
+  onSelect: (earthquake: EarthquakeEvent) => void;
+}) {
+  const markerRef = useRef<Group>(null);
+  const position = useMemo(
+    () => lonLatToVector3(earthquake.coordinates.longitude, earthquake.coordinates.latitude, markerRadius + 0.045),
+    [earthquake],
+  );
+  const markerScale = MathUtils.clamp((earthquake.magnitude - 3.6) * 0.07, 0.08, 0.22);
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) {
+      return;
+    }
+
+    const pulse = 1 + Math.sin(clock.elapsedTime * 3.2 + earthquake.magnitude) * 0.18;
+    markerRef.current.scale.setScalar(selected ? pulse * 1.24 : pulse);
+  });
+
+  return (
+    <group
+      ref={markerRef}
+      position={position}
+      onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        onSelect(earthquake);
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <Billboard>
+        <mesh>
+          <ringGeometry args={[markerScale * 0.9, markerScale * 1.38, 28]} />
+          <meshBasicMaterial color={earthquake.tsunami ? "#ff5148" : "#d9854e"} transparent opacity={selected ? 0.82 : 0.46} side={DoubleSide} />
+        </mesh>
+        <mesh>
+          <circleGeometry args={[markerScale * 0.62, 24]} />
+          <meshBasicMaterial color={earthquake.tsunami ? "#ff3328" : "#d46b38"} transparent opacity={0.86} side={DoubleSide} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[markerScale * 1.8, 16, 16]} />
+          <meshBasicMaterial color="#ff5b4a" transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
+function BuoyMarker({
+  buoy,
+  selected,
+  onSelect,
+}: {
+  buoy: BuoyObservation;
+  selected: boolean;
+  onSelect: (buoy: BuoyObservation) => void;
+}) {
+  const markerRef = useRef<Group>(null);
+  const basePosition = useMemo(
+    () => lonLatToVector3(buoy.coordinates.longitude, buoy.coordinates.latitude, markerRadius + 0.02),
+    [buoy],
+  );
+  const waveHeight = buoy.waveHeight_m ?? 0.4;
+  const markerScale = MathUtils.clamp(0.065 + waveHeight * 0.018, 0.07, 0.18);
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) {
+      return;
+    }
+
+    const bob = Math.sin(clock.elapsedTime * 2.4 + Number.parseInt(buoy.id, 10) * 0.03) * Math.min(waveHeight * 0.012, 0.065);
+    markerRef.current.position.copy(basePosition.clone().setLength(basePosition.length() + bob));
+  });
+
+  return (
+    <group
+      ref={markerRef}
+      position={basePosition}
+      onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        onSelect(buoy);
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <Billboard>
+        <mesh>
+          <circleGeometry args={[markerScale, 18]} />
+          <meshBasicMaterial color={waveHeight > 5 ? "#d8f2ff" : "#77d7e8"} transparent opacity={selected ? 0.9 : 0.62} side={DoubleSide} />
+        </mesh>
+        <mesh>
+          <ringGeometry args={[markerScale * 1.45, markerScale * 1.9, 24]} />
+          <meshBasicMaterial color={waveHeight > 5 ? "#f0c36d" : "#77d7e8"} transparent opacity={selected ? 0.66 : 0.24} side={DoubleSide} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[markerScale * 2.4, 16, 16]} />
+          <meshBasicMaterial color="#77d7e8" transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
 function ResearchGlobe({
   clusters,
   selectedSignal,
   onSelectSignal,
   activeMission,
   onSelectMission,
+  earthquakes,
+  buoys,
+  selectedEarthLayer,
+  onSelectEarthLayer,
 }: {
   clusters: GlobeCluster[];
   selectedSignal: Signal;
   onSelectSignal: (id: string) => void;
   activeMission: Mission | null;
   onSelectMission: (mission: Mission) => void;
+  earthquakes: EarthquakeEvent[];
+  buoys: BuoyObservation[];
+  selectedEarthLayer: EarthLayerSelection | null;
+  onSelectEarthLayer: (selection: EarthLayerSelection) => void;
 }) {
   const worldRings = useMemo(() => getWorldRings(), []);
   const graticuleRings = useMemo(() => getGraticuleRings(), []);
@@ -1107,6 +1265,24 @@ function ResearchGlobe({
               satellite={satellite}
               active={activeMission === satellite.id}
               onSelect={onSelectMission}
+            />
+          ))}
+
+          {earthquakes.slice(0, 32).map((earthquake) => (
+            <EarthquakeMarker
+              key={earthquake.id}
+              earthquake={earthquake}
+              selected={selectedEarthLayer?.type === "earthquake" && selectedEarthLayer.item.id === earthquake.id}
+              onSelect={(item) => onSelectEarthLayer({ type: "earthquake", item })}
+            />
+          ))}
+
+          {buoys.slice(0, 80).map((buoy) => (
+            <BuoyMarker
+              key={buoy.id}
+              buoy={buoy}
+              selected={selectedEarthLayer?.type === "buoy" && selectedEarthLayer.item.id === buoy.id}
+              onSelect={(item) => onSelectEarthLayer({ type: "buoy", item })}
             />
           ))}
 
@@ -1208,10 +1384,14 @@ export default function ResearchPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [spaceTelemetry, setSpaceTelemetry] = useState<SpaceTelemetry[]>([]);
   const [spaceTimestamp, setSpaceTimestamp] = useState<string | null>(null);
+  const [earthquakes, setEarthquakes] = useState<EarthquakeEvent[]>([]);
+  const [buoys, setBuoys] = useState<BuoyObservation[]>([]);
+  const [earthLayerTimestamp, setEarthLayerTimestamp] = useState<string | null>(null);
   const { categories, signals, clusters } = mapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  const [selectedEarthLayer, setSelectedEarthLayer] = useState<EarthLayerSelection | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1274,6 +1454,43 @@ export default function ResearchPage() {
 
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadEarthLayers() {
+      try {
+        const [earthquakeResponse, buoyResponse] = await Promise.all([
+          fetch("/api/earthquakes", { cache: "no-store" }),
+          fetch("/api/buoys", { cache: "no-store" }),
+        ]);
+        const [earthquakePayload, buoyPayload] = await Promise.all([
+          earthquakeResponse.json() as Promise<{ earthquakes?: EarthquakeEvent[]; timestamp?: string }>,
+          buoyResponse.json() as Promise<{ buoys?: BuoyObservation[]; timestamp?: string }>,
+        ]);
+
+        if (!cancelled) {
+          setEarthquakes(Array.isArray(earthquakePayload.earthquakes) ? earthquakePayload.earthquakes : []);
+          setBuoys(Array.isArray(buoyPayload.buoys) ? buoyPayload.buoys : []);
+          setEarthLayerTimestamp(earthquakePayload.timestamp ?? buoyPayload.timestamp ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setEarthquakes([]);
+          setBuoys([]);
+          setEarthLayerTimestamp(null);
+        }
+      }
+    }
+
+    void loadEarthLayers();
+    const interval = window.setInterval(loadEarthLayers, 300000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
     };
   }, []);
 
@@ -1377,6 +1594,7 @@ export default function ResearchPage() {
   function selectCategory(category: SignalCategory) {
     setActiveCategory(category);
     setActiveMission(null);
+    setSelectedEarthLayer(null);
     const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
     if (nextSignal) {
       setSelectedId(nextSignal.id);
@@ -1385,7 +1603,18 @@ export default function ResearchPage() {
 
   function selectSignal(id: string) {
     setActiveMission(null);
+    setSelectedEarthLayer(null);
     setSelectedId(id);
+  }
+
+  function selectMission(mission: Mission) {
+    setSelectedEarthLayer(null);
+    setActiveMission(mission);
+  }
+
+  function selectEarthLayer(selection: EarthLayerSelection) {
+    setActiveMission(null);
+    setSelectedEarthLayer(selection);
   }
 
   return (
@@ -1456,13 +1685,84 @@ export default function ResearchPage() {
                 selectedSignal={selectedSignal}
                 onSelectSignal={selectSignal}
                 activeMission={activeMission}
-                onSelectMission={setActiveMission}
+                onSelectMission={selectMission}
+                earthquakes={earthquakes}
+                buoys={buoys}
+                selectedEarthLayer={selectedEarthLayer}
+                onSelectEarthLayer={selectEarthLayer}
               />
             </div>
           </div>
 
           <aside className={styles.sidePanel} aria-label="Research signal detail">
-            {activeSatellite ? (
+            {selectedEarthLayer ? (
+              <article className={styles.signalCard} aria-live="polite">
+                <div className={styles.cardMeta}>
+                  <span>{selectedEarthLayer.type === "earthquake" ? "Seismic anomaly" : "Ocean buoy"}</span>
+                  <span>{selectedEarthLayer.type === "earthquake" ? "USGS live" : "NOAA NDBC"}</span>
+                  <span>{earthLayerTimestamp ? new Date(earthLayerTimestamp).toLocaleTimeString("en-GB") : "live"}</span>
+                </div>
+                {selectedEarthLayer.type === "earthquake" ? (
+                  <>
+                    <h2>{selectedEarthLayer.item.title}</h2>
+                    <p className={styles.location}>{selectedEarthLayer.item.place}</p>
+                    <p>
+                      Magnitude {selectedEarthLayer.item.magnitude.toFixed(1)} at {selectedEarthLayer.item.coordinates.depth_km.toFixed(1)} km depth.
+                      {selectedEarthLayer.item.tsunami ? " Tsunami flag active." : ""}
+                    </p>
+                    <div className={styles.liveMetrics}>
+                      <div>
+                        <span>Magnitude</span>
+                        <strong>{selectedEarthLayer.item.magnitude.toFixed(1)}</strong>
+                      </div>
+                      <div>
+                        <span>Depth</span>
+                        <strong>{selectedEarthLayer.item.coordinates.depth_km.toFixed(0)} km</strong>
+                      </div>
+                      <div>
+                        <span>Alert</span>
+                        <strong>{selectedEarthLayer.item.tsunami ? "Tsunami" : selectedEarthLayer.item.alert ?? "Monitor"}</strong>
+                      </div>
+                    </div>
+                    {selectedEarthLayer.item.url ? (
+                      <div className={styles.sourceRow}>
+                        <a href={selectedEarthLayer.item.url} target="_blank" rel="noreferrer">
+                          Open USGS event
+                        </a>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <h2>Buoy {selectedEarthLayer.item.id}</h2>
+                    <p className={styles.location}>Open ocean observation / NOAA NDBC</p>
+                    <p>
+                      Live marine conditions from an offshore station. Markers bob against the globe using reported wave height.
+                    </p>
+                    <div className={styles.liveMetrics}>
+                      <div>
+                        <span>Wave</span>
+                        <strong>{selectedEarthLayer.item.waveHeight_m === null ? "MM" : `${selectedEarthLayer.item.waveHeight_m.toFixed(1)} m`}</strong>
+                      </div>
+                      <div>
+                        <span>Wind</span>
+                        <strong>{selectedEarthLayer.item.windSpeed_ms === null ? "MM" : `${selectedEarthLayer.item.windSpeed_ms.toFixed(1)} m/s`}</strong>
+                      </div>
+                      <div>
+                        <span>Water</span>
+                        <strong>{selectedEarthLayer.item.waterTemp_c === null ? "MM" : `${selectedEarthLayer.item.waterTemp_c.toFixed(1)} C`}</strong>
+                      </div>
+                    </div>
+                    {(selectedEarthLayer.item.waveHeight_m ?? 0) > 5 ? (
+                      <p className={styles.warningNote}>Gale / high surf warning threshold crossed.</p>
+                    ) : null}
+                  </>
+                )}
+                <button type="button" className={styles.panelAction} onClick={() => setSelectedEarthLayer(null)}>
+                  Return to signal detail
+                </button>
+              </article>
+            ) : activeSatellite ? (
               <article className={styles.signalCard} aria-live="polite">
                 <div className={styles.cardMeta}>
                   <span>Satellite channel</span>

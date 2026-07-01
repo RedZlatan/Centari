@@ -44,6 +44,9 @@ type Signal = {
   trend_score?: number;
   momentum: string;
   summary: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  publishedAt?: string;
 };
 
 type SignalCluster = {
@@ -735,6 +738,9 @@ function normalizeSignals(payload: unknown, keys: string[], fallbackSignals: Sig
         trend_score: normalizeScore(getNumber(item, ["trend_score", "score", "priority"], getTrendScore(fallback)), getTrendScore(fallback)),
         momentum: getMomentumLabel(item, fallback.momentum),
         summary: getString(item, ["summary", "description", "body"], fallback.summary),
+        sourceName: getString(item, ["source_name", "source"], ""),
+        sourceUrl: getString(item, ["source_url", "url", "href"], ""),
+        publishedAt: getString(item, ["published_at", "date"], ""),
       };
 
       return signal;
@@ -1217,6 +1223,23 @@ export default function ResearchPage() {
               <h2>{selectedSignal.title}</h2>
               <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
               <p>{selectedSignal.summary}</p>
+              {(selectedSignal.sourceUrl || selectedSignal.sourceName || selectedSignal.publishedAt) ? (
+                <div className={styles.sourceRow}>
+                  {selectedSignal.sourceName ? <span>{selectedSignal.sourceName}</span> : null}
+                  {selectedSignal.publishedAt ? (
+                    <span>{new Date(selectedSignal.publishedAt).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}</span>
+                  ) : null}
+                  {selectedSignal.sourceUrl ? (
+                    <a href={selectedSignal.sourceUrl} target="_blank" rel="noreferrer">
+                      Read original source
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
               <div className={styles.signalScores}>
                 <div className={styles.intensity}>
                   <span>Signal strength</span>

@@ -339,7 +339,7 @@
 .signalScores {
   display: grid;
   gap: var(--space-4);
-  margin-top: var(--space-5, 20px);
+  margin-top: var(--space-6);
 }
 
 .location {
@@ -349,6 +349,36 @@
   font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.sourceRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-4);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sourceRow span,
+.sourceRow a {
+  border: 1px solid rgba(233, 229, 223, 0.13);
+  color: rgba(233, 229, 223, 0.58);
+  padding: var(--space-1) var(--space-2);
+}
+
+.sourceRow a {
+  border-color: rgba(168, 138, 90, 0.46);
+  color: #d9c59f;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.sourceRow a:hover {
+  border-color: rgba(168, 138, 90, 0.82);
+  color: var(--color-text);
 }
 
 .intensity {

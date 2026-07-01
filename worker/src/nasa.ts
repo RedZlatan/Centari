@@ -290,7 +290,7 @@ async function main(): Promise<void> {
         const payload = {
           slug,
           title,
-          summary: abstract.slice(0, 800),
+          summary: abstract.slice(0, 490),
           source_name: `NASA NTRS — ${mission.name}`,
           source_url: `https://ntrs.nasa.gov/citations/${ntrsId}`,
           category: 'space',

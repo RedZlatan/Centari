@@ -229,6 +229,8 @@ async function main(): Promise<void> {
       result.signals_written < MAX_TOTAL &&
       !exhausted
     ) {
+      if (page > 0) await new Promise<void>(r => setTimeout(r, 500));
+
       let records: OstiRecord[];
       try {
         records = await fetchOstiPage(dq.keyword, page, fromDate);
@@ -270,7 +272,7 @@ async function main(): Promise<void> {
         const payload = {
           slug,
           title,
-          summary:         abstract.slice(0, 800),
+          summary:         abstract.slice(0, 490),
           source_name:     'DOE OSTI',
           source_url:      sourceUrl,
           category:        dq.domain,

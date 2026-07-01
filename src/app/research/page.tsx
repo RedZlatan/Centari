@@ -82,6 +82,18 @@ type SatelliteDefinition = {
   color: string;
 };
 
+type SpaceTelemetry = {
+  id: string;
+  name: string;
+  type: "deep-space" | "zombie";
+  distance: string;
+  status: string;
+  dataRate: string;
+  band: string;
+  description?: string;
+  rtlt?: string;
+};
+
 type WorldAtlasObjects = {
   countries: GeometryCollection;
 };
@@ -1182,6 +1194,8 @@ export default function ResearchPage() {
   const [apiTrends, setApiTrends] = useState<Signal[] | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiLoadStatus>("loading");
   const [apiError, setApiError] = useState<string | null>(null);
+  const [spaceTelemetry, setSpaceTelemetry] = useState<SpaceTelemetry[]>([]);
+  const [spaceTimestamp, setSpaceTimestamp] = useState<string | null>(null);
   const { categories, signals, clusters } = mapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
   const [selectedId, setSelectedId] = useState(signals[0].id);
@@ -1251,6 +1265,38 @@ export default function ResearchPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSpaceTelemetry() {
+      try {
+        const response = await fetch("/api/space", { cache: "no-store" });
+        const payload = await response.json() as {
+          satellites?: SpaceTelemetry[];
+          timestamp?: string;
+        };
+
+        if (!cancelled) {
+          setSpaceTelemetry(Array.isArray(payload.satellites) ? payload.satellites : []);
+          setSpaceTimestamp(payload.timestamp ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSpaceTelemetry([]);
+          setSpaceTimestamp(null);
+        }
+      }
+    }
+
+    void loadSpaceTelemetry();
+    const interval = window.setInterval(loadSpaceTelemetry, 30000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const filteredSignals = useMemo(
     () =>
       activeCategory === "All"
@@ -1283,6 +1329,19 @@ export default function ResearchPage() {
     () => (activeMission ? signals.filter((signal) => getSignalMissions(signal).includes(activeMission)) : []),
     [activeMission, signals],
   );
+  const activeTelemetry = useMemo(() => {
+    if (!activeSatellite) {
+      return [];
+    }
+
+    const missionTerms = missionKeywords[activeSatellite.id];
+    const exactMatches = spaceTelemetry.filter((item) => {
+      const text = `${item.id} ${item.name}`.toLowerCase();
+      return missionTerms.some((term) => text.includes(term));
+    });
+
+    return exactMatches.length > 0 ? exactMatches : spaceTelemetry.slice(0, 4);
+  }, [activeSatellite, spaceTelemetry]);
 
   const filteredSignalIds = useMemo(
     () => new Set(filteredSignals.map((signal) => signal.id)),
@@ -1404,6 +1463,45 @@ export default function ResearchPage() {
                   Signals in this view are tagged to the selected mission. Use it as a quick way to
                   separate space infrastructure from the broader research map.
                 </p>
+                <div className={styles.telemetryPanel}>
+                  <div className={styles.telemetryHeader}>
+                    <span>JPL DSN live feed</span>
+                    <em>{spaceTimestamp ? new Date(spaceTimestamp).toLocaleTimeString("en-GB") : "standby"}</em>
+                  </div>
+                  {activeTelemetry.length > 0 ? (
+                    <div className={styles.telemetryGrid}>
+                      {activeTelemetry.map((item) => (
+                        <div key={item.id} className={styles.telemetryCard}>
+                          <span>{item.type.replace("-", " ")}</span>
+                          <strong>{item.name}</strong>
+                          <dl>
+                            <div>
+                              <dt>Status</dt>
+                              <dd>{item.status}</dd>
+                            </div>
+                            <div>
+                              <dt>Distance</dt>
+                              <dd>{item.distance === "unknown" ? "unknown" : `${item.distance} km`}</dd>
+                            </div>
+                            <div>
+                              <dt>Band</dt>
+                              <dd>{item.band}</dd>
+                            </div>
+                            {item.rtlt && item.rtlt !== "unknown" && item.rtlt !== "-1" ? (
+                              <div>
+                                <dt>Light time</dt>
+                                <dd>{item.rtlt} s</dd>
+                              </div>
+                            ) : null}
+                          </dl>
+                          {item.description ? <p>{item.description}</p> : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={styles.telemetryEmpty}>Live space telemetry is loading.</p>
+                  )}
+                </div>
                 <button type="button" className={styles.panelAction} onClick={() => setActiveMission(null)}>
                   Return to signal detail
                 </button>

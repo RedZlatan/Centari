@@ -18,7 +18,11 @@
     "worker:nsf": "tsx worker/src/nsf.ts",
     "worker:nsf:dry": "tsx worker/src/nsf.ts --dry-run --max=10",
     "worker:osti": "tsx worker/src/osti.ts",
-    "worker:osti:dry": "tsx worker/src/osti.ts --dry-run --max=10"
+    "worker:osti:dry": "tsx worker/src/osti.ts --dry-run --max=10",
+    "worker:snapshot:daily": "tsx worker/src/snapshots.ts --period=daily",
+    "worker:snapshot:weekly": "tsx worker/src/snapshots.ts --period=weekly",
+    "worker:snapshot:monthly": "tsx worker/src/snapshots.ts --period=monthly",
+    "worker:snapshot:dry": "tsx worker/src/snapshots.ts --period=daily --dry-run"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

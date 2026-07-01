@@ -10,7 +10,7 @@ import type { FeatureCollection, Position } from "geojson";
 import { feature } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
 import { BackSide, DoubleSide, MathUtils, Vector3 } from "three";
-import type { Mesh } from "three";
+import type { Group } from "three";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -984,7 +984,7 @@ function SatelliteOrbit({
   active: boolean;
   onSelect: (mission: Mission) => void;
 }) {
-  const satelliteRef = useRef<Mesh>(null);
+  const satelliteRef = useRef<Group>(null);
   const angleRef = useRef(satellite.ascendingNode * 0.6);
   const orbitPoints = useMemo(() => getOrbitPoints(satellite.radius, satellite.inclination), [satellite]);
   const inc = MathUtils.degToRad(satellite.inclination);
@@ -1011,16 +1011,28 @@ function SatelliteOrbit({
         transparent
         opacity={active ? 0.44 : 0.18}
       />
-      <mesh
+      <group
         ref={satelliteRef}
         onClick={(event: ThreeEvent<MouseEvent>) => {
           event.stopPropagation();
           onSelect(satellite.id);
         }}
+        onPointerOver={() => {
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "";
+        }}
       >
-        <octahedronGeometry args={[active ? 0.105 : 0.078, 0]} />
-        <meshBasicMaterial color={satellite.color} transparent opacity={active ? 0.98 : 0.82} />
-      </mesh>
+        <mesh>
+          <octahedronGeometry args={[active ? 0.105 : 0.078, 0]} />
+          <meshBasicMaterial color={satellite.color} transparent opacity={active ? 0.98 : 0.82} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[active ? 0.3 : 0.24, 16, 16]} />
+          <meshBasicMaterial color={satellite.color} transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </group>
     </group>
   );
 }

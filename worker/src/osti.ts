@@ -273,7 +273,7 @@ async function main(): Promise<void> {
           summary:         abstract.slice(0, 800),
           source_name:     'DOE OSTI',
           source_url:      sourceUrl,
-          domain:          dq.domain,
+          category:        dq.domain,
           signal_type:     signalType,
           confidence:      'verified',
           status:          'pending',

@@ -293,7 +293,7 @@ async function main(): Promise<void> {
           summary: abstract.slice(0, 800),
           source_name: `NASA NTRS — ${mission.name}`,
           source_url: `https://ntrs.nasa.gov/citations/${ntrsId}`,
-          domain: 'space',
+          category: 'space',
           signal_type: signalType,
           confidence: 'verified',
           status: 'pending',

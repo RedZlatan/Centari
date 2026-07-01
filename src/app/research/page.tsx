@@ -160,14 +160,44 @@ type LaunchEvent = {
   };
 };
 
+type ResilienceLayer = "airquality" | "wildfires" | "disasters" | "outbreaks" | "waterstress" | "conflicts";
+
+type ResilienceEvent = {
+  id: string;
+  layer: ResilienceLayer;
+  title: string;
+  subtitle: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  severity: string;
+  valueLabel: string;
+  value?: number | null;
+  description: string;
+  sourceName: string;
+  sourceMode: "live" | "curated_reference" | "requires_licensed_source";
+  sourceUrl?: string | null;
+  observedAt?: string | null;
+};
+
 type EarthLayerSelection =
   | { type: "earthquake"; item: EarthquakeEvent }
   | { type: "buoy"; item: BuoyObservation }
   | { type: "asteroid"; item: AsteroidEvent }
   | { type: "launch"; item: LaunchEvent }
-  | { type: "spaceweather"; item: SpaceWeather };
+  | { type: "spaceweather"; item: SpaceWeather }
+  | { type: "resilience"; item: ResilienceEvent };
 
-type LiveLayer = "satellites" | "earthquakes" | "buoys" | "asteroids" | "spaceweather" | "launches" | "radio";
+type LiveLayer =
+  | "satellites"
+  | "earthquakes"
+  | "buoys"
+  | "asteroids"
+  | "spaceweather"
+  | "launches"
+  | "radio"
+  | ResilienceLayer;
 
 type WorldAtlasObjects = {
   countries: GeometryCollection;
@@ -226,6 +256,33 @@ const spyRadioStations: SpyRadioStation[] = [
     notes: "Open live shortwave stream for the long-running Russian military radio marker known as UVB-76.",
   },
 ];
+
+const resilienceLayerLabels: Record<ResilienceLayer, string> = {
+  airquality: "Air",
+  wildfires: "Fire",
+  disasters: "GDACS",
+  outbreaks: "Disease",
+  waterstress: "Water",
+  conflicts: "Conflict",
+};
+
+const resilienceLayerMeta: Record<ResilienceLayer, { label: string; sourceLabel: string; color: string }> = {
+  airquality: { label: "Air quality", sourceLabel: "Open-Meteo", color: "#c7b36d" },
+  wildfires: { label: "Wildfire", sourceLabel: "NASA EONET", color: "#ff7043" },
+  disasters: { label: "Disaster alert", sourceLabel: "GDACS", color: "#ff3f35" },
+  outbreaks: { label: "Outbreak watch", sourceLabel: "Curated reference", color: "#9ddb64" },
+  waterstress: { label: "Water stress", sourceLabel: "Curated reference", color: "#d99352" },
+  conflicts: { label: "Conflict scaffold", sourceLabel: "Licensed source required", color: "#e55454" },
+};
+
+const resilienceLayerMaxVisible: Record<ResilienceLayer, number> = {
+  airquality: 10,
+  wildfires: 32,
+  disasters: 12,
+  outbreaks: 3,
+  waterstress: 5,
+  conflicts: 8,
+};
 
 const missionKeywords: Record<Mission, string[]> = {
   iss: ["iss", "international space station"],
@@ -1023,6 +1080,138 @@ function getDistributedBuoys(buoys: BuoyObservation[], maxCount = 36) {
   return selected;
 }
 
+function isValidCoordinates(value: unknown): value is { latitude: number; longitude: number } {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.latitude === "number" &&
+    typeof value.longitude === "number" &&
+    Number.isFinite(value.latitude) &&
+    Number.isFinite(value.longitude)
+  );
+}
+
+function getSourceMode(record: ApiRecord): ResilienceEvent["sourceMode"] {
+  const mode = getString(record, ["source_mode", "sourceMode"], "live");
+
+  if (mode === "curated_reference" || mode === "requires_licensed_source") {
+    return mode;
+  }
+
+  return "live";
+}
+
+function getResilienceValueLabel(layer: ResilienceLayer, record: ApiRecord) {
+  if (layer === "airquality") {
+    const aqi = getOptionalNumber(record, ["us_aqi"]);
+    return aqi === null ? "AQI unknown" : `AQI ${Math.round(aqi)}`;
+  }
+
+  if (layer === "wildfires") {
+    const acres = getOptionalNumber(record, ["magnitude_acres"]);
+    return acres === null ? "Thermal anomaly" : `${Math.round(acres).toLocaleString("en-GB")} acres`;
+  }
+
+  if (layer === "disasters") {
+    return getString(record, ["severity"], "Alert");
+  }
+
+  if (layer === "outbreaks") {
+    const cases = getOptionalNumber(record, ["cases_reported"]);
+    return cases === null ? getString(record, ["status"], "Watch") : `${Math.round(cases).toLocaleString("en-GB")} cases`;
+  }
+
+  if (layer === "waterstress") {
+    const population = getOptionalNumber(record, ["affected_population_millions"]);
+    return population === null ? getString(record, ["severity"], "Stress") : `${population.toFixed(1)}M exposed`;
+  }
+
+  const fatalities = getOptionalNumber(record, ["fatalities"]);
+  return fatalities === null ? "Source required" : `${Math.round(fatalities)} fatalities`;
+}
+
+function getResilienceValue(layer: ResilienceLayer, record: ApiRecord) {
+  if (layer === "airquality") {
+    return getOptionalNumber(record, ["us_aqi"]);
+  }
+
+  if (layer === "wildfires") {
+    return getOptionalNumber(record, ["magnitude_acres"]);
+  }
+
+  if (layer === "outbreaks") {
+    return getOptionalNumber(record, ["cases_reported"]);
+  }
+
+  if (layer === "waterstress") {
+    return getOptionalNumber(record, ["affected_population_millions"]);
+  }
+
+  if (layer === "conflicts") {
+    return getOptionalNumber(record, ["fatalities"]);
+  }
+
+  return null;
+}
+
+function normalizeResilienceEvents(payload: unknown, layer: ResilienceLayer, keys: string[]): ResilienceEvent[] {
+  return getPayloadArray(payload, keys)
+    .map((item): ResilienceEvent | null => {
+      if (!isRecord(item) || !isValidCoordinates(item.coordinates)) {
+        return null;
+      }
+
+      const fallbackMeta = resilienceLayerMeta[layer];
+      const title =
+        layer === "airquality"
+          ? getString(item, ["city"], fallbackMeta.label)
+          : layer === "outbreaks"
+            ? getString(item, ["disease"], fallbackMeta.label)
+            : layer === "waterstress"
+              ? getString(item, ["region"], fallbackMeta.label)
+              : layer === "conflicts"
+                ? getString(item, ["location"], fallbackMeta.label)
+                : getString(item, ["title", "name"], fallbackMeta.label);
+      const subtitle =
+        layer === "airquality"
+          ? getString(item, ["country"], "Air quality station")
+          : layer === "conflicts"
+            ? `${getString(item, ["actor1"], "Unknown actor")} / ${getString(item, ["actor2"], "Unknown actor")}`
+            : getString(item, ["country", "subtitle", "location"], fallbackMeta.sourceLabel);
+
+      return {
+        id: `${layer}-${getString(item, ["id"], title)}`,
+        layer,
+        title,
+        subtitle,
+        coordinates: item.coordinates,
+        severity: getString(item, ["risk_level", "severity", "status", "event_type"], fallbackMeta.label),
+        valueLabel: getResilienceValueLabel(layer, item),
+        value: getResilienceValue(layer, item) ?? null,
+        description: getString(item, ["description", "summary"], `${fallbackMeta.label} marker.`),
+        sourceName: getString(item, ["source_name", "sourceName"], fallbackMeta.sourceLabel),
+        sourceMode: getSourceMode(item),
+        sourceUrl: getString(item, ["source", "source_url", "url"], "") || null,
+        observedAt: getString(item, ["observed_at", "date", "timestamp"], "") || null,
+      };
+    })
+    .filter((event): event is ResilienceEvent => Boolean(event));
+}
+
+function getLayerStatusLabel(mode: ResilienceEvent["sourceMode"]) {
+  if (mode === "live") {
+    return "Live";
+  }
+
+  if (mode === "requires_licensed_source") {
+    return "Source required";
+  }
+
+  return "Reference";
+}
+
 function getSignalTier(signal: Signal, count = 1) {
   const score = getTrendScore(signal);
   if (count >= 4 || score >= 92) {
@@ -1468,6 +1657,98 @@ function LaunchMarker({
   );
 }
 
+function ResilienceMarker({
+  event,
+  selected,
+  onSelect,
+}: {
+  event: ResilienceEvent;
+  selected: boolean;
+  onSelect: (event: ResilienceEvent) => void;
+}) {
+  const markerRef = useRef<Group>(null);
+  const position = useMemo(
+    () => lonLatToVector3(event.coordinates.longitude, event.coordinates.latitude, markerRadius + 0.06),
+    [event],
+  );
+  const meta = resilienceLayerMeta[event.layer];
+  const numericValue = typeof event.value === "number" && Number.isFinite(event.value) ? event.value : 0;
+  const baseScale =
+    event.layer === "airquality"
+      ? MathUtils.clamp(0.08 + numericValue / 1200, 0.085, 0.23)
+      : event.layer === "wildfires"
+        ? MathUtils.clamp(0.08 + Math.sqrt(numericValue || 500) / 900, 0.09, 0.24)
+        : event.layer === "waterstress"
+          ? MathUtils.clamp(0.11 + numericValue / 600, 0.12, 0.28)
+          : 0.12;
+  const isFastAlert = event.layer === "wildfires" || event.layer === "disasters";
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) {
+      return;
+    }
+
+    const pulseSpeed = isFastAlert ? 4.4 : event.layer === "waterstress" ? 1.1 : 2.4;
+    const pulseAmount = isFastAlert ? 0.2 : 0.1;
+    const pulse = 1 + Math.sin(clock.elapsedTime * pulseSpeed + event.id.length) * pulseAmount;
+    markerRef.current.scale.setScalar(selected ? pulse * 1.22 : pulse);
+  });
+
+  return (
+    <group
+      ref={markerRef}
+      position={position}
+      onClick={(clickEvent: ThreeEvent<MouseEvent>) => {
+        clickEvent.stopPropagation();
+        onSelect(event);
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <Billboard>
+        {event.layer === "airquality" ? (
+          <mesh>
+            <circleGeometry args={[baseScale * 2.4, 32]} />
+            <meshBasicMaterial color={meta.color} transparent opacity={selected ? 0.34 : 0.18} side={DoubleSide} />
+          </mesh>
+        ) : null}
+        {event.layer === "waterstress" ? (
+          <mesh>
+            <ringGeometry args={[baseScale * 1.7, baseScale * 2.55, 36]} />
+            <meshBasicMaterial color={meta.color} transparent opacity={selected ? 0.42 : 0.18} side={DoubleSide} />
+          </mesh>
+        ) : (
+          <mesh>
+            <ringGeometry args={[baseScale * 1.15, baseScale * 1.85, 28]} />
+            <meshBasicMaterial color={meta.color} transparent opacity={selected ? 0.7 : 0.28} side={DoubleSide} />
+          </mesh>
+        )}
+        <mesh rotation={[0, 0, event.layer === "disasters" || event.layer === "conflicts" ? Math.PI / 4 : 0]}>
+          <planeGeometry args={[baseScale * 1.25, baseScale * 1.25]} />
+          <meshBasicMaterial color={meta.color} transparent opacity={selected ? 0.94 : 0.68} side={DoubleSide} />
+        </mesh>
+        {event.layer === "wildfires" || event.layer === "disasters" ? (
+          <Line
+            points={[new Vector3(0, -baseScale * 1.4, 0), new Vector3(0, baseScale * 1.8, 0)]}
+            color={meta.color}
+            lineWidth={1.1}
+            transparent
+            opacity={selected ? 0.82 : 0.46}
+          />
+        ) : null}
+        <mesh>
+          <sphereGeometry args={[baseScale * 3.2, 16, 16]} />
+          <meshBasicMaterial color={meta.color} transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
 function SpaceWeatherShield({
   spaceWeather,
   selected,
@@ -1588,6 +1869,7 @@ function ResearchGlobe({
   asteroids,
   spaceWeather,
   launches,
+  resilienceEvents,
   showRadio,
   radioActive,
   onOpenRadio,
@@ -1605,6 +1887,7 @@ function ResearchGlobe({
   asteroids: AsteroidEvent[];
   spaceWeather: SpaceWeather | null;
   launches: LaunchEvent[];
+  resilienceEvents: ResilienceEvent[];
   showRadio: boolean;
   radioActive: boolean;
   onOpenRadio: () => void;
@@ -1718,6 +2001,15 @@ function ResearchGlobe({
             />
           ))}
 
+          {resilienceEvents.map((event) => (
+            <ResilienceMarker
+              key={event.id}
+              event={event}
+              selected={selectedEarthLayer?.type === "resilience" && selectedEarthLayer.item.id === event.id}
+              onSelect={(item) => onSelectEarthLayer({ type: "resilience", item })}
+            />
+          ))}
+
           {showRadio ? <SpyRadioMarker active={radioActive} onOpen={onOpenRadio} /> : null}
 
           {clusters.map((cluster) => {
@@ -1823,6 +2115,7 @@ export default function ResearchPage() {
   const [asteroids, setAsteroids] = useState<AsteroidEvent[]>([]);
   const [spaceWeather, setSpaceWeather] = useState<SpaceWeather | null>(null);
   const [launches, setLaunches] = useState<LaunchEvent[]>([]);
+  const [resilienceEvents, setResilienceEvents] = useState<ResilienceEvent[]>([]);
   const [earthLayerTimestamp, setEarthLayerTimestamp] = useState<string | null>(null);
   const { categories, signals, clusters } = mapData;
   const [activeCategory, setActiveCategory] = useState<SignalCategory>("All");
@@ -1838,6 +2131,12 @@ export default function ResearchPage() {
     spaceweather: true,
     launches: true,
     radio: true,
+    airquality: true,
+    wildfires: true,
+    disasters: true,
+    outbreaks: false,
+    waterstress: true,
+    conflicts: false,
   });
 
   useEffect(() => {
@@ -1909,27 +2208,73 @@ export default function ResearchPage() {
 
     async function loadEarthLayers() {
       try {
-        const [earthquakeResponse, buoyResponse, asteroidResponse, spaceWeatherResponse, launchResponse] = await Promise.all([
+        const [
+          earthquakeResponse,
+          buoyResponse,
+          asteroidResponse,
+          spaceWeatherResponse,
+          launchResponse,
+          airQualityResponse,
+          wildfireResponse,
+          disasterResponse,
+          outbreakResponse,
+          waterStressResponse,
+          conflictResponse,
+        ] = await Promise.all([
           fetch("/api/earthquakes", { cache: "no-store" }),
           fetch("/api/buoys", { cache: "no-store" }),
           fetch("/api/asteroids", { cache: "no-store" }),
           fetch("/api/spaceweather", { cache: "no-store" }),
           fetch("/api/launches", { cache: "no-store" }),
+          fetch("/api/airquality", { cache: "no-store" }),
+          fetch("/api/wildfires", { cache: "no-store" }),
+          fetch("/api/disasters", { cache: "no-store" }),
+          fetch("/api/outbreaks", { cache: "no-store" }),
+          fetch("/api/waterstress", { cache: "no-store" }),
+          fetch("/api/conflicts", { cache: "no-store" }),
         ]);
-        const [earthquakePayload, buoyPayload, asteroidPayload, spaceWeatherPayload, launchPayload] = await Promise.all([
+        const [
+          earthquakePayload,
+          buoyPayload,
+          asteroidPayload,
+          spaceWeatherPayload,
+          launchPayload,
+          airQualityPayload,
+          wildfirePayload,
+          disasterPayload,
+          outbreakPayload,
+          waterStressPayload,
+          conflictPayload,
+        ] = await Promise.all([
           earthquakeResponse.json() as Promise<{ earthquakes?: EarthquakeEvent[]; timestamp?: string }>,
           buoyResponse.json() as Promise<{ buoys?: BuoyObservation[]; timestamp?: string }>,
           asteroidResponse.json() as Promise<{ asteroids?: AsteroidEvent[]; timestamp?: string }>,
           spaceWeatherResponse.json() as Promise<SpaceWeather & { success?: boolean }>,
           launchResponse.json() as Promise<{ launches?: LaunchEvent[]; timestamp?: string }>,
+          airQualityResponse.json() as Promise<unknown>,
+          wildfireResponse.json() as Promise<unknown>,
+          disasterResponse.json() as Promise<unknown>,
+          outbreakResponse.json() as Promise<unknown>,
+          waterStressResponse.json() as Promise<unknown>,
+          conflictResponse.json() as Promise<unknown>,
         ]);
 
         if (!cancelled) {
+          const nextResilienceEvents = [
+            ...normalizeResilienceEvents(airQualityPayload, "airquality", ["air_quality", "data", "items"]),
+            ...normalizeResilienceEvents(wildfirePayload, "wildfires", ["wildfires", "data", "items"]),
+            ...normalizeResilienceEvents(disasterPayload, "disasters", ["data", "disasters", "items"]),
+            ...normalizeResilienceEvents(outbreakPayload, "outbreaks", ["data", "outbreaks", "items"]),
+            ...normalizeResilienceEvents(waterStressPayload, "waterstress", ["data", "waterstress", "items"]),
+            ...normalizeResilienceEvents(conflictPayload, "conflicts", ["data", "conflicts", "items"]),
+          ];
+
           setEarthquakes(Array.isArray(earthquakePayload.earthquakes) ? earthquakePayload.earthquakes : []);
           setBuoys(Array.isArray(buoyPayload.buoys) ? buoyPayload.buoys : []);
           setAsteroids(Array.isArray(asteroidPayload.asteroids) ? asteroidPayload.asteroids : []);
           setSpaceWeather(typeof spaceWeatherPayload.current_kp === "number" ? spaceWeatherPayload : null);
           setLaunches(Array.isArray(launchPayload.launches) ? launchPayload.launches : []);
+          setResilienceEvents(nextResilienceEvents);
           setEarthLayerTimestamp(
             earthquakePayload.timestamp ??
             buoyPayload.timestamp ??
@@ -1946,6 +2291,7 @@ export default function ResearchPage() {
           setAsteroids([]);
           setSpaceWeather(null);
           setLaunches([]);
+          setResilienceEvents([]);
           setEarthLayerTimestamp(null);
         }
       }
@@ -2045,6 +2391,26 @@ export default function ResearchPage() {
   const visibleAsteroids = liveLayers.asteroids ? asteroids.slice(0, 12) : [];
   const visibleSpaceWeather = liveLayers.spaceweather ? spaceWeather : null;
   const visibleLaunches = liveLayers.launches ? launches.slice(0, 5) : [];
+  const visibleResilienceEvents = useMemo(
+    () => {
+      const visibleByLayer: Partial<Record<ResilienceLayer, number>> = {};
+
+      return resilienceEvents.filter((event) => {
+        if (!liveLayers[event.layer]) {
+          return false;
+        }
+
+        const currentCount = visibleByLayer[event.layer] ?? 0;
+        if (currentCount >= resilienceLayerMaxVisible[event.layer]) {
+          return false;
+        }
+
+        visibleByLayer[event.layer] = currentCount + 1;
+        return true;
+      });
+    },
+    [liveLayers, resilienceEvents],
+  );
 
   const filteredSignalIds = useMemo(
     () => new Set(filteredSignals.map((signal) => signal.id)),
@@ -2132,6 +2498,10 @@ export default function ResearchPage() {
         setSelectedEarthLayer(null);
       }
 
+      if (selectedEarthLayer?.type === "resilience" && selectedEarthLayer.item.layer === layer && !next[layer]) {
+        setSelectedEarthLayer(null);
+      }
+
       if (layer === "radio" && !next.radio) {
         setActiveSpyRadioId(null);
       }
@@ -2196,6 +2566,12 @@ export default function ResearchPage() {
                   ["asteroids", `NEO ${visibleAsteroids.length}`],
                   ["spaceweather", `Kp ${spaceWeather ? spaceWeather.current_kp.toFixed(1) : "-"}`],
                   ["launches", `Launches ${visibleLaunches.length}`],
+                  ["wildfires", `Fire ${resilienceEvents.filter((event) => event.layer === "wildfires").length}`],
+                  ["airquality", `Air ${resilienceEvents.filter((event) => event.layer === "airquality").length}`],
+                  ["disasters", `GDACS ${resilienceEvents.filter((event) => event.layer === "disasters").length}`],
+                  ["waterstress", "Water"],
+                  ["outbreaks", "Disease"],
+                  ["conflicts", "Conflict"],
                   ["radio", "Radio"],
                   ["satellites", "Satellites"],
                 ] as const).map(([layer, label]) => (
@@ -2216,7 +2592,7 @@ export default function ResearchPage() {
               <div className={styles.mapStatus} aria-hidden="true">
                 <span>Rotating globe / strategic signal layer</span>
                 <span>
-                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleBuoys.length} buoys / {visibleAsteroids.length} NEO
+                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleBuoys.length} buoys / {visibleResilienceEvents.length} earth layers
                 </span>
               </div>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
@@ -2238,6 +2614,7 @@ export default function ResearchPage() {
                 asteroids={visibleAsteroids}
                 spaceWeather={visibleSpaceWeather}
                 launches={visibleLaunches}
+                resilienceEvents={visibleResilienceEvents}
                 showRadio={liveLayers.radio}
                 radioActive={activeSpyRadioId !== null}
                 onOpenRadio={openSpyRadio}
@@ -2263,6 +2640,7 @@ export default function ResearchPage() {
                     {selectedEarthLayer.type === "asteroid" ? "Near-Earth object" : null}
                     {selectedEarthLayer.type === "spaceweather" ? "Magnetic field" : null}
                     {selectedEarthLayer.type === "launch" ? "Launch window" : null}
+                    {selectedEarthLayer.type === "resilience" ? resilienceLayerMeta[selectedEarthLayer.item.layer].label : null}
                   </span>
                   <span>
                     {selectedEarthLayer.type === "earthquake" ? "USGS live" : null}
@@ -2270,8 +2648,15 @@ export default function ResearchPage() {
                     {selectedEarthLayer.type === "asteroid" ? "NASA/JPL CAD" : null}
                     {selectedEarthLayer.type === "spaceweather" ? "NOAA SWPC" : null}
                     {selectedEarthLayer.type === "launch" ? "Launch Library" : null}
+                    {selectedEarthLayer.type === "resilience" ? selectedEarthLayer.item.sourceName : null}
                   </span>
-                  <span>{earthLayerTimestamp ? new Date(earthLayerTimestamp).toLocaleTimeString("en-GB") : "live"}</span>
+                  <span>
+                    {selectedEarthLayer.type === "resilience"
+                      ? getLayerStatusLabel(selectedEarthLayer.item.sourceMode)
+                      : earthLayerTimestamp
+                        ? new Date(earthLayerTimestamp).toLocaleTimeString("en-GB")
+                        : "live"}
+                  </span>
                 </div>
                 {selectedEarthLayer.type === "earthquake" ? (
                   <>
@@ -2409,6 +2794,43 @@ export default function ResearchPage() {
                         <span>{new Date(selectedEarthLayer.item.net).toLocaleString("en-GB")}</span>
                       </div>
                     ) : null}
+                  </>
+                ) : null}
+                {selectedEarthLayer.type === "resilience" ? (
+                  <>
+                    <h2>{selectedEarthLayer.item.title}</h2>
+                    <p className={styles.location}>{selectedEarthLayer.item.subtitle} / {resilienceLayerLabels[selectedEarthLayer.item.layer]}</p>
+                    <p>{selectedEarthLayer.item.description}</p>
+                    <div className={styles.liveMetrics}>
+                      <div>
+                        <span>Layer</span>
+                        <strong>{resilienceLayerMeta[selectedEarthLayer.item.layer].label}</strong>
+                      </div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{selectedEarthLayer.item.severity}</strong>
+                      </div>
+                      <div>
+                        <span>Reading</span>
+                        <strong>{selectedEarthLayer.item.valueLabel}</strong>
+                      </div>
+                    </div>
+                    {selectedEarthLayer.item.sourceMode !== "live" ? (
+                      <p className={styles.warningNote}>
+                        {selectedEarthLayer.item.sourceMode === "requires_licensed_source"
+                          ? "Scaffold only. A licensed real data source is required before this layer can show live events."
+                          : "Reference layer. Useful for context, but not a real-time event feed."}
+                      </p>
+                    ) : null}
+                    <div className={styles.sourceRow}>
+                      <span>{selectedEarthLayer.item.sourceName}</span>
+                      {selectedEarthLayer.item.observedAt ? <span>{selectedEarthLayer.item.observedAt}</span> : null}
+                      {selectedEarthLayer.item.sourceUrl ? (
+                        <a href={selectedEarthLayer.item.sourceUrl} target="_blank" rel="noreferrer">
+                          Open source
+                        </a>
+                      ) : null}
+                    </div>
                   </>
                 ) : null}
                 <button type="button" className={styles.panelAction} onClick={() => setSelectedEarthLayer(null)}>

@@ -15,6 +15,7 @@ import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { SpyRadio } from "@/components/research/SpyRadio";
+import type { SpyRadioStation } from "@/components/research/SpyRadio";
 import styles from "./research.module.css";
 
 // Natural Earth via world-atlas keeps the map geodata-based without a heavy map runtime.
@@ -210,6 +211,19 @@ const satellites: SatelliteDefinition[] = [
     ascendingNode: Math.PI * 1.4,
     speed: 0.045,
     color: "#a78bfa",
+  },
+];
+
+const spyRadioStations: SpyRadioStation[] = [
+  {
+    id: "uvb-76",
+    stationName: "UVB-76 / THE BUZZER",
+    codename: "Buzzer",
+    frequency: "4625.00 kHz",
+    location: "Western Russia",
+    status: "live",
+    streamUrl: "http://stream.uvb-76.net:8000/uvb76.mp3",
+    notes: "Open live shortwave stream for the long-running Russian military radio marker known as UVB-76.",
   },
 ];
 
@@ -1815,7 +1829,7 @@ export default function ResearchPage() {
   const [selectedId, setSelectedId] = useState(signals[0].id);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [selectedEarthLayer, setSelectedEarthLayer] = useState<EarthLayerSelection | null>(null);
-  const [spyRadioActive, setSpyRadioActive] = useState(false);
+  const [activeSpyRadioId, setActiveSpyRadioId] = useState<string | null>(null);
   const [liveLayers, setLiveLayers] = useState<Record<LiveLayer, boolean>>({
     satellites: true,
     earthquakes: true,
@@ -2055,7 +2069,7 @@ export default function ResearchPage() {
     setActiveCategory(category);
     setActiveMission(null);
     setSelectedEarthLayer(null);
-    setSpyRadioActive(false);
+    setActiveSpyRadioId(null);
     const nextSignal = category === "All" ? signals[0] : signals.find((signal) => signal.category === category);
     if (nextSignal) {
       setSelectedId(nextSignal.id);
@@ -2065,26 +2079,26 @@ export default function ResearchPage() {
   function selectSignal(id: string) {
     setActiveMission(null);
     setSelectedEarthLayer(null);
-    setSpyRadioActive(false);
+    setActiveSpyRadioId(null);
     setSelectedId(id);
   }
 
   function selectMission(mission: Mission) {
     setSelectedEarthLayer(null);
-    setSpyRadioActive(false);
+    setActiveSpyRadioId(null);
     setActiveMission(mission);
   }
 
   function selectEarthLayer(selection: EarthLayerSelection) {
     setActiveMission(null);
-    setSpyRadioActive(false);
+    setActiveSpyRadioId(null);
     setSelectedEarthLayer(selection);
   }
 
   function openSpyRadio() {
     setActiveMission(null);
     setSelectedEarthLayer(null);
-    setSpyRadioActive(true);
+    setActiveSpyRadioId(spyRadioStations[0].id);
   }
 
   function toggleLiveLayer(layer: LiveLayer) {
@@ -2119,7 +2133,7 @@ export default function ResearchPage() {
       }
 
       if (layer === "radio" && !next.radio) {
-        setSpyRadioActive(false);
+        setActiveSpyRadioId(null);
       }
 
       return next;
@@ -2225,13 +2239,16 @@ export default function ResearchPage() {
                 spaceWeather={visibleSpaceWeather}
                 launches={visibleLaunches}
                 showRadio={liveLayers.radio}
-                radioActive={spyRadioActive}
+                radioActive={activeSpyRadioId !== null}
                 onOpenRadio={openSpyRadio}
                 selectedEarthLayer={selectedEarthLayer}
                 onSelectEarthLayer={selectEarthLayer}
               />
-              {spyRadioActive ? (
-                <SpyRadio onClose={() => setSpyRadioActive(false)} />
+              {activeSpyRadioId ? (
+                <SpyRadio
+                  station={spyRadioStations.find((station) => station.id === activeSpyRadioId) ?? spyRadioStations[0]}
+                  onClose={() => setActiveSpyRadioId(null)}
+                />
               ) : null}
             </div>
           </div>

@@ -6,22 +6,34 @@ import styles from "./SpyRadio.module.css";
 
 type SpyRadioProps = {
   onClose: () => void;
-  frequency?: string;
-  stationName?: string;
+  station: SpyRadioStation;
 };
 
-const defaultStreamUrl = "http://stream.uvb-76.net:8000/uvb76.mp3";
+export type SpyRadioStation = {
+  id: string;
+  stationName: string;
+  codename: string;
+  frequency: string;
+  location: string;
+  status: "live" | "active" | "scheduled";
+  streamUrl?: string;
+  notes: string;
+};
 
 export function SpyRadio({
   onClose,
-  frequency = "4625.00 kHz",
-  stationName = "UVB-76 / THE BUZZER",
+  station,
 }: SpyRadioProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [status, setStatus] = useState<"standby" | "live" | "lost">("standby");
 
   async function togglePlayback() {
     const audio = audioRef.current;
+
+    if (!station.streamUrl) {
+      setStatus("lost");
+      return;
+    }
 
     if (!audio) {
       return;
@@ -46,7 +58,7 @@ export function SpyRadio({
       <div className={styles.header}>
         <div>
           <span>Shortwave intercept</span>
-          <strong>{stationName}</strong>
+          <strong>{station.stationName}</strong>
         </div>
         <button type="button" onClick={onClose} aria-label="Close spy radio">
           Close
@@ -56,13 +68,19 @@ export function SpyRadio({
       <div className={styles.receiver}>
         <div className={styles.frequency}>
           <span>Frequency</span>
-          <strong>{frequency}</strong>
+          <strong>{station.frequency}</strong>
         </div>
         <div className={styles.status} data-status={status}>
           {status === "live" ? "Signal live" : null}
           {status === "standby" ? "Receiver standby" : null}
           {status === "lost" ? "Signal lost" : null}
         </div>
+      </div>
+
+      <div className={styles.stationMeta}>
+        <span>{station.codename}</span>
+        <span>{station.location}</span>
+        <span>{station.status}</span>
       </div>
 
       <div className={styles.scope} data-active={status === "live"}>
@@ -72,22 +90,26 @@ export function SpyRadio({
       </div>
 
       <p>
-        Live open shortwave stream for UVB-76. If the stream fails in production,
-        the browser is probably blocking the non-HTTPS radio source.
+        {station.notes}
+        {station.streamUrl
+          ? " If the stream fails in production, the browser is probably blocking the non-HTTPS radio source."
+          : " This is a real monitored signal, but no stable direct web audio stream is attached yet."}
       </p>
 
       <div className={styles.actions}>
         <button type="button" onClick={togglePlayback}>
-          {status === "live" ? "Pause signal" : "Open channel"}
+          {status === "live" ? "Pause signal" : station.streamUrl ? "Open channel" : "No stream"}
         </button>
-        <audio
-          ref={audioRef}
-          src={defaultStreamUrl}
-          preload="none"
-          onError={() => setStatus("lost")}
-          onPause={() => setStatus((current) => current === "lost" ? "lost" : "standby")}
-          onPlaying={() => setStatus("live")}
-        />
+        {station.streamUrl ? (
+          <audio
+            ref={audioRef}
+            src={station.streamUrl}
+            preload="none"
+            onError={() => setStatus("lost")}
+            onPause={() => setStatus((current) => current === "lost" ? "lost" : "standby")}
+            onPlaying={() => setStatus("live")}
+          />
+        ) : null}
       </div>
     </div>
   );

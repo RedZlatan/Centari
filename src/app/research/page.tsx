@@ -272,7 +272,7 @@ const resilienceLayerMeta: Record<ResilienceLayer, { label: string; sourceLabel:
   disasters: { label: "Disaster alert", sourceLabel: "GDACS", color: "#ff3f35" },
   outbreaks: { label: "Outbreak watch", sourceLabel: "Curated reference", color: "#9ddb64" },
   waterstress: { label: "Water stress", sourceLabel: "Curated reference", color: "#d99352" },
-  conflicts: { label: "Conflict scaffold", sourceLabel: "Licensed source required", color: "#e55454" },
+  conflicts: { label: "Conflict report", sourceLabel: "GDELT Project 2.0", color: "#e55454" },
 };
 
 const resilienceLayerMaxVisible: Record<ResilienceLayer, number> = {
@@ -1128,8 +1128,8 @@ function getResilienceValueLabel(layer: ResilienceLayer, record: ApiRecord) {
     return population === null ? getString(record, ["severity"], "Stress") : `${population.toFixed(1)}M exposed`;
   }
 
-  const fatalities = getOptionalNumber(record, ["fatalities"]);
-  return fatalities === null ? "Source required" : `${Math.round(fatalities)} fatalities`;
+  const mentions = getOptionalNumber(record, ["num_mentions", "mentions"]);
+  return mentions === null ? "Mentions unknown" : `${Math.round(mentions)} mentions`;
 }
 
 function getResilienceValue(layer: ResilienceLayer, record: ApiRecord) {
@@ -1150,7 +1150,7 @@ function getResilienceValue(layer: ResilienceLayer, record: ApiRecord) {
   }
 
   if (layer === "conflicts") {
-    return getOptionalNumber(record, ["fatalities"]);
+    return getOptionalNumber(record, ["num_mentions", "mentions"]);
   }
 
   return null;
@@ -1187,7 +1187,7 @@ function normalizeResilienceEvents(payload: unknown, layer: ResilienceLayer, key
         title,
         subtitle,
         coordinates: item.coordinates,
-        severity: getString(item, ["risk_level", "severity", "status", "event_type"], fallbackMeta.label),
+        severity: getString(item, ["risk_level", "severity", "status", "event_type", "event_code"], fallbackMeta.label),
         valueLabel: getResilienceValueLabel(layer, item),
         value: getResilienceValue(layer, item) ?? null,
         description: getString(item, ["description", "summary"], `${fallbackMeta.label} marker.`),
@@ -2136,7 +2136,7 @@ export default function ResearchPage() {
     disasters: true,
     outbreaks: false,
     waterstress: true,
-    conflicts: false,
+    conflicts: true,
   });
 
   useEffect(() => {

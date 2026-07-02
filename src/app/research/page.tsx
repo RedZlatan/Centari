@@ -2505,6 +2505,7 @@ function GlobeMarker({
 }
 
 export default function ResearchPage() {
+  const mapSurfaceRef = useRef<HTMLDivElement>(null);
   const [mapData, setMapData] = useState<ResearchMapPayload>(researchMapData);
   const [apiTrends, setApiTrends] = useState<Signal[] | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiLoadStatus>("loading");
@@ -2527,6 +2528,7 @@ export default function ResearchPage() {
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [selectedEarthLayer, setSelectedEarthLayer] = useState<EarthLayerSelection | null>(null);
   const [activeSpyRadioId, setActiveSpyRadioId] = useState<string | null>(null);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const [liveLayers, setLiveLayers] = useState<Record<LiveLayer, boolean>>({
     satellites: true,
     earthquakes: true,
@@ -2609,6 +2611,18 @@ export default function ResearchPage() {
 
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setMapFullscreen(document.fullscreenElement === mapSurfaceRef.current);
+    }
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, []);
 
@@ -2910,6 +2924,31 @@ export default function ResearchPage() {
     setActiveSpyRadioId(spyRadioStations[0].id);
   }
 
+  async function toggleMapFullscreen() {
+    const element = mapSurfaceRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    try {
+      if (document.fullscreenElement === element) {
+        await document.exitFullscreen();
+        setMapFullscreen(false);
+        return;
+      }
+
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+
+      await element.requestFullscreen();
+      setMapFullscreen(true);
+    } catch {
+      setMapFullscreen((current) => !current);
+    }
+  }
+
   function toggleLiveLayer(layer: LiveLayer) {
     setLiveLayers((current) => {
       const next = {
@@ -3016,24 +3055,24 @@ export default function ResearchPage() {
               </div>
               <div className={styles.layerFilters} aria-label="Live layer filters">
                 {([
-                  ["earthquakes", `Quakes ${earthquakes.length}`],
-                  ["buoys", `Buoys ${visibleBuoys.length}`],
-                  ["asteroids", `NEO ${visibleAsteroids.length}`],
-                  ["spaceweather", `Kp ${spaceWeather ? spaceWeather.current_kp.toFixed(1) : "-"}`],
+                  ["earthquakes", `Seismic ${earthquakes.length}`],
+                  ["buoys", `Ocean buoys ${visibleBuoys.length}`],
+                  ["asteroids", `Close passes ${visibleAsteroids.length}`],
+                  ["spaceweather", `Geomag ${spaceWeather ? spaceWeather.current_kp.toFixed(1) : "-"}`],
                   ["launches", `Launches ${visibleLaunches.length}`],
-                  ["fireballs", `Bolides ${fireballs.length}`],
-                  ["uaps", `UAP ${uaps.length}`],
-                  ["cyberattacks", `Cyber ${cyberattacks.length}`],
-                  ["shipping", `Maritime ${resilienceEvents.filter((event) => event.layer === "shipping").length}`],
-                  ["nuclear", `Nuclear ${resilienceEvents.filter((event) => event.layer === "nuclear").length}`],
-                  ["wildfires", `Fire ${resilienceEvents.filter((event) => event.layer === "wildfires").length}`],
-                  ["airquality", `Air ${resilienceEvents.filter((event) => event.layer === "airquality").length}`],
-                  ["disasters", `GDACS ${resilienceEvents.filter((event) => event.layer === "disasters").length}`],
-                  ["waterstress", "Water"],
-                  ["outbreaks", "Disease"],
-                  ["conflicts", "Conflict"],
-                  ["radio", "Radio"],
-                  ["satellites", "Satellites"],
+                  ["fireballs", `Airbursts ${fireballs.length}`],
+                  ["uaps", `Declassified UAP ${uaps.length}`],
+                  ["cyberattacks", `Cyber sources ${cyberattacks.length}`],
+                  ["shipping", `Chokepoints ${resilienceEvents.filter((event) => event.layer === "shipping").length}`],
+                  ["nuclear", `Nuclear sites ${resilienceEvents.filter((event) => event.layer === "nuclear").length}`],
+                  ["wildfires", `Wildfires ${resilienceEvents.filter((event) => event.layer === "wildfires").length}`],
+                  ["airquality", `Air quality ${resilienceEvents.filter((event) => event.layer === "airquality").length}`],
+                  ["disasters", `Disasters ${resilienceEvents.filter((event) => event.layer === "disasters").length}`],
+                  ["waterstress", "Water stress"],
+                  ["outbreaks", "Outbreaks"],
+                  ["conflicts", "Conflict news"],
+                  ["radio", "Signal radio"],
+                  ["satellites", "Orbiters"],
                 ] as const).map(([layer, label]) => (
                   <button
                     key={layer}
@@ -3048,13 +3087,22 @@ export default function ResearchPage() {
               </div>
             </div>
 
-            <div className={styles.mapSurface}>
+            <div
+              ref={mapSurfaceRef}
+              className={`${styles.mapSurface} ${mapFullscreen ? styles.mapFullscreen : ""}`}
+            >
               <div className={styles.mapStatus} aria-hidden="true">
                 <span>Rotating globe / strategic signal layer</span>
-                <span>
-                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleFireballs.length} bolides / {visibleCyberattacks.length} cyber arcs / {visibleResilienceEvents.length} earth layers
-                </span>
+                <span>{filteredSignals.length} signals / {visibleEarthquakes.length} seismic / {visibleFireballs.length} airbursts / {visibleCyberattacks.length} cyber arcs / {visibleResilienceEvents.length} earth layers</span>
               </div>
+              <button
+                type="button"
+                className={styles.fullscreenButton}
+                onClick={toggleMapFullscreen}
+                aria-pressed={mapFullscreen}
+              >
+                {mapFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              </button>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
                 {apiStatus === "loading" ? "Loading research feed" : null}
                 {apiStatus === "fallback" ? "JSON fallback active" : null}

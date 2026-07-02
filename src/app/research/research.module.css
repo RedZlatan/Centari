@@ -200,7 +200,7 @@
 
 .mapSurface {
   position: relative;
-  min-height: 660px;
+  min-height: clamp(740px, 76vh, 940px);
   overflow: hidden;
   background:
     linear-gradient(rgba(233, 229, 223, 0.026) 1px, transparent 1px),
@@ -209,6 +209,32 @@
     radial-gradient(circle at 74% 30%, rgba(143, 163, 184, 0.055), transparent 30%),
     linear-gradient(180deg, rgba(18, 22, 21, 0.28), rgba(5, 6, 6, 0.62));
   background-size: 72px 72px, 72px 72px, auto, auto;
+}
+
+.mapFullscreen {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  min-height: 100vh;
+  border: 0;
+  background:
+    linear-gradient(rgba(233, 229, 223, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.024) 1px, transparent 1px),
+    radial-gradient(circle at 50% 48%, rgba(168, 138, 90, 0.11), transparent 34%),
+    radial-gradient(circle at 62% 30%, rgba(100, 160, 190, 0.08), transparent 34%),
+    linear-gradient(180deg, #070909, #020303 100%);
+  background-size: 84px 84px, 84px 84px, auto, auto;
+}
+
+.mapSurface:fullscreen {
+  min-height: 100vh;
+  background:
+    linear-gradient(rgba(233, 229, 223, 0.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(233, 229, 223, 0.024) 1px, transparent 1px),
+    radial-gradient(circle at 50% 48%, rgba(168, 138, 90, 0.11), transparent 34%),
+    radial-gradient(circle at 62% 30%, rgba(100, 160, 190, 0.08), transparent 34%),
+    linear-gradient(180deg, #070909, #020303 100%);
+  background-size: 84px 84px, 84px 84px, auto, auto;
 }
 
 .mapStatus {
@@ -225,6 +251,31 @@
   font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.fullscreenButton {
+  position: absolute;
+  z-index: 7;
+  right: var(--space-4);
+  top: calc(var(--space-4) + 36px);
+  min-height: 34px;
+  border: 1px solid rgba(168, 138, 90, 0.46);
+  background:
+    linear-gradient(180deg, rgba(168, 138, 90, 0.16), rgba(10, 12, 12, 0.72)),
+    rgba(8, 10, 10, 0.84);
+  color: #e7d8bd;
+  cursor: pointer;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
+  padding: 0 var(--space-3);
+  text-transform: uppercase;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.fullscreenButton:hover {
+  border-color: rgba(233, 229, 223, 0.72);
+  color: #fff6e6;
 }
 
 .dataStatus {
@@ -254,12 +305,17 @@
 
 .globeStage {
   position: absolute;
-  inset: 6% 2% 6%;
+  inset: 3% 0 3%;
   z-index: 2;
   cursor: grab;
   filter:
     drop-shadow(0 44px 90px rgba(0, 0, 0, 0.5))
     drop-shadow(0 0 34px rgba(168, 138, 90, 0.09));
+}
+
+.mapFullscreen .globeStage,
+.mapSurface:fullscreen .globeStage {
+  inset: 2% 4% 2%;
 }
 
 .globeStage:active {

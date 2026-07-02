@@ -9,7 +9,7 @@ import { geoEqualEarth } from "d3-geo";
 import type { FeatureCollection, Position } from "geojson";
 import { feature } from "topojson-client";
 import type { GeometryCollection, Topology } from "topojson-specification";
-import { BackSide, DoubleSide, MathUtils, Vector3 } from "three";
+import { AdditiveBlending, BackSide, DoubleSide, MathUtils, Vector3 } from "three";
 import type { Group } from "three";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { Footer } from "@/components/layout/Footer";
@@ -160,6 +160,39 @@ type LaunchEvent = {
   };
 };
 
+type FireballEvent = {
+  id: string;
+  timestamp: string;
+  energy_joules: number | null;
+  impact_energy_kt: number | null;
+  radiated_energy_kt: number | null;
+  altitude_km: number | null;
+  velocity_kms: number | null;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  description: string;
+};
+
+type UapEvent = {
+  id: string;
+  title: string;
+  classification: string;
+  shape: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  altitude_ft: number | null;
+  speed_mach: string;
+  timestamp: string;
+  location: string;
+  description: string;
+  sourceName: string;
+  sourceUrl: string;
+};
+
 type ResilienceLayer = "airquality" | "wildfires" | "disasters" | "outbreaks" | "waterstress" | "conflicts";
 
 type ResilienceEvent = {
@@ -186,6 +219,8 @@ type EarthLayerSelection =
   | { type: "buoy"; item: BuoyObservation }
   | { type: "asteroid"; item: AsteroidEvent }
   | { type: "launch"; item: LaunchEvent }
+  | { type: "fireball"; item: FireballEvent }
+  | { type: "uap"; item: UapEvent }
   | { type: "spaceweather"; item: SpaceWeather }
   | { type: "resilience"; item: ResilienceEvent };
 
@@ -196,6 +231,8 @@ type LiveLayer =
   | "asteroids"
   | "spaceweather"
   | "launches"
+  | "fireballs"
+  | "uaps"
   | "radio"
   | ResilienceLayer;
 
@@ -1031,6 +1068,22 @@ function formatNullableMetric(value: number | null | undefined, suffix: string, 
   return `${value.toFixed(digits)} ${suffix}`;
 }
 
+function formatEnergyJoules(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "unknown";
+  }
+
+  if (value >= 1e15) {
+    return `${(value / 1e15).toFixed(2)} PJ`;
+  }
+
+  if (value >= 1e12) {
+    return `${(value / 1e12).toFixed(2)} TJ`;
+  }
+
+  return `${(value / 1e9).toFixed(2)} GJ`;
+}
+
 function formatLaunchCountdown(net: string | null) {
   if (!net) {
     return "time unknown";
@@ -1588,6 +1641,153 @@ function AsteroidMarker({
   );
 }
 
+function FireballMarker({
+  fireball,
+  selected,
+  onSelect,
+}: {
+  fireball: FireballEvent;
+  selected: boolean;
+  onSelect: (fireball: FireballEvent) => void;
+}) {
+  const markerRef = useRef<Group>(null);
+  const altitudeLift = MathUtils.clamp((fireball.altitude_km ?? 30) / 400, 0.05, 0.22);
+  const position = useMemo(
+    () => lonLatToVector3(fireball.coordinates.longitude, fireball.coordinates.latitude, markerRadius + 0.08 + altitudeLift),
+    [altitudeLift, fireball],
+  );
+  const energyKt = fireball.impact_energy_kt ?? fireball.radiated_energy_kt ?? 0.25;
+  const markerScale = MathUtils.clamp(0.08 + Math.sqrt(energyKt) * 0.05, 0.1, 0.34);
+  const surfacePosition = useMemo(
+    () => lonLatToVector3(fireball.coordinates.longitude, fireball.coordinates.latitude, markerRadius - 0.02),
+    [fireball],
+  );
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) {
+      return;
+    }
+
+    const pulse = 1 + Math.sin(clock.elapsedTime * 6 + energyKt) * 0.18;
+    markerRef.current.scale.setScalar(selected ? pulse * 1.28 : pulse);
+  });
+
+  return (
+    <group
+      ref={markerRef}
+      position={position}
+      onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        onSelect(fireball);
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <pointLight color="#ffb65c" intensity={selected ? 1.8 : 0.9} distance={1.8} />
+      <Line
+        points={[new Vector3(0, 0, 0), surfacePosition.clone().sub(position).multiplyScalar(0.72)]}
+        color="#ffb65c"
+        lineWidth={selected ? 2 : 1.2}
+        transparent
+        opacity={selected ? 0.84 : 0.46}
+      />
+      <Billboard>
+        <mesh>
+          <circleGeometry args={[markerScale, 32]} />
+          <meshBasicMaterial color="#ff8a32" transparent opacity={selected ? 0.96 : 0.68} side={DoubleSide} blending={AdditiveBlending} />
+        </mesh>
+        <mesh>
+          <ringGeometry args={[markerScale * 1.35, markerScale * 2.1, 36]} />
+          <meshBasicMaterial color="#ffd08a" transparent opacity={selected ? 0.62 : 0.28} side={DoubleSide} blending={AdditiveBlending} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[markerScale * 2.6, 16, 16]} />
+          <meshBasicMaterial color="#ffb65c" transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
+function UapMarker({
+  uap,
+  selected,
+  onSelect,
+}: {
+  uap: UapEvent;
+  selected: boolean;
+  onSelect: (uap: UapEvent) => void;
+}) {
+  const markerRef = useRef<Group>(null);
+  const position = useMemo(
+    () => lonLatToVector3(uap.coordinates.longitude, uap.coordinates.latitude, markerRadius + 0.18),
+    [uap],
+  );
+  const phase = uap.id.length * 0.41;
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) {
+      return;
+    }
+
+    const jitter = selected ? 0.045 : 0.026;
+    markerRef.current.position.copy(
+      position.clone().add(new Vector3(
+        Math.sin(clock.elapsedTime * 7.3 + phase) * jitter,
+        Math.cos(clock.elapsedTime * 5.1 + phase) * jitter,
+        Math.sin(clock.elapsedTime * 6.2 + phase) * jitter,
+      )),
+    );
+    markerRef.current.rotation.z = clock.elapsedTime * 1.7 + phase;
+  });
+
+  return (
+    <group
+      ref={markerRef}
+      position={position}
+      onClick={(event: ThreeEvent<MouseEvent>) => {
+        event.stopPropagation();
+        onSelect(uap);
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <Billboard>
+        <mesh>
+          <ringGeometry args={[0.12, selected ? 0.24 : 0.2, 4]} />
+          <meshBasicMaterial color="#7df7a3" transparent opacity={selected ? 0.86 : 0.48} side={DoubleSide} />
+        </mesh>
+        <Line
+          points={[new Vector3(-0.18, 0, 0), new Vector3(0.18, 0, 0)]}
+          color="#7df7a3"
+          lineWidth={selected ? 1.8 : 1.1}
+          transparent
+          opacity={selected ? 0.9 : 0.52}
+        />
+        <Line
+          points={[new Vector3(0, -0.18, 0), new Vector3(0, 0.18, 0)]}
+          color="#7df7a3"
+          lineWidth={selected ? 1.8 : 1.1}
+          transparent
+          opacity={selected ? 0.9 : 0.52}
+        />
+        <mesh>
+          <sphereGeometry args={[0.34, 16, 16]} />
+          <meshBasicMaterial color="#7df7a3" transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
 function LaunchMarker({
   launch,
   selected,
@@ -1869,6 +2069,8 @@ function ResearchGlobe({
   asteroids,
   spaceWeather,
   launches,
+  fireballs,
+  uaps,
   resilienceEvents,
   showRadio,
   radioActive,
@@ -1887,6 +2089,8 @@ function ResearchGlobe({
   asteroids: AsteroidEvent[];
   spaceWeather: SpaceWeather | null;
   launches: LaunchEvent[];
+  fireballs: FireballEvent[];
+  uaps: UapEvent[];
   resilienceEvents: ResilienceEvent[];
   showRadio: boolean;
   radioActive: boolean;
@@ -1998,6 +2202,24 @@ function ResearchGlobe({
               launch={launch}
               selected={selectedEarthLayer?.type === "launch" && selectedEarthLayer.item.id === launch.id}
               onSelect={(item) => onSelectEarthLayer({ type: "launch", item })}
+            />
+          ))}
+
+          {fireballs.map((fireball) => (
+            <FireballMarker
+              key={fireball.id}
+              fireball={fireball}
+              selected={selectedEarthLayer?.type === "fireball" && selectedEarthLayer.item.id === fireball.id}
+              onSelect={(item) => onSelectEarthLayer({ type: "fireball", item })}
+            />
+          ))}
+
+          {uaps.map((uap) => (
+            <UapMarker
+              key={uap.id}
+              uap={uap}
+              selected={selectedEarthLayer?.type === "uap" && selectedEarthLayer.item.id === uap.id}
+              onSelect={(item) => onSelectEarthLayer({ type: "uap", item })}
             />
           ))}
 
@@ -2115,6 +2337,8 @@ export default function ResearchPage() {
   const [asteroids, setAsteroids] = useState<AsteroidEvent[]>([]);
   const [spaceWeather, setSpaceWeather] = useState<SpaceWeather | null>(null);
   const [launches, setLaunches] = useState<LaunchEvent[]>([]);
+  const [fireballs, setFireballs] = useState<FireballEvent[]>([]);
+  const [uaps, setUaps] = useState<UapEvent[]>([]);
   const [resilienceEvents, setResilienceEvents] = useState<ResilienceEvent[]>([]);
   const [earthLayerTimestamp, setEarthLayerTimestamp] = useState<string | null>(null);
   const { categories, signals, clusters } = mapData;
@@ -2126,17 +2350,19 @@ export default function ResearchPage() {
   const [liveLayers, setLiveLayers] = useState<Record<LiveLayer, boolean>>({
     satellites: true,
     earthquakes: true,
-    buoys: true,
-    asteroids: true,
-    spaceweather: true,
-    launches: true,
-    radio: true,
-    airquality: true,
-    wildfires: true,
-    disasters: true,
+    buoys: false,
+    asteroids: false,
+    spaceweather: false,
+    launches: false,
+    fireballs: false,
+    uaps: false,
+    radio: false,
+    airquality: false,
+    wildfires: false,
+    disasters: false,
     outbreaks: false,
-    waterstress: true,
-    conflicts: true,
+    waterstress: false,
+    conflicts: false,
   });
 
   useEffect(() => {
@@ -2214,6 +2440,8 @@ export default function ResearchPage() {
           asteroidResponse,
           spaceWeatherResponse,
           launchResponse,
+          fireballResponse,
+          uapResponse,
           airQualityResponse,
           wildfireResponse,
           disasterResponse,
@@ -2226,6 +2454,8 @@ export default function ResearchPage() {
           fetch("/api/asteroids", { cache: "no-store" }),
           fetch("/api/spaceweather", { cache: "no-store" }),
           fetch("/api/launches", { cache: "no-store" }),
+          fetch("/api/fireballs", { cache: "no-store" }),
+          fetch("/api/uaps", { cache: "no-store" }),
           fetch("/api/airquality", { cache: "no-store" }),
           fetch("/api/wildfires", { cache: "no-store" }),
           fetch("/api/disasters", { cache: "no-store" }),
@@ -2239,6 +2469,8 @@ export default function ResearchPage() {
           asteroidPayload,
           spaceWeatherPayload,
           launchPayload,
+          fireballPayload,
+          uapPayload,
           airQualityPayload,
           wildfirePayload,
           disasterPayload,
@@ -2251,6 +2483,8 @@ export default function ResearchPage() {
           asteroidResponse.json() as Promise<{ asteroids?: AsteroidEvent[]; timestamp?: string }>,
           spaceWeatherResponse.json() as Promise<SpaceWeather & { success?: boolean }>,
           launchResponse.json() as Promise<{ launches?: LaunchEvent[]; timestamp?: string }>,
+          fireballResponse.json() as Promise<{ fireballs?: FireballEvent[]; data?: FireballEvent[]; timestamp?: string }>,
+          uapResponse.json() as Promise<{ uaps?: UapEvent[]; data?: UapEvent[]; timestamp?: string }>,
           airQualityResponse.json() as Promise<unknown>,
           wildfireResponse.json() as Promise<unknown>,
           disasterResponse.json() as Promise<unknown>,
@@ -2274,12 +2508,16 @@ export default function ResearchPage() {
           setAsteroids(Array.isArray(asteroidPayload.asteroids) ? asteroidPayload.asteroids : []);
           setSpaceWeather(typeof spaceWeatherPayload.current_kp === "number" ? spaceWeatherPayload : null);
           setLaunches(Array.isArray(launchPayload.launches) ? launchPayload.launches : []);
+          setFireballs(Array.isArray(fireballPayload.fireballs) ? fireballPayload.fireballs : Array.isArray(fireballPayload.data) ? fireballPayload.data : []);
+          setUaps(Array.isArray(uapPayload.uaps) ? uapPayload.uaps : Array.isArray(uapPayload.data) ? uapPayload.data : []);
           setResilienceEvents(nextResilienceEvents);
           setEarthLayerTimestamp(
             earthquakePayload.timestamp ??
             buoyPayload.timestamp ??
             asteroidPayload.timestamp ??
             launchPayload.timestamp ??
+            fireballPayload.timestamp ??
+            uapPayload.timestamp ??
             spaceWeatherPayload.timestamp ??
             null,
           );
@@ -2291,6 +2529,8 @@ export default function ResearchPage() {
           setAsteroids([]);
           setSpaceWeather(null);
           setLaunches([]);
+          setFireballs([]);
+          setUaps([]);
           setResilienceEvents([]);
           setEarthLayerTimestamp(null);
         }
@@ -2391,6 +2631,8 @@ export default function ResearchPage() {
   const visibleAsteroids = liveLayers.asteroids ? asteroids.slice(0, 12) : [];
   const visibleSpaceWeather = liveLayers.spaceweather ? spaceWeather : null;
   const visibleLaunches = liveLayers.launches ? launches.slice(0, 5) : [];
+  const visibleFireballs = liveLayers.fireballs ? fireballs.slice(0, 18) : [];
+  const visibleUaps = liveLayers.uaps ? uaps : [];
   const visibleResilienceEvents = useMemo(
     () => {
       const visibleByLayer: Partial<Record<ResilienceLayer, number>> = {};
@@ -2498,6 +2740,14 @@ export default function ResearchPage() {
         setSelectedEarthLayer(null);
       }
 
+      if (selectedEarthLayer?.type === "fireball" && layer === "fireballs" && !next.fireballs) {
+        setSelectedEarthLayer(null);
+      }
+
+      if (selectedEarthLayer?.type === "uap" && layer === "uaps" && !next.uaps) {
+        setSelectedEarthLayer(null);
+      }
+
       if (selectedEarthLayer?.type === "resilience" && selectedEarthLayer.item.layer === layer && !next[layer]) {
         setSelectedEarthLayer(null);
       }
@@ -2566,6 +2816,8 @@ export default function ResearchPage() {
                   ["asteroids", `NEO ${visibleAsteroids.length}`],
                   ["spaceweather", `Kp ${spaceWeather ? spaceWeather.current_kp.toFixed(1) : "-"}`],
                   ["launches", `Launches ${visibleLaunches.length}`],
+                  ["fireballs", `Bolides ${fireballs.length}`],
+                  ["uaps", `UAP ${uaps.length}`],
                   ["wildfires", `Fire ${resilienceEvents.filter((event) => event.layer === "wildfires").length}`],
                   ["airquality", `Air ${resilienceEvents.filter((event) => event.layer === "airquality").length}`],
                   ["disasters", `GDACS ${resilienceEvents.filter((event) => event.layer === "disasters").length}`],
@@ -2592,7 +2844,7 @@ export default function ResearchPage() {
               <div className={styles.mapStatus} aria-hidden="true">
                 <span>Rotating globe / strategic signal layer</span>
                 <span>
-                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleBuoys.length} buoys / {visibleResilienceEvents.length} earth layers
+                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleFireballs.length} bolides / {visibleResilienceEvents.length} earth layers
                 </span>
               </div>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
@@ -2614,6 +2866,8 @@ export default function ResearchPage() {
                 asteroids={visibleAsteroids}
                 spaceWeather={visibleSpaceWeather}
                 launches={visibleLaunches}
+                fireballs={visibleFireballs}
+                uaps={visibleUaps}
                 resilienceEvents={visibleResilienceEvents}
                 showRadio={liveLayers.radio}
                 radioActive={activeSpyRadioId !== null}
@@ -2640,6 +2894,8 @@ export default function ResearchPage() {
                     {selectedEarthLayer.type === "asteroid" ? "Near-Earth object" : null}
                     {selectedEarthLayer.type === "spaceweather" ? "Magnetic field" : null}
                     {selectedEarthLayer.type === "launch" ? "Launch window" : null}
+                    {selectedEarthLayer.type === "fireball" ? "Atmospheric bolide" : null}
+                    {selectedEarthLayer.type === "uap" ? "Declassified anomaly" : null}
                     {selectedEarthLayer.type === "resilience" ? resilienceLayerMeta[selectedEarthLayer.item.layer].label : null}
                   </span>
                   <span>
@@ -2648,6 +2904,8 @@ export default function ResearchPage() {
                     {selectedEarthLayer.type === "asteroid" ? "NASA/JPL CAD" : null}
                     {selectedEarthLayer.type === "spaceweather" ? "NOAA SWPC" : null}
                     {selectedEarthLayer.type === "launch" ? "Launch Library" : null}
+                    {selectedEarthLayer.type === "fireball" ? "NASA CNEOS" : null}
+                    {selectedEarthLayer.type === "uap" ? selectedEarthLayer.item.sourceName : null}
                     {selectedEarthLayer.type === "resilience" ? selectedEarthLayer.item.sourceName : null}
                   </span>
                   <span>
@@ -2794,6 +3052,61 @@ export default function ResearchPage() {
                         <span>{new Date(selectedEarthLayer.item.net).toLocaleString("en-GB")}</span>
                       </div>
                     ) : null}
+                  </>
+                ) : null}
+                {selectedEarthLayer.type === "fireball" ? (
+                  <>
+                    <h2>Atmospheric fireball</h2>
+                    <p className={styles.location}>NASA CNEOS / {selectedEarthLayer.item.timestamp}</p>
+                    <p>{selectedEarthLayer.item.description}</p>
+                    <div className={styles.liveMetrics}>
+                      <div>
+                        <span>Energy</span>
+                        <strong>{formatEnergyJoules(selectedEarthLayer.item.energy_joules)}</strong>
+                      </div>
+                      <div>
+                        <span>Altitude</span>
+                        <strong>{formatNullableMetric(selectedEarthLayer.item.altitude_km, "km", 1)}</strong>
+                      </div>
+                      <div>
+                        <span>Velocity</span>
+                        <strong>{formatNullableMetric(selectedEarthLayer.item.velocity_kms, "km/s", 1)}</strong>
+                      </div>
+                    </div>
+                    <p className={styles.warningNote}>Bolide burst detected by government sensor network. Position marks atmospheric explosion, not surface impact.</p>
+                    <div className={styles.sourceRow}>
+                      <a href="https://cneos.jpl.nasa.gov/fireballs/" target="_blank" rel="noreferrer">
+                        Open NASA CNEOS fireball feed
+                      </a>
+                    </div>
+                  </>
+                ) : null}
+                {selectedEarthLayer.type === "uap" ? (
+                  <>
+                    <h2>{selectedEarthLayer.item.title}</h2>
+                    <p className={styles.location}>{selectedEarthLayer.item.location} / {selectedEarthLayer.item.classification}</p>
+                    <p>{selectedEarthLayer.item.description}</p>
+                    <div className={styles.liveMetrics}>
+                      <div>
+                        <span>Shape</span>
+                        <strong>{selectedEarthLayer.item.shape}</strong>
+                      </div>
+                      <div>
+                        <span>Altitude</span>
+                        <strong>{selectedEarthLayer.item.altitude_ft === null ? "Unknown" : `${selectedEarthLayer.item.altitude_ft.toLocaleString("en-GB")} ft`}</strong>
+                      </div>
+                      <div>
+                        <span>Speed</span>
+                        <strong>{selectedEarthLayer.item.speed_mach}</strong>
+                      </div>
+                    </div>
+                    <p className={styles.warningNote}>Static reference layer. These are known declassified cases, not live radar contacts.</p>
+                    <div className={styles.sourceRow}>
+                      <span>{new Date(selectedEarthLayer.item.timestamp).toLocaleDateString("en-GB")}</span>
+                      <a href={selectedEarthLayer.item.sourceUrl} target="_blank" rel="noreferrer">
+                        Open declassified source
+                      </a>
+                    </div>
                   </>
                 ) : null}
                 {selectedEarthLayer.type === "resilience" ? (

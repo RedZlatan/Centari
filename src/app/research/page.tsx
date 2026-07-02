@@ -193,7 +193,46 @@ type UapEvent = {
   sourceUrl: string;
 };
 
-type ResilienceLayer = "airquality" | "wildfires" | "disasters" | "outbreaks" | "waterstress" | "conflicts";
+type ResilienceLayer =
+  | "airquality"
+  | "wildfires"
+  | "disasters"
+  | "outbreaks"
+  | "waterstress"
+  | "conflicts"
+  | "shipping"
+  | "nuclear";
+
+type CyberAttackEvent = {
+  id: string;
+  type: string;
+  port: number;
+  severity: string;
+  reports: number;
+  targets: number | null;
+  source: {
+    ip: string;
+    country: string;
+    city: string;
+    asn: string | null;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  target: {
+    id: string;
+    name: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  description: string;
+  source_name: string;
+  source_mode: "live_aggregate";
+  source_url: string;
+};
 
 type ResilienceEvent = {
   id: string;
@@ -221,6 +260,7 @@ type EarthLayerSelection =
   | { type: "launch"; item: LaunchEvent }
   | { type: "fireball"; item: FireballEvent }
   | { type: "uap"; item: UapEvent }
+  | { type: "cyberattack"; item: CyberAttackEvent }
   | { type: "spaceweather"; item: SpaceWeather }
   | { type: "resilience"; item: ResilienceEvent };
 
@@ -233,6 +273,7 @@ type LiveLayer =
   | "launches"
   | "fireballs"
   | "uaps"
+  | "cyberattacks"
   | "radio"
   | ResilienceLayer;
 
@@ -301,6 +342,8 @@ const resilienceLayerLabels: Record<ResilienceLayer, string> = {
   outbreaks: "Disease",
   waterstress: "Water",
   conflicts: "Conflict",
+  shipping: "Maritime",
+  nuclear: "Nuclear",
 };
 
 const resilienceLayerMeta: Record<ResilienceLayer, { label: string; sourceLabel: string; color: string }> = {
@@ -310,6 +353,8 @@ const resilienceLayerMeta: Record<ResilienceLayer, { label: string; sourceLabel:
   outbreaks: { label: "Outbreak watch", sourceLabel: "Curated reference", color: "#9ddb64" },
   waterstress: { label: "Water stress", sourceLabel: "Curated reference", color: "#d99352" },
   conflicts: { label: "Conflict report", sourceLabel: "GDELT Project 2.0", color: "#e55454" },
+  shipping: { label: "Shipping chokepoint", sourceLabel: "Maritime chokepoint monitor", color: "#8fd6d0" },
+  nuclear: { label: "Nuclear infrastructure", sourceLabel: "IAEA PRIS", color: "#d9c86a" },
 };
 
 const resilienceLayerMaxVisible: Record<ResilienceLayer, number> = {
@@ -319,6 +364,8 @@ const resilienceLayerMaxVisible: Record<ResilienceLayer, number> = {
   outbreaks: 3,
   waterstress: 5,
   conflicts: 8,
+  shipping: 5,
+  nuclear: 5,
 };
 
 const missionKeywords: Record<Mission, string[]> = {
@@ -1181,6 +1228,14 @@ function getResilienceValueLabel(layer: ResilienceLayer, record: ApiRecord) {
     return population === null ? getString(record, ["severity"], "Stress") : `${population.toFixed(1)}M exposed`;
   }
 
+  if (layer === "shipping") {
+    return getString(record, ["status", "severity"], "Chokepoint watch");
+  }
+
+  if (layer === "nuclear") {
+    return getString(record, ["status", "severity"], "Infrastructure watch");
+  }
+
   const mentions = getOptionalNumber(record, ["num_mentions", "mentions"]);
   return mentions === null ? "Mentions unknown" : `${Math.round(mentions)} mentions`;
 }
@@ -1206,6 +1261,14 @@ function getResilienceValue(layer: ResilienceLayer, record: ApiRecord) {
     return getOptionalNumber(record, ["num_mentions", "mentions"]);
   }
 
+  if (layer === "shipping") {
+    return getString(record, ["severity"], "watch") === "critical" ? 100 : 55;
+  }
+
+  if (layer === "nuclear") {
+    return getString(record, ["severity"], "nominal") === "critical" ? 100 : 35;
+  }
+
   return null;
 }
 
@@ -1226,12 +1289,18 @@ function normalizeResilienceEvents(payload: unknown, layer: ResilienceLayer, key
               ? getString(item, ["region"], fallbackMeta.label)
               : layer === "conflicts"
                 ? getString(item, ["location"], fallbackMeta.label)
+                : layer === "shipping"
+                  ? getString(item, ["name"], fallbackMeta.label)
+                  : layer === "nuclear"
+                    ? getString(item, ["name"], fallbackMeta.label)
                 : getString(item, ["title", "name"], fallbackMeta.label);
       const subtitle =
         layer === "airquality"
           ? getString(item, ["country"], "Air quality station")
           : layer === "conflicts"
             ? `${getString(item, ["actor1"], "Unknown actor")} / ${getString(item, ["actor2"], "Unknown actor")}`
+            : layer === "shipping"
+              ? getString(item, ["region"], fallbackMeta.sourceLabel)
             : getString(item, ["country", "subtitle", "location"], fallbackMeta.sourceLabel);
 
       return {
@@ -1788,6 +1857,105 @@ function UapMarker({
   );
 }
 
+function getCyberColor(event: CyberAttackEvent) {
+  if (event.severity === "critical") {
+    return "#ff4c4c";
+  }
+
+  if (event.port === 22 || event.port === 2222) {
+    return "#6fb7ff";
+  }
+
+  if (event.port === 23) {
+    return "#7df7a3";
+  }
+
+  return "#d0ad70";
+}
+
+function CyberAttackArc({
+  event,
+  selected,
+  onSelect,
+}: {
+  event: CyberAttackEvent;
+  selected: boolean;
+  onSelect: (event: CyberAttackEvent) => void;
+}) {
+  const groupRef = useRef<Group>(null);
+  const color = getCyberColor(event);
+  const sourcePosition = useMemo(
+    () => lonLatToVector3(event.source.coordinates.longitude, event.source.coordinates.latitude, markerRadius + 0.07),
+    [event],
+  );
+  const targetPosition = useMemo(
+    () => lonLatToVector3(event.target.coordinates.longitude, event.target.coordinates.latitude, markerRadius + 0.07),
+    [event],
+  );
+  const arcPoints = useMemo(() => {
+    const points: Vector3[] = [];
+    const middle = sourcePosition.clone().add(targetPosition).multiplyScalar(0.5).normalize().multiplyScalar(globeRadius + 1.05);
+
+    for (let index = 0; index <= 32; index += 1) {
+      const t = index / 32;
+      const a = sourcePosition.clone().lerp(middle, t);
+      const b = middle.clone().lerp(targetPosition, t);
+      points.push(a.lerp(b, t));
+    }
+
+    return points;
+  }, [sourcePosition, targetPosition]);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) {
+      return;
+    }
+
+    const pulse = 0.74 + Math.sin(clock.elapsedTime * 3.2 + event.reports / 100000) * 0.18;
+    groupRef.current.scale.setScalar(selected ? 1.08 : pulse);
+  });
+
+  return (
+    <group
+      ref={groupRef}
+      onClick={(clickEvent: ThreeEvent<MouseEvent>) => {
+        clickEvent.stopPropagation();
+        onSelect(event);
+      }}
+      onPointerOver={() => {
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "";
+      }}
+    >
+      <Line
+        points={arcPoints}
+        color={color}
+        lineWidth={selected ? 2.4 : 1.2}
+        transparent
+        opacity={selected ? 0.76 : 0.34}
+      />
+      <Billboard position={sourcePosition}>
+        <mesh>
+          <ringGeometry args={[0.06, selected ? 0.16 : 0.12, 16]} />
+          <meshBasicMaterial color={color} transparent opacity={selected ? 0.86 : 0.46} side={DoubleSide} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[0.28, 12, 12]} />
+          <meshBasicMaterial color={color} transparent opacity={0.002} depthWrite={false} />
+        </mesh>
+      </Billboard>
+      <Billboard position={targetPosition}>
+        <mesh>
+          <circleGeometry args={[0.045, 16]} />
+          <meshBasicMaterial color={color} transparent opacity={selected ? 0.88 : 0.52} side={DoubleSide} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
 function LaunchMarker({
   launch,
   selected,
@@ -2071,6 +2239,7 @@ function ResearchGlobe({
   launches,
   fireballs,
   uaps,
+  cyberattacks,
   resilienceEvents,
   showRadio,
   radioActive,
@@ -2091,6 +2260,7 @@ function ResearchGlobe({
   launches: LaunchEvent[];
   fireballs: FireballEvent[];
   uaps: UapEvent[];
+  cyberattacks: CyberAttackEvent[];
   resilienceEvents: ResilienceEvent[];
   showRadio: boolean;
   radioActive: boolean;
@@ -2223,6 +2393,15 @@ function ResearchGlobe({
             />
           ))}
 
+          {cyberattacks.map((cyberattack) => (
+            <CyberAttackArc
+              key={cyberattack.id}
+              event={cyberattack}
+              selected={selectedEarthLayer?.type === "cyberattack" && selectedEarthLayer.item.id === cyberattack.id}
+              onSelect={(item) => onSelectEarthLayer({ type: "cyberattack", item })}
+            />
+          ))}
+
           {resilienceEvents.map((event) => (
             <ResilienceMarker
               key={event.id}
@@ -2339,6 +2518,7 @@ export default function ResearchPage() {
   const [launches, setLaunches] = useState<LaunchEvent[]>([]);
   const [fireballs, setFireballs] = useState<FireballEvent[]>([]);
   const [uaps, setUaps] = useState<UapEvent[]>([]);
+  const [cyberattacks, setCyberattacks] = useState<CyberAttackEvent[]>([]);
   const [resilienceEvents, setResilienceEvents] = useState<ResilienceEvent[]>([]);
   const [earthLayerTimestamp, setEarthLayerTimestamp] = useState<string | null>(null);
   const { categories, signals, clusters } = mapData;
@@ -2356,6 +2536,7 @@ export default function ResearchPage() {
     launches: false,
     fireballs: false,
     uaps: false,
+    cyberattacks: false,
     radio: false,
     airquality: false,
     wildfires: false,
@@ -2363,6 +2544,8 @@ export default function ResearchPage() {
     outbreaks: false,
     waterstress: false,
     conflicts: false,
+    shipping: false,
+    nuclear: false,
   });
 
   useEffect(() => {
@@ -2442,12 +2625,15 @@ export default function ResearchPage() {
           launchResponse,
           fireballResponse,
           uapResponse,
+          cyberattackResponse,
           airQualityResponse,
           wildfireResponse,
           disasterResponse,
           outbreakResponse,
           waterStressResponse,
           conflictResponse,
+          shippingResponse,
+          nuclearResponse,
         ] = await Promise.all([
           fetch("/api/earthquakes", { cache: "no-store" }),
           fetch("/api/buoys", { cache: "no-store" }),
@@ -2456,12 +2642,15 @@ export default function ResearchPage() {
           fetch("/api/launches", { cache: "no-store" }),
           fetch("/api/fireballs", { cache: "no-store" }),
           fetch("/api/uaps", { cache: "no-store" }),
+          fetch("/api/cyberattacks", { cache: "no-store" }),
           fetch("/api/airquality", { cache: "no-store" }),
           fetch("/api/wildfires", { cache: "no-store" }),
           fetch("/api/disasters", { cache: "no-store" }),
           fetch("/api/outbreaks", { cache: "no-store" }),
           fetch("/api/waterstress", { cache: "no-store" }),
           fetch("/api/conflicts", { cache: "no-store" }),
+          fetch("/api/shipping", { cache: "no-store" }),
+          fetch("/api/nuclear", { cache: "no-store" }),
         ]);
         const [
           earthquakePayload,
@@ -2471,12 +2660,15 @@ export default function ResearchPage() {
           launchPayload,
           fireballPayload,
           uapPayload,
+          cyberattackPayload,
           airQualityPayload,
           wildfirePayload,
           disasterPayload,
           outbreakPayload,
           waterStressPayload,
           conflictPayload,
+          shippingPayload,
+          nuclearPayload,
         ] = await Promise.all([
           earthquakeResponse.json() as Promise<{ earthquakes?: EarthquakeEvent[]; timestamp?: string }>,
           buoyResponse.json() as Promise<{ buoys?: BuoyObservation[]; timestamp?: string }>,
@@ -2485,12 +2677,15 @@ export default function ResearchPage() {
           launchResponse.json() as Promise<{ launches?: LaunchEvent[]; timestamp?: string }>,
           fireballResponse.json() as Promise<{ fireballs?: FireballEvent[]; data?: FireballEvent[]; timestamp?: string }>,
           uapResponse.json() as Promise<{ uaps?: UapEvent[]; data?: UapEvent[]; timestamp?: string }>,
+          cyberattackResponse.json() as Promise<{ cyberattacks?: CyberAttackEvent[]; data?: CyberAttackEvent[]; timestamp?: string }>,
           airQualityResponse.json() as Promise<unknown>,
           wildfireResponse.json() as Promise<unknown>,
           disasterResponse.json() as Promise<unknown>,
           outbreakResponse.json() as Promise<unknown>,
           waterStressResponse.json() as Promise<unknown>,
           conflictResponse.json() as Promise<unknown>,
+          shippingResponse.json() as Promise<unknown>,
+          nuclearResponse.json() as Promise<unknown>,
         ]);
 
         if (!cancelled) {
@@ -2501,6 +2696,8 @@ export default function ResearchPage() {
             ...normalizeResilienceEvents(outbreakPayload, "outbreaks", ["data", "outbreaks", "items"]),
             ...normalizeResilienceEvents(waterStressPayload, "waterstress", ["data", "waterstress", "items"]),
             ...normalizeResilienceEvents(conflictPayload, "conflicts", ["data", "conflicts", "items"]),
+            ...normalizeResilienceEvents(shippingPayload, "shipping", ["shipping", "data", "items"]),
+            ...normalizeResilienceEvents(nuclearPayload, "nuclear", ["nuclear", "data", "items"]),
           ];
 
           setEarthquakes(Array.isArray(earthquakePayload.earthquakes) ? earthquakePayload.earthquakes : []);
@@ -2510,6 +2707,7 @@ export default function ResearchPage() {
           setLaunches(Array.isArray(launchPayload.launches) ? launchPayload.launches : []);
           setFireballs(Array.isArray(fireballPayload.fireballs) ? fireballPayload.fireballs : Array.isArray(fireballPayload.data) ? fireballPayload.data : []);
           setUaps(Array.isArray(uapPayload.uaps) ? uapPayload.uaps : Array.isArray(uapPayload.data) ? uapPayload.data : []);
+          setCyberattacks(Array.isArray(cyberattackPayload.cyberattacks) ? cyberattackPayload.cyberattacks : Array.isArray(cyberattackPayload.data) ? cyberattackPayload.data : []);
           setResilienceEvents(nextResilienceEvents);
           setEarthLayerTimestamp(
             earthquakePayload.timestamp ??
@@ -2518,6 +2716,7 @@ export default function ResearchPage() {
             launchPayload.timestamp ??
             fireballPayload.timestamp ??
             uapPayload.timestamp ??
+            cyberattackPayload.timestamp ??
             spaceWeatherPayload.timestamp ??
             null,
           );
@@ -2531,6 +2730,7 @@ export default function ResearchPage() {
           setLaunches([]);
           setFireballs([]);
           setUaps([]);
+          setCyberattacks([]);
           setResilienceEvents([]);
           setEarthLayerTimestamp(null);
         }
@@ -2633,6 +2833,7 @@ export default function ResearchPage() {
   const visibleLaunches = liveLayers.launches ? launches.slice(0, 5) : [];
   const visibleFireballs = liveLayers.fireballs ? fireballs.slice(0, 18) : [];
   const visibleUaps = liveLayers.uaps ? uaps : [];
+  const visibleCyberattacks = liveLayers.cyberattacks ? cyberattacks.slice(0, 10) : [];
   const visibleResilienceEvents = useMemo(
     () => {
       const visibleByLayer: Partial<Record<ResilienceLayer, number>> = {};
@@ -2748,6 +2949,10 @@ export default function ResearchPage() {
         setSelectedEarthLayer(null);
       }
 
+      if (selectedEarthLayer?.type === "cyberattack" && layer === "cyberattacks" && !next.cyberattacks) {
+        setSelectedEarthLayer(null);
+      }
+
       if (selectedEarthLayer?.type === "resilience" && selectedEarthLayer.item.layer === layer && !next[layer]) {
         setSelectedEarthLayer(null);
       }
@@ -2818,6 +3023,9 @@ export default function ResearchPage() {
                   ["launches", `Launches ${visibleLaunches.length}`],
                   ["fireballs", `Bolides ${fireballs.length}`],
                   ["uaps", `UAP ${uaps.length}`],
+                  ["cyberattacks", `Cyber ${cyberattacks.length}`],
+                  ["shipping", `Maritime ${resilienceEvents.filter((event) => event.layer === "shipping").length}`],
+                  ["nuclear", `Nuclear ${resilienceEvents.filter((event) => event.layer === "nuclear").length}`],
                   ["wildfires", `Fire ${resilienceEvents.filter((event) => event.layer === "wildfires").length}`],
                   ["airquality", `Air ${resilienceEvents.filter((event) => event.layer === "airquality").length}`],
                   ["disasters", `GDACS ${resilienceEvents.filter((event) => event.layer === "disasters").length}`],
@@ -2844,7 +3052,7 @@ export default function ResearchPage() {
               <div className={styles.mapStatus} aria-hidden="true">
                 <span>Rotating globe / strategic signal layer</span>
                 <span>
-                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleFireballs.length} bolides / {visibleResilienceEvents.length} earth layers
+                  {filteredSignals.length} signals / {visibleEarthquakes.length} quakes / {visibleFireballs.length} bolides / {visibleCyberattacks.length} cyber arcs / {visibleResilienceEvents.length} earth layers
                 </span>
               </div>
               <div className={styles.dataStatus} data-status={apiStatus} title={apiError ?? undefined}>
@@ -2868,6 +3076,7 @@ export default function ResearchPage() {
                 launches={visibleLaunches}
                 fireballs={visibleFireballs}
                 uaps={visibleUaps}
+                cyberattacks={visibleCyberattacks}
                 resilienceEvents={visibleResilienceEvents}
                 showRadio={liveLayers.radio}
                 radioActive={activeSpyRadioId !== null}
@@ -2896,6 +3105,7 @@ export default function ResearchPage() {
                     {selectedEarthLayer.type === "launch" ? "Launch window" : null}
                     {selectedEarthLayer.type === "fireball" ? "Atmospheric bolide" : null}
                     {selectedEarthLayer.type === "uap" ? "Declassified anomaly" : null}
+                    {selectedEarthLayer.type === "cyberattack" ? "Cyber telemetry arc" : null}
                     {selectedEarthLayer.type === "resilience" ? resilienceLayerMeta[selectedEarthLayer.item.layer].label : null}
                   </span>
                   <span>
@@ -2906,6 +3116,7 @@ export default function ResearchPage() {
                     {selectedEarthLayer.type === "launch" ? "Launch Library" : null}
                     {selectedEarthLayer.type === "fireball" ? "NASA CNEOS" : null}
                     {selectedEarthLayer.type === "uap" ? selectedEarthLayer.item.sourceName : null}
+                    {selectedEarthLayer.type === "cyberattack" ? selectedEarthLayer.item.source_name : null}
                     {selectedEarthLayer.type === "resilience" ? selectedEarthLayer.item.sourceName : null}
                   </span>
                   <span>
@@ -3105,6 +3316,38 @@ export default function ResearchPage() {
                       <span>{new Date(selectedEarthLayer.item.timestamp).toLocaleDateString("en-GB")}</span>
                       <a href={selectedEarthLayer.item.sourceUrl} target="_blank" rel="noreferrer">
                         Open declassified source
+                      </a>
+                    </div>
+                  </>
+                ) : null}
+                {selectedEarthLayer.type === "cyberattack" ? (
+                  <>
+                    <h2>{selectedEarthLayer.item.type}</h2>
+                    <p className={styles.location}>
+                      {selectedEarthLayer.item.source.city}, {selectedEarthLayer.item.source.country} / port {selectedEarthLayer.item.port}
+                    </p>
+                    <p>{selectedEarthLayer.item.description}</p>
+                    <div className={styles.liveMetrics}>
+                      <div>
+                        <span>Reports</span>
+                        <strong>{selectedEarthLayer.item.reports.toLocaleString("en-GB")}</strong>
+                      </div>
+                      <div>
+                        <span>Targets</span>
+                        <strong>{selectedEarthLayer.item.targets ?? "unknown"}</strong>
+                      </div>
+                      <div>
+                        <span>Severity</span>
+                        <strong>{selectedEarthLayer.item.severity}</strong>
+                      </div>
+                    </div>
+                    <p className={styles.warningNote}>
+                      Aggregate DShield source telemetry. Arc endpoint is a sensor-mesh visualisation, not a confirmed victim.
+                    </p>
+                    <div className={styles.sourceRow}>
+                      <span>{selectedEarthLayer.item.source.asn ?? selectedEarthLayer.item.source.ip}</span>
+                      <a href={selectedEarthLayer.item.source_url} target="_blank" rel="noreferrer">
+                        Open DShield source feed
                       </a>
                     </div>
                   </>

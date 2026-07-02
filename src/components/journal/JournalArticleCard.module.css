@@ -41,7 +41,7 @@
 }
 
 .featured .link {
-  min-height: 620px;
+  min-height: 460px;
   align-content: end;
   background:
     radial-gradient(circle at 22% 18%, rgba(168, 138, 90, 0.2), transparent 26%),
@@ -140,6 +140,6 @@
   }
 
   .featured .link {
-    min-height: 460px;
+    min-height: 400px;
   }
 }

@@ -1,3 +1,4 @@
+import { BrainAtlas } from "@/components/journal/BrainAtlas";
 import { JournalArticleCard } from "@/components/journal/JournalArticleCard";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
@@ -23,14 +24,6 @@ const journalLanes = [
   },
 ];
 
-const atlasNodes = [
-  { label: "Sight", detail: "interface, attention, pattern" },
-  { label: "Sound", detail: "timing, rhythm, warning" },
-  { label: "Touch", detail: "presence, friction, control" },
-  { label: "Memory", detail: "return, story, context" },
-  { label: "Decision", detail: "stress, confidence, action" },
-];
-
 export default function JournalPage() {
   const latestEntry = journalEntries[0];
   const featuredEntries = journalEntries.slice(0, 2);
@@ -51,26 +44,11 @@ export default function JournalPage() {
             <div className={styles.heroMetrics} aria-label="Journal metrics">
               <span>{journalEntries.length.toString().padStart(2, "0")} entries</span>
               <span>{journalEntryTypes.length.toString().padStart(2, "0")} lanes</span>
-              <span>{atlasNodes.length.toString().padStart(2, "0")} senses</span>
+              <span>07 regions</span>
             </div>
           </div>
 
-          <div className={styles.bodyAtlas} aria-label="Journal brain atlas">
-            <div className={styles.humanFigure} aria-hidden="true">
-              <span className={styles.head} />
-              <span className={styles.spine} />
-              <span className={styles.shoulders} />
-              <span className={styles.torso} />
-              <span className={styles.brain} />
-            </div>
-            <div className={styles.neuralRing} aria-hidden="true" />
-            {atlasNodes.map((node) => (
-              <div key={node.label} className={styles.senseNode}>
-                <strong>{node.label}</strong>
-                <span>{node.detail}</span>
-              </div>
-            ))}
-          </div>
+          <BrainAtlas />
 
           <aside className={styles.indexPanel} aria-label="Journal register">
             <p className={styles.panelLabel}>Current lens</p>

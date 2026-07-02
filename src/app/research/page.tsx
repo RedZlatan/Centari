@@ -2896,7 +2896,14 @@ export default function ResearchPage() {
                   {missionSignals.length > 0 ? (
                     missionSignals.slice(0, 6).map((signal) => (
                       <button key={signal.id} type="button" onClick={() => selectSignal(signal.id)}>
-                        <span>{signal.category}</span>
+                        <span className={styles.missionMetaRow}>
+                          <span>{signal.category}</span>
+                          {getConfidenceLabel(signal.confidence) ? (
+                            <span className={styles.confidenceBadge} data-confidence={signal.confidence}>
+                              {getConfidenceLabel(signal.confidence)}
+                            </span>
+                          ) : null}
+                        </span>
                         <strong>{signal.title}</strong>
                         <em>{signal.sourceName || signal.location}</em>
                       </button>

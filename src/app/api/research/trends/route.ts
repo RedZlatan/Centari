@@ -49,8 +49,8 @@ export async function GET(request: Request): Promise<NextResponse> {
            relevance_score,
            signals(
              id,slug,title,category,signal_strength,
-             signal_type,published_at,source_name,source_url,
-             signal_locations(region,country_code,country_name)
+             signal_type,tags,confidence,published_at,source_name,source_url,
+             signal_locations(region,country_code,country_name,lat,lng,location_confidence,place_type)
            )
          )`,
         { count: "exact" },
@@ -86,10 +86,13 @@ export async function GET(request: Request): Promise<NextResponse> {
             title:           sig.title,
             category:        sig.category,
             signal_type:     sig.signal_type,
+            tags:            sig.tags,
+            confidence:      sig.confidence,
             signal_strength: sig.signal_strength,
             published_at:    sig.published_at,
             source_name:     sig.source_name,
             source_url:      sig.source_url,
+            location:        locations[0] ?? null,
             region:          (locations[0] as Record<string, unknown> | undefined)?.region ?? null,
             relevance_score: link.relevance_score,
           };

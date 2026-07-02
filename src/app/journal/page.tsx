@@ -1,33 +1,43 @@
-import { BrainAtlas } from "@/components/journal/BrainAtlas";
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  BrainAtlas,
+  brainRegions,
+  type BrainRegionId,
+} from "@/components/journal/BrainAtlas";
 import { JournalArticleCard } from "@/components/journal/JournalArticleCard";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { journalEntries, journalEntryTypes } from "@/lib/journal-data";
 import styles from "./journal.module.css";
 
-const journalLanes = [
+const summarySlots = [
   {
-    label: "Sense Map",
-    text: "Notes on how people see, hear, touch, remember, and decide inside operational systems.",
+    label: "Daily capture",
+    text: "Highest-scored research signals mapped to the region before they expire from the live layer.",
   },
   {
-    label: "Memory Bank",
-    text: "Stories and references that should be found again when a similar problem appears.",
+    label: "Weekly movement",
+    text: "A short synthesis of what changed, what repeated, and what deserves a return path.",
   },
   {
-    label: "Field Lessons",
-    text: "What reality changes: weather, stress, hardware limits, time pressure, and human judgement.",
-  },
-  {
-    label: "Signal Archive",
-    text: "Daily research signals that are worth keeping after they stop being new.",
+    label: "Monthly pattern",
+    text: "A slower read on how the trend is moving across AI, spatial work, energy, materials, space, and operations.",
   },
 ];
 
 export default function JournalPage() {
-  const latestEntry = journalEntries[0];
-  const featuredEntries = journalEntries.slice(0, 2);
-  const archiveEntries = journalEntries.slice(2);
+  const [activeRegionId, setActiveRegionId] = useState<BrainRegionId>("prefrontal");
+  const activeRegion = brainRegions.find((region) => region.id === activeRegionId) ?? brainRegions[0];
+  const regionEntries = useMemo(
+    () =>
+      journalEntries.filter((entry) =>
+        entry.senses.some((sense) => activeRegion.journalSenses.includes(sense)),
+      ),
+    [activeRegion],
+  );
+  const supportingEntries = regionEntries.length > 0 ? regionEntries : journalEntries.slice(0, 3);
 
   return (
     <>
@@ -36,71 +46,80 @@ export default function JournalPage() {
         <section className={styles.atlasHero}>
           <div className={styles.atlasCopy}>
             <p className={styles.kicker}>Centari Journal</p>
-            <h1>Memory layer.</h1>
+            <h1>Brain as index.</h1>
             <p>
-              A calm archive for what Centari learns: research signals, field lessons, spatial
-              learning, and the human patterns behind better operational work.
+              The journal stores useful learning by how people perceive, remember, decide, and act.
+              Choose a brain region, then use it as the control surface for saved notes, research,
+              and summaries.
             </p>
             <div className={styles.heroMetrics} aria-label="Journal metrics">
               <span>{journalEntries.length.toString().padStart(2, "0")} entries</span>
               <span>{journalEntryTypes.length.toString().padStart(2, "0")} lanes</span>
-              <span>07 regions</span>
+              <span>{brainRegions.length.toString().padStart(2, "0")} regions</span>
             </div>
           </div>
 
-          <BrainAtlas />
+          <BrainAtlas selectedId={activeRegionId} onRegionChange={setActiveRegionId} />
 
-          <aside className={styles.indexPanel} aria-label="Journal register">
-            <p className={styles.panelLabel}>Current lens</p>
-            <strong>{latestEntry.title}</strong>
-            <span>{latestEntry.id}</span>
-            <p>{latestEntry.type}</p>
+          <aside className={styles.indexPanel} aria-label="Selected journal region">
+            <p className={styles.panelLabel}>Active region</p>
+            <strong>{activeRegion.label}</strong>
+            <span>{activeRegion.area}</span>
+            <p>{activeRegion.archiveRole}</p>
             <i />
-            <span>Built for return</span>
-            <p>Not a blog feed. A map of what keeps becoming useful.</p>
+            <span>Mapped content</span>
+            <p>{supportingEntries.length} journal entries / {activeRegion.journalSenses.join(" + ")}</p>
           </aside>
         </section>
 
-        <section className={styles.laneBand} aria-label="Journal lanes">
-          {journalLanes.map((lane) => (
-            <article key={lane.label}>
-              <span>{lane.label}</span>
-              <p>{lane.text}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className={styles.layout} aria-label="Journal entries">
+        <section id="journal-region-record" className={styles.regionRecord} aria-label="Selected brain region journal">
           <div className={styles.sectionHeader}>
-            <p className={styles.kicker}>Register</p>
-            <h2>Entries arranged by return value.</h2>
-            <p>
-              Own notes, outside references, and product lessons sit in the same system so patterns
-              can be found later.
-            </p>
+            <p className={styles.kicker}>Selected Region</p>
+            <h2>{activeRegion.label}</h2>
+            <p>{activeRegion.role} {activeRegion.centariUse}</p>
           </div>
-          <div className={styles.featureGrid}>
-            {featuredEntries.map((entry) => (
-              <JournalArticleCard key={entry.id} entry={entry} featured />
+
+          <div className={styles.regionBrief}>
+            <article>
+              <span>What it stores</span>
+              <p>{activeRegion.archiveRole}</p>
+            </article>
+            <article>
+              <span>Current tags</span>
+              <div className={styles.tagList}>
+                {activeRegion.evidence.map((tag) => (
+                  <b key={tag}>{tag}</b>
+                ))}
+              </div>
+            </article>
+            <article>
+              <span>Mapped senses</span>
+              <div className={styles.tagList}>
+                {activeRegion.journalSenses.map((sense) => (
+                  <b key={sense}>{sense}</b>
+                ))}
+              </div>
+            </article>
+          </div>
+
+          <div className={styles.summaryGrid} aria-label="Future summaries">
+            {summarySlots.map((slot) => (
+              <article key={slot.label}>
+                <span>{slot.label}</span>
+                <p>{slot.text}</p>
+              </article>
             ))}
           </div>
+
+          <div className={styles.entryHeader}>
+            <p className={styles.kicker}>Mapped Entries</p>
+            <span>{supportingEntries.length.toString().padStart(2, "0")} records</span>
+          </div>
           <div className={styles.entryGrid}>
-            {archiveEntries.map((entry) => (
+            {supportingEntries.map((entry) => (
               <JournalArticleCard key={entry.id} entry={entry} />
             ))}
           </div>
-        </section>
-
-        <section className={styles.memoryMap} aria-label="Memory map">
-          <div>
-            <p className={styles.kicker}>Memory Bank</p>
-            <h2>The archive should learn with the system.</h2>
-          </div>
-          <p>
-            The next step is to connect the daily research snapshots to weekly and monthly summaries.
-            The journal then becomes more than storage: it becomes a way to see how AI, energy,
-            robotics, XR, materials, space, and operational practice are moving over time.
-          </p>
         </section>
       </main>
       <Footer />

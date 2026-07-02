@@ -6,22 +6,34 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import type { ThreeEvent } from "@react-three/fiber";
 import { Mesh, MeshPhysicalMaterial, Object3D } from "three";
 import type { Group } from "three";
+import type { JournalSense } from "@/lib/journal-data";
 import styles from "./BrainAtlas.module.css";
 
 const BRAIN_MODEL_PATH = "/models/brain-atlas.glb";
 
-type BrainRegion = {
-  id: string;
+export type BrainRegionId =
+  | "prefrontal"
+  | "premotor"
+  | "somatosensory"
+  | "visual"
+  | "temporal"
+  | "hippocampus"
+  | "amygdala";
+
+export type BrainRegion = {
+  id: BrainRegionId;
   label: string;
   area: string;
   role: string;
   centariUse: string;
   evidence: string[];
+  journalSenses: JournalSense[];
+  archiveRole: string;
   position: [number, number, number];
   scale: [number, number, number];
 };
 
-const brainRegions: BrainRegion[] = [
+export const brainRegions: BrainRegion[] = [
   {
     id: "prefrontal",
     label: "Prefrontal cortex",
@@ -30,6 +42,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "Useful when we study command interfaces, prioritisation, and how teams choose the next action under uncertainty.",
     evidence: ["decision stress", "task switching", "confidence"],
+    journalSenses: ["Decision"],
+    archiveRole: "Decision notes, prioritisation, cognitive load, planning methods, and judgement under uncertainty.",
     position: [-0.82, 0.26, 0.78],
     scale: [0.28, 0.32, 0.22],
   },
@@ -41,6 +55,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "Important for spatial training, rehearsal, and interfaces where seeing something should make the right action easier.",
     evidence: ["rehearsal", "tool use", "procedural learning"],
+    journalSenses: ["Space", "Decision"],
+    archiveRole: "Training loops, action rehearsal, procedural learning, and transitions from seeing to doing.",
     position: [-0.32, 0.62, 0.78],
     scale: [0.24, 0.3, 0.2],
   },
@@ -52,6 +68,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "Guides notes on haptics, gloves, fatigue, field conditions, and when physical reality beats simulation.",
     evidence: ["haptics", "field friction", "physical feedback"],
+    journalSenses: ["Touch"],
+    archiveRole: "Haptics, fatigue, gloves, weather, hardware limits, and lessons from physical work.",
     position: [0.08, 0.6, 0.78],
     scale: [0.24, 0.3, 0.2],
   },
@@ -63,6 +81,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "Connects to dashboards, maps, 3D views, and the question of when information becomes easier to understand by seeing it.",
     evidence: ["maps", "pattern detection", "visual load"],
+    journalSenses: ["Sight", "Space"],
+    archiveRole: "Maps, visual hierarchy, dashboards, 3D comprehension, pattern recognition, and visual overload.",
     position: [0.86, 0.18, 0.74],
     scale: [0.3, 0.32, 0.22],
   },
@@ -74,6 +94,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "A home for notes on alerts, radio, speech, rhythm, signal recognition, and sonic interfaces.",
     evidence: ["audio cues", "language", "signal timing"],
+    journalSenses: ["Sound"],
+    archiveRole: "Voice, radio, alerts, rhythm, interface sound, language, and signals that unfold over time.",
     position: [0.42, -0.38, 0.8],
     scale: [0.28, 0.22, 0.2],
   },
@@ -85,6 +107,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "This is the core of the Memory Bank: what we keep, where it belongs, and why people can find it again.",
     evidence: ["spatial memory", "story recall", "return paths"],
+    journalSenses: ["Memory", "Space"],
+    archiveRole: "Memory bank, spatial stories, reference paths, lessons worth returning to, and long-horizon signals.",
     position: [0.04, -0.12, 0.96],
     scale: [0.22, 0.16, 0.16],
   },
@@ -96,6 +120,8 @@ const brainRegions: BrainRegion[] = [
     centariUse:
       "Useful for research on stress, fear, alarms, risk perception, and why people behave differently under pressure.",
     evidence: ["stress", "fear response", "attention capture"],
+    journalSenses: ["Decision", "Memory"],
+    archiveRole: "Stress, fear, threat perception, alarm design, risk salience, and behaviour under pressure.",
     position: [-0.18, -0.22, 0.98],
     scale: [0.18, 0.15, 0.14],
   },
@@ -117,9 +143,20 @@ function meshBelongsToRegion(name: string, regionId: string) {
   return regionMeshMatchers[regionId]?.some((part) => normalized.includes(part)) ?? false;
 }
 
-export function BrainAtlas() {
-  const [activeId, setActiveId] = useState(brainRegions[0].id);
+export function BrainAtlas({
+  selectedId,
+  onRegionChange,
+}: {
+  selectedId?: BrainRegionId;
+  onRegionChange?: (id: BrainRegionId) => void;
+}) {
+  const [internalActiveId, setInternalActiveId] = useState<BrainRegionId>(brainRegions[0].id);
+  const activeId = selectedId ?? internalActiveId;
   const activeRegion = brainRegions.find((region) => region.id === activeId) ?? brainRegions[0];
+  const selectRegion = (id: BrainRegionId) => {
+    setInternalActiveId(id);
+    onRegionChange?.(id);
+  };
 
   return (
     <div className={styles.atlas}>
@@ -133,7 +170,7 @@ export function BrainAtlas() {
           <ambientLight intensity={0.8} />
           <pointLight color="#9befff" intensity={24} position={[-2.5, 2.8, 3.4]} />
           <pointLight color="#2aa7ff" intensity={12} position={[2.6, -1.4, 2.2]} />
-          <BrainModel activeId={activeId} onSelect={setActiveId} />
+          <BrainModel activeId={activeId} onSelect={selectRegion} />
           <OrbitControls
             autoRotate
             autoRotateSpeed={0.42}
@@ -143,6 +180,19 @@ export function BrainAtlas() {
             minDistance={4.6}
           />
         </Canvas>
+        <div className={styles.regionControls} aria-label="Brain regions">
+          {brainRegions.map((region) => (
+            <button
+              key={region.id}
+              type="button"
+              className={region.id === activeId ? styles.regionActive : ""}
+              onClick={() => selectRegion(region.id)}
+            >
+              <span>{region.area}</span>
+              {region.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <aside className={styles.panel} aria-live="polite">
@@ -153,6 +203,10 @@ export function BrainAtlas() {
         <div className={styles.useCase}>
           <strong>Centari lens</strong>
           <p>{activeRegion.centariUse}</p>
+        </div>
+        <div className={styles.useCase}>
+          <strong>Journal role</strong>
+          <p>{activeRegion.archiveRole}</p>
         </div>
         <div className={styles.evidence}>
           {activeRegion.evidence.map((item) => (
@@ -169,7 +223,7 @@ function BrainModel({
   onSelect,
 }: {
   activeId: string;
-  onSelect: (id: string) => void;
+  onSelect: (id: BrainRegionId) => void;
 }) {
   const groupRef = useRef<Group>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);

@@ -3095,6 +3095,11 @@ export default function ResearchPage() {
                 <span>Rotating globe / strategic signal layer</span>
                 <span>{filteredSignals.length} signals / {visibleEarthquakes.length} seismic / {visibleFireballs.length} airbursts / {visibleCyberattacks.length} cyber arcs / {visibleResilienceEvents.length} earth layers</span>
               </div>
+              <div className={styles.fullscreenHud} aria-hidden={!mapFullscreen}>
+                <p className={styles.kicker}>Centari Research Map</p>
+                <h2>Where the task is changing</h2>
+                <span>{filteredSignals.length} signals / {visibleEarthquakes.length} seismic / {visibleCyberattacks.length} cyber arcs</span>
+              </div>
               <button
                 type="button"
                 className={styles.fullscreenButton}
@@ -3138,6 +3143,90 @@ export default function ResearchPage() {
                   onClose={() => setActiveSpyRadioId(null)}
                 />
               ) : null}
+              <article className={styles.fullscreenDetail} aria-live="polite" aria-hidden={!mapFullscreen}>
+                {selectedEarthLayer ? (
+                  <>
+                    <div className={styles.cardMeta}>
+                      <span>
+                        {selectedEarthLayer.type === "earthquake" ? "Seismic anomaly" : null}
+                        {selectedEarthLayer.type === "buoy" ? "Ocean buoy" : null}
+                        {selectedEarthLayer.type === "asteroid" ? "Close pass" : null}
+                        {selectedEarthLayer.type === "spaceweather" ? "Geomagnetic field" : null}
+                        {selectedEarthLayer.type === "launch" ? "Launch window" : null}
+                        {selectedEarthLayer.type === "fireball" ? "Atmospheric airburst" : null}
+                        {selectedEarthLayer.type === "uap" ? "Declassified UAP" : null}
+                        {selectedEarthLayer.type === "cyberattack" ? "Cyber source telemetry" : null}
+                        {selectedEarthLayer.type === "resilience" ? resilienceLayerMeta[selectedEarthLayer.item.layer].label : null}
+                      </span>
+                      <span>
+                        {selectedEarthLayer.type === "resilience"
+                          ? getLayerStatusLabel(selectedEarthLayer.item.sourceMode)
+                          : earthLayerTimestamp
+                            ? new Date(earthLayerTimestamp).toLocaleTimeString("en-GB")
+                            : "live"}
+                      </span>
+                    </div>
+                    <h2>
+                      {selectedEarthLayer.type === "earthquake" ? selectedEarthLayer.item.title : null}
+                      {selectedEarthLayer.type === "buoy" ? `Buoy ${selectedEarthLayer.item.id}` : null}
+                      {selectedEarthLayer.type === "asteroid" ? selectedEarthLayer.item.name : null}
+                      {selectedEarthLayer.type === "spaceweather" ? selectedEarthLayer.item.condition : null}
+                      {selectedEarthLayer.type === "launch" ? selectedEarthLayer.item.name : null}
+                      {selectedEarthLayer.type === "fireball" ? "Atmospheric airburst" : null}
+                      {selectedEarthLayer.type === "uap" ? selectedEarthLayer.item.title : null}
+                      {selectedEarthLayer.type === "cyberattack" ? selectedEarthLayer.item.type : null}
+                      {selectedEarthLayer.type === "resilience" ? selectedEarthLayer.item.title : null}
+                    </h2>
+                    <p className={styles.location}>
+                      {selectedEarthLayer.type === "earthquake" ? selectedEarthLayer.item.place : null}
+                      {selectedEarthLayer.type === "buoy" ? "Open ocean observation / NOAA NDBC" : null}
+                      {selectedEarthLayer.type === "asteroid" ? `Close approach / ${selectedEarthLayer.item.close_approach_date}` : null}
+                      {selectedEarthLayer.type === "spaceweather" ? "NOAA SWPC / Kp index" : null}
+                      {selectedEarthLayer.type === "launch" ? `${selectedEarthLayer.item.pad.name} / ${selectedEarthLayer.item.pad.location}` : null}
+                      {selectedEarthLayer.type === "fireball" ? `NASA CNEOS / ${selectedEarthLayer.item.timestamp}` : null}
+                      {selectedEarthLayer.type === "uap" ? selectedEarthLayer.item.location : null}
+                      {selectedEarthLayer.type === "cyberattack" ? `${selectedEarthLayer.item.source.city}, ${selectedEarthLayer.item.source.country}` : null}
+                      {selectedEarthLayer.type === "resilience" ? selectedEarthLayer.item.subtitle : null}
+                    </p>
+                    <p>
+                      {selectedEarthLayer.type === "earthquake"
+                        ? `Magnitude ${selectedEarthLayer.item.magnitude.toFixed(1)} at ${selectedEarthLayer.item.coordinates.depth_km.toFixed(1)} km depth.`
+                        : null}
+                      {selectedEarthLayer.type === "buoy"
+                        ? "Live marine conditions from an offshore station. Markers bob using reported wave height."
+                        : null}
+                      {selectedEarthLayer.type === "asteroid"
+                        ? "Near-Earth object passing inside the active JPL monitor window. Orbit is spatialised for proximity, not exact trajectory."
+                        : null}
+                      {selectedEarthLayer.type === "spaceweather"
+                        ? "The shield around the globe reflects current geomagnetic disturbance and satellite communication risk."
+                        : null}
+                      {selectedEarthLayer.type === "launch"
+                        ? selectedEarthLayer.item.mission_description ?? "Upcoming launch window from the public Launch Library feed."
+                        : null}
+                      {selectedEarthLayer.type === "fireball"
+                        ? "Sensor-detected bolide burst in the atmosphere. Position marks atmospheric explosion, not surface impact."
+                        : null}
+                      {selectedEarthLayer.type === "uap" ? selectedEarthLayer.item.description : null}
+                      {selectedEarthLayer.type === "cyberattack"
+                        ? "Aggregate DShield top-source telemetry. Arc endpoint is a sensor-mesh visualisation, not a confirmed victim."
+                        : null}
+                      {selectedEarthLayer.type === "resilience" ? selectedEarthLayer.item.description : null}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className={styles.cardMeta}>
+                      <span>{selectedSignal.id}</span>
+                      <span>{selectedSignal.category}</span>
+                      <span>{selectedSignal.momentum}</span>
+                    </div>
+                    <h2>{selectedSignal.title}</h2>
+                    <p className={styles.location}>{selectedSignal.location} / {selectedSignal.region}</p>
+                    <p>{selectedSignal.summary}</p>
+                  </>
+                )}
+              </article>
             </div>
           </div>
 

@@ -213,7 +213,7 @@
 
 .mapFullscreen {
   position: fixed;
-  z-index: 80;
+  z-index: 140;
   inset: 0;
   min-height: 100vh;
   border: 0;
@@ -253,6 +253,13 @@
   text-transform: uppercase;
 }
 
+.mapFullscreen .mapStatus,
+.mapSurface:fullscreen .mapStatus,
+.mapFullscreen .dataStatus,
+.mapSurface:fullscreen .dataStatus {
+  display: none;
+}
+
 .fullscreenButton {
   position: absolute;
   z-index: 7;
@@ -276,6 +283,79 @@
 .fullscreenButton:hover {
   border-color: rgba(233, 229, 223, 0.72);
   color: #fff6e6;
+}
+
+.fullscreenHud,
+.fullscreenDetail {
+  display: none;
+}
+
+.mapFullscreen .fullscreenHud,
+.mapSurface:fullscreen .fullscreenHud {
+  position: absolute;
+  z-index: 8;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: block;
+  max-width: min(560px, calc(100% - 260px));
+  pointer-events: none;
+}
+
+.fullscreenHud .kicker {
+  margin-bottom: var(--space-2);
+}
+
+.fullscreenHud h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(2.2rem, 4.2vw, 5.8rem);
+  font-weight: 300;
+  line-height: 0.92;
+}
+
+.fullscreenHud span {
+  display: block;
+  margin-top: var(--space-3);
+  color: rgba(233, 229, 223, 0.58);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mapFullscreen .fullscreenDetail,
+.mapSurface:fullscreen .fullscreenDetail {
+  position: absolute;
+  z-index: 8;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: block;
+  width: min(430px, calc(100% - var(--space-8)));
+  max-height: min(560px, calc(100vh - 170px));
+  overflow: auto;
+  border: 1px solid rgba(168, 138, 90, 0.32);
+  background:
+    linear-gradient(180deg, rgba(24, 28, 27, 0.88), rgba(4, 6, 6, 0.94)),
+    rgba(8, 10, 10, 0.86);
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(233, 229, 223, 0.05);
+  color: #bdb6ab;
+  padding: var(--space-5);
+  pointer-events: auto;
+}
+
+.fullscreenDetail h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.6rem, 2.2vw, 2.45rem);
+  font-weight: 300;
+  line-height: 1.05;
+}
+
+.fullscreenDetail p {
+  color: #bdb6ab;
+  line-height: 1.55;
 }
 
 .dataStatus {
@@ -859,6 +939,20 @@
 
   .mapStatus {
     display: none;
+  }
+
+  .mapFullscreen .fullscreenHud,
+  .mapSurface:fullscreen .fullscreenHud {
+    max-width: calc(100% - var(--space-8));
+  }
+
+  .mapFullscreen .fullscreenDetail,
+  .mapSurface:fullscreen .fullscreenDetail {
+    right: var(--space-3);
+    bottom: var(--space-3);
+    width: calc(100% - var(--space-6));
+    max-height: 42vh;
+    padding: var(--space-4);
   }
 
   .dataStatus {

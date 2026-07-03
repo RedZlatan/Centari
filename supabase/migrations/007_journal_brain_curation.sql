@@ -101,6 +101,12 @@ CREATE POLICY "anon_read_signal_brain_regions" ON signal_brain_regions
     FOR SELECT
     TO anon, authenticated
     USING (true);
+DROP POLICY IF EXISTS "service_write_signal_brain_regions" ON signal_brain_regions;
+CREATE POLICY "service_write_signal_brain_regions" ON signal_brain_regions
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
 
 ALTER TABLE journal_saved_signals ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "anon_read_journal_saved_signals" ON journal_saved_signals;
@@ -108,6 +114,12 @@ CREATE POLICY "anon_read_journal_saved_signals" ON journal_saved_signals
     FOR SELECT
     TO anon, authenticated
     USING (true);
+DROP POLICY IF EXISTS "service_write_journal_saved_signals" ON journal_saved_signals;
+CREATE POLICY "service_write_journal_saved_signals" ON journal_saved_signals
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
 
 ALTER TABLE brain_region_snapshots ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "anon_read_brain_region_snapshots" ON brain_region_snapshots;
@@ -115,3 +127,9 @@ CREATE POLICY "anon_read_brain_region_snapshots" ON brain_region_snapshots
     FOR SELECT
     TO anon, authenticated
     USING (true);
+DROP POLICY IF EXISTS "service_write_brain_region_snapshots" ON brain_region_snapshots;
+CREATE POLICY "service_write_brain_region_snapshots" ON brain_region_snapshots
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);

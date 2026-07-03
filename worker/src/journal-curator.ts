@@ -234,7 +234,8 @@ function recencyScore(signal: SignalRow, now: Date) {
 }
 
 function editorialScore(signal: SignalRow, now: Date) {
-  const strength = (signal.signal_strength ?? 0) / 10;
+  const rawStrength = signal.signal_strength ?? 0;
+  const strength = rawStrength > 1 ? rawStrength / 10 : rawStrength;
   const curator = signal.curator_score ? signal.curator_score / 10 : 0;
   const novelty = signal.novelty_score ?? 0;
   const momentum = signal.momentum_score ?? 0;

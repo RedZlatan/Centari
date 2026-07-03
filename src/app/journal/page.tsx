@@ -1,14 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  BrainAtlas,
-  brainRegions,
-  type BrainRegionId,
-} from "@/components/journal/BrainAtlas";
+import { BrainAtlas } from "@/components/journal/BrainAtlas";
 import { JournalArticleCard } from "@/components/journal/JournalArticleCard";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { brainRegions, type BrainRegionId } from "@/lib/brain-regions";
 import { journalEntries, journalEntryTypes } from "@/lib/journal-data";
 import styles from "./journal.module.css";
 

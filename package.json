@@ -22,7 +22,9 @@
     "worker:snapshot:daily": "tsx worker/src/snapshots.ts --period=daily",
     "worker:snapshot:weekly": "tsx worker/src/snapshots.ts --period=weekly",
     "worker:snapshot:monthly": "tsx worker/src/snapshots.ts --period=monthly",
-    "worker:snapshot:dry": "tsx worker/src/snapshots.ts --period=daily --dry-run"
+    "worker:snapshot:dry": "tsx worker/src/snapshots.ts --period=daily --dry-run",
+    "worker:journal": "tsx worker/src/journal-curator.ts --period=daily",
+    "worker:journal:dry": "tsx worker/src/journal-curator.ts --period=daily --dry-run"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

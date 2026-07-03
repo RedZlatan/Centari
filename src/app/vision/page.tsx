@@ -12,11 +12,11 @@ import styles from "./workspace.module.css";
 const KEY_ROWS = ["QWERTYUIOPÅ", "ASDFGHJKLÄÖ", "ZXCVBNM"];
 const PAPER_LIMIT = 420;
 const SPAWN_POSITION = new Vector3(0, 1.42, 7.8);
-const TYPEWRITER_POSITION = new Vector3(0, -0.36, 0);
+const TYPEWRITER_POSITION = new Vector3(0, -0.58, 0);
 const TYPEWRITER_LOOK_AT = new Vector3(0, 0.68, -0.18);
-const WRITING_CAMERA_POSITION = new Vector3(0.03, 1.72, 2.58);
-const WRITING_LOOK_AT = new Vector3(0, 0.94, -0.2);
-const PAPER_WORLD_POSITION = new Vector3(0.02, 1.05, -0.48);
+const WRITING_CAMERA_POSITION = new Vector3(0.03, 1.86, 2.72);
+const WRITING_LOOK_AT = new Vector3(0, 1.08, -0.24);
+const PAPER_WORLD_POSITION = new Vector3(0.02, 0.83, -0.48);
 const TYPEWRITER_MODEL_PATH = "/models/typewriter-lite.glb";
 const AUDIO_SOURCES = {
   backspace: "/audio/typewriter-backspace-click.mp3",

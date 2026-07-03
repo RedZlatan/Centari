@@ -1,25 +1,25 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type { Group, Mesh } from "three";
 import { MathUtils } from "three";
 import styles from "./MonolithPrototype.module.css";
 
 const categories = [
-  "Planning",
-  "Simulation",
-  "Operational workflow",
-  "Data analysis",
-  "Validation",
+  { value: "training-operations", label: "Planning" },
+  { value: "xr-simulation", label: "Simulation" },
+  { value: "infrastructure", label: "Operational workflow" },
+  { value: "data-intelligence", label: "Data analysis" },
+  { value: "research-development", label: "Validation" },
 ];
 
 const valueRanges = [
-  "Under €50k",
-  "€50k–€250k",
-  "€250k–€1m",
-  "€1m+",
-  "Unknown",
+  { value: "under-50k", label: "Under €50k" },
+  { value: "50k-250k", label: "€50k–€250k" },
+  { value: "250k-1m", label: "€250k–€1m" },
+  { value: "over-1m", label: "€1m+" },
+  { value: "unknown", label: "Unknown" },
 ];
 
 function useSectionProgress(sectionRef: React.RefObject<HTMLElement | null>) {
@@ -201,13 +201,52 @@ function FieldScene({ progress }: { progress: number }) {
 export function MonolithPrototype() {
   const sectionRef = useRef<HTMLElement>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [reference, setReference] = useState("CT-PB-0317");
   const progress = useSectionProgress(sectionRef);
-  const reference = useMemo(() => "CT-PB-0317", []);
   const inside = progress > 0.72;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      title: String(form.get("title") ?? ""),
+      description: String(form.get("description") ?? ""),
+      category: String(form.get("category") ?? ""),
+      estimated_value: String(form.get("estimated_value") ?? "") || undefined,
+      visibility: String(form.get("visibility") ?? "private"),
+      name: String(form.get("name") ?? "") || undefined,
+      email: String(form.get("email") ?? "") || undefined,
+    };
+
+    try {
+      const response = await fetch("/api/problem-submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        success?: boolean;
+        id?: string;
+        message?: string;
+      } | null;
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message ?? "Could not save the problem.");
+      }
+
+      setReference(result.id ? `CT-${result.id.slice(0, 8).toUpperCase()}` : "CT-PB-0317");
+      setSubmitted(true);
+      event.currentTarget.reset();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Could not save the problem.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -235,11 +274,10 @@ export function MonolithPrototype() {
         <div className={`${styles.problemInterface} ${inside ? styles.interfaceVisible : ""}`}>
           {submitted ? (
             <div className={styles.submittedState} role="status">
-              <p className={styles.kicker}>Mock submit state</p>
-                <h3>Problem registered.</h3>
-                <p>
-                Reference <strong>{reference}</strong> has been created for review.
-                No data was sent or stored.
+              <p className={styles.kicker}>Problem intake</p>
+              <h3>Problem registered.</h3>
+              <p>
+                Reference <strong>{reference}</strong> has been saved for review.
               </p>
               <button type="button" onClick={() => setSubmitted(false)}>
                 Submit another problem
@@ -270,18 +308,22 @@ export function MonolithPrototype() {
               <div className={styles.twoColumn}>
                 <label className={styles.field}>
                   <span>Category</span>
-                  <select name="category" defaultValue={categories[0]}>
+                  <select name="category" defaultValue={categories[0].value}>
                     {categories.map((category) => (
-                      <option key={category}>{category}</option>
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
                     ))}
                   </select>
                 </label>
 
                 <label className={styles.field}>
                   <span>Estimated scale</span>
-                  <select name="value" defaultValue={valueRanges[2]}>
+                  <select name="estimated_value" defaultValue={valueRanges[2].value}>
                     {valueRanges.map((range) => (
-                      <option key={range}>{range}</option>
+                      <option key={range.value} value={range.value}>
+                        {range.label}
+                      </option>
                     ))}
                   </select>
                 </label>
@@ -311,8 +353,10 @@ export function MonolithPrototype() {
                 </label>
               </div>
 
-              <button className={styles.submit} type="submit">
-                Submit problem
+              {submitError ? <p className={styles.errorMessage}>{submitError}</p> : null}
+
+              <button className={styles.submit} type="submit" disabled={submitting}>
+                {submitting ? "Submitting..." : "Submit problem"}
               </button>
             </form>
           )}

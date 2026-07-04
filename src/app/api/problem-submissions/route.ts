@@ -126,7 +126,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const errors = validate(body);
   if (Object.keys(errors).length > 0) {
-    return NextResponse.json({ success: false, errors }, { status: 400 });
+    return NextResponse.json(
+      { success: false, message: Object.values(errors)[0], errors },
+      { status: 400 }
+    );
   }
 
   let supabase;

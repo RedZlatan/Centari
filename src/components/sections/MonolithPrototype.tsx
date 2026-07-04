@@ -233,10 +233,12 @@ export function MonolithPrototype() {
         success?: boolean;
         id?: string;
         message?: string;
+        errors?: Record<string, string>;
       } | null;
 
       if (!response.ok || !result?.success) {
-        throw new Error(result?.message ?? "Could not save the problem.");
+        const fieldErrors = result?.errors ? Object.values(result.errors) : [];
+        throw new Error(result?.message ?? fieldErrors[0] ?? "Could not save the problem.");
       }
 
       setReference(result.id ? `CT-${result.id.slice(0, 8).toUpperCase()}` : "CT-PB-0317");
@@ -292,7 +294,14 @@ export function MonolithPrototype() {
 
               <label className={styles.field}>
                 <span>Problem title</span>
-                <input name="title" type="text" required placeholder="What needs to be understood or tested?" />
+                <input
+                  name="title"
+                  type="text"
+                  required
+                  minLength={5}
+                  maxLength={200}
+                  placeholder="What needs to be understood or tested?"
+                />
               </label>
 
               <label className={styles.field}>
@@ -300,6 +309,8 @@ export function MonolithPrototype() {
                 <textarea
                   name="description"
                   required
+                  minLength={20}
+                  maxLength={5000}
                   rows={4}
                   placeholder="Describe the people, environment, constraints and current bottleneck."
                 />

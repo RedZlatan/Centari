@@ -24,6 +24,13 @@ function safeNextPath(request: NextRequest): string {
   return `${request.nextUrl.pathname}${request.nextUrl.search}`;
 }
 
+function publicUrl(pathname: string, request: NextRequest): URL {
+  const host = request.headers.get("host") ?? request.nextUrl.host;
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+
+  return new URL(pathname, `${proto}://${host}`);
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const authenticated = isAuthenticated(request);
@@ -46,7 +53,7 @@ export function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/control-room")) {
     if (!authenticated) {
-      const loginUrl = new URL("/admin/login", request.url);
+      const loginUrl = publicUrl("/admin/login", request);
       loginUrl.searchParams.set("next", safeNextPath(request));
       return withSecurityHeaders(NextResponse.redirect(loginUrl));
     }
